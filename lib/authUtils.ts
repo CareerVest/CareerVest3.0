@@ -22,6 +22,11 @@ export const msalConfig = {
       },
       piiLoggingEnabled: false,
     },
+    // Better token management
+    allowRedirectInIframe: true,
+    iframeHashTimeout: 6000,
+    loadFrameTimeout: 0,
+    asyncPopups: true,
   },
 };
 

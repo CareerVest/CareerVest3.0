@@ -12,6 +12,7 @@ import { AccountInfo, InteractionRequiredAuthError } from "@azure/msal-browser";
 import { msalInstance, tokenRequest } from "../lib/authUtils";
 import { jwtDecode } from "jwt-decode";
 import { useRouter } from "next/navigation";
+import { setAxiosGetToken } from "../lib/axiosInstance";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -37,6 +38,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   let tokenRefreshPromise: Promise<string | null> | null = null;
+
+  // Session timeout configuration (30 minutes)
+  const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+  const TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // Refresh token 5 minutes before expiry
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -125,8 +130,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     if (token) {
       const decoded: any = jwtDecode(token);
-      if (decoded.exp > Date.now() / 1000) {
+      const currentTime = Date.now() / 1000;
+      const timeUntilExpiry = decoded.exp - currentTime;
+
+      // If token is still valid and not close to expiry, return it
+      if (timeUntilExpiry > TOKEN_REFRESH_THRESHOLD / 1000) {
         return token;
+      }
+
+      // If token is close to expiry, refresh it proactively
+      if (timeUntilExpiry > 0) {
+        console.log("🔹 Token expiring soon, refreshing proactively...");
       }
     }
 
@@ -139,8 +153,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         const newToken = await acquireTokenSilently(user);
         setToken(newToken);
         extractRoles(newToken);
+        console.log("🔹 Token refreshed successfully");
         return newToken;
       } catch (err) {
+        console.error("🔸 Token refresh failed:", err);
         setIsAuthenticated(false);
         setUser(null);
         setToken(null);
@@ -154,6 +170,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     return tokenRefreshPromise;
   }, [isInitialized, isAuthenticated, user, token, router]);
+
+  // Set the axios token getter
+  useEffect(() => {
+    setAxiosGetToken(getToken);
+  }, [getToken]);
 
   const login = useCallback(async (): Promise<boolean> => {
     try {
@@ -209,6 +230,54 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     },
     [router]
   );
+
+  // Activity monitoring to prevent false inactivity warnings
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let lastActivity = Date.now();
+    let activityTimeout: NodeJS.Timeout;
+
+    const updateActivity = () => {
+      lastActivity = Date.now();
+    };
+
+    const checkActivity = () => {
+      const timeSinceLastActivity = Date.now() - lastActivity;
+      if (timeSinceLastActivity > SESSION_TIMEOUT) {
+        console.log("🔸 Session timeout due to inactivity");
+        logout();
+      } else {
+        // Schedule next check
+        activityTimeout = setTimeout(checkActivity, 60000); // Check every minute
+      }
+    };
+
+    // Track user activity
+    const events = [
+      "mousedown",
+      "mousemove",
+      "keypress",
+      "scroll",
+      "touchstart",
+      "click",
+    ];
+    events.forEach((event) => {
+      document.addEventListener(event, updateActivity, true);
+    });
+
+    // Start activity monitoring
+    activityTimeout = setTimeout(checkActivity, 60000);
+
+    return () => {
+      events.forEach((event) => {
+        document.removeEventListener(event, updateActivity, true);
+      });
+      if (activityTimeout) {
+        clearTimeout(activityTimeout);
+      }
+    };
+  }, [isAuthenticated, logout]);
 
   return (
     <AuthContext.Provider

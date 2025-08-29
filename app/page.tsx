@@ -53,7 +53,8 @@ export default function Home() {
       isInitialized &&
       (isAuthenticated || isFormAuthenticated || isFormAuth)
     ) {
-      console.log("✅ Main page - Authenticated, staying on dashboard");
+      console.log("✅ Main page - Authenticated, redirecting to dashboard");
+      router.replace("/dashboard");
     }
   }, [isAuthenticated, isFormAuthenticated, isInitialized, router]);
 
