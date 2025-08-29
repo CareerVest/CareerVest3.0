@@ -1374,17 +1374,10 @@ export default function CreateClientForm() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-4">
-          <Button variant="outline" onClick={handleBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Clients
-          </Button>
           <div>
             <h1 className="text-3xl font-semibold text-[#682A53]">
               Create New Client
             </h1>
-            <p className="text-gray-600">
-              Fill in all the required information to create a new client
-            </p>
           </div>
         </div>
       </div>

@@ -19,7 +19,6 @@ import {
   TableRow,
 } from "../../../components/ui/table";
 import {
-  Loader2,
   ArrowLeft,
   Eye,
   EyeOff,
@@ -30,6 +29,7 @@ import {
   FileText,
 } from "lucide-react";
 import { getClient } from "../actions/clientActions";
+import { useApiWithLoading } from "../../../lib/apiWithLoading";
 import type {
   ClientDetail,
   PaymentSchedule,
@@ -39,10 +39,10 @@ import permissions from "../../utils/permissions";
 
 export default function ClientView({ params }: { params: { id: string } }) {
   const [client, setClient] = useState<ClientDetail | null>(null);
-  const [loading, setLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { roles } = useAuth();
+  const { apiCall } = useApiWithLoading();
 
   const userRole =
     roles.length > 0
@@ -64,7 +64,9 @@ export default function ClientView({ params }: { params: { id: string } }) {
   useEffect(() => {
     const fetchClient = async () => {
       try {
-        const clientData = await getClient(Number(params.id));
+        const clientData = await apiCall(getClient(Number(params.id)), {
+          showLoading: true,
+        });
         if (clientData) {
           setClient(clientData);
         } else {
@@ -75,8 +77,6 @@ export default function ClientView({ params }: { params: { id: string } }) {
         alert(
           "Failed to load client data. Please try again or contact support."
         );
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -160,19 +160,6 @@ export default function ClientView({ params }: { params: { id: string } }) {
     (sum, payment) => sum + (payment.isPaid ? payment.amount || 0 : 0),
     0
   );
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-50vh w-full">
-        <div className="flex items-center space-x-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span className="text-sm text-muted-foreground">
-            Loading client...
-          </span>
-        </div>
-      </div>
-    );
-  }
 
   if (!client) {
     return (

@@ -13,6 +13,7 @@ const parseDate = (dateStr: string | null | undefined): Date | null => {
 export async function fetchClients(): Promise<ClientList[]> {
   try {
     const response = await axiosInstance.get("/api/v1/clients");
+    console.log("🔹 Raw API Response:", response.data);
     const clients = response.data?.$values || response.data;
     console.log("✅ Extracted Clients Array:", clients);
     return clients;

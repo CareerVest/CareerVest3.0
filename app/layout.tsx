@@ -3,13 +3,14 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "../contexts/authContext";
+import { LoadingProvider } from "../contexts/loadingContext";
+import GlobalSpinner from "../components/ui/globalSpinner";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "CareerVest - ShadCN Demo",
-  description:
-    "A beautiful Next.js project with shadcn/ui components and CareerVest branding",
+  title: "CareerVest",
+  description: "CareerVest Management System",
 };
 
 export default function RootLayout({
@@ -20,7 +21,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <LoadingProvider>
+            {children}
+            <GlobalSpinner />
+          </LoadingProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -1,30 +1,42 @@
 import axios from "axios";
 
-// Placeholder for getToken, set by AuthProvider
-let getToken: () => Promise<string | null> = async () => null;
-
-export const setAxiosGetToken = (tokenFn: () => Promise<string | null>) => {
-  getToken = tokenFn; // Called by AuthProvider to inject getToken
-};
-
+// Create axios instance
 const axiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "https://localhost:7070",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "https://localhost:7070",
+  timeout: 30000,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
+// Request interceptor
 axiosInstance.interceptors.request.use(
-  async (config) => {
-    const token = await getToken();
+  (config) => {
+    // Get token from localStorage
+    const token = localStorage.getItem("token");
     if (token) {
-      config.headers["Authorization"] = `Bearer ${token}`;
-    } else {
-      window.location.href = "/login";
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor
+axiosInstance.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // Handle 401 Unauthorized
+    if (error.response?.status === 401) {
+      localStorage.removeItem("token");
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
 );
 
 export default axiosInstance;

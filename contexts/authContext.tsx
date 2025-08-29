@@ -12,7 +12,6 @@ import { AccountInfo, InteractionRequiredAuthError } from "@azure/msal-browser";
 import { msalInstance, tokenRequest } from "../lib/authUtils";
 import { jwtDecode } from "jwt-decode";
 import { useRouter } from "next/navigation";
-import { setAxiosGetToken } from "../lib/axiosInstance";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -34,6 +33,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [user, setUser] = useState<AccountInfo | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [token, setToken] = useState<string | null>(null);
+
+  // Custom setToken function that also stores in localStorage
+  const setTokenWithStorage = useCallback((newToken: string | null) => {
+    setToken(newToken);
+    if (newToken) {
+      localStorage.setItem("token", newToken);
+    } else {
+      localStorage.removeItem("token");
+    }
+  }, []);
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -42,6 +51,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   // Session timeout configuration (30 minutes)
   const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
   const TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // Refresh token 5 minutes before expiry
+
+  // Initialize token from localStorage on mount
+  useEffect(() => {
+    const storedToken = localStorage.getItem("token");
+    if (storedToken) {
+      setToken(storedToken);
+    }
+  }, []);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -54,7 +71,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         const redirectResponse = await msalInstance.handleRedirectPromise();
         if (redirectResponse) {
           msalInstance.setActiveAccount(redirectResponse.account);
-          setToken(redirectResponse.accessToken);
+          setTokenWithStorage(redirectResponse.accessToken);
           setUser(redirectResponse.account);
           extractRoles(redirectResponse.accessToken);
           setIsAuthenticated(true);
@@ -71,14 +88,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
           try {
             const accessToken = await acquireTokenSilently(activeAccount);
-            setToken(accessToken);
+            setTokenWithStorage(accessToken);
             setUser(activeAccount);
             extractRoles(accessToken);
             setIsAuthenticated(true);
           } catch (tokenErr) {
             setIsAuthenticated(false);
             setUser(null);
-            setToken(null);
+            setTokenWithStorage(null);
             setRoles([]);
             setError("Failed to acquire token");
           }
@@ -151,7 +168,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     tokenRefreshPromise = (async () => {
       try {
         const newToken = await acquireTokenSilently(user);
-        setToken(newToken);
+        setTokenWithStorage(newToken);
         extractRoles(newToken);
         console.log("🔹 Token refreshed successfully");
         return newToken;
@@ -159,7 +176,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         console.error("🔸 Token refresh failed:", err);
         setIsAuthenticated(false);
         setUser(null);
-        setToken(null);
+        setTokenWithStorage(null);
         setRoles([]);
         router.push("/login");
         return null;
@@ -170,11 +187,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     return tokenRefreshPromise;
   }, [isInitialized, isAuthenticated, user, token, router]);
-
-  // Set the axios token getter
-  useEffect(() => {
-    setAxiosGetToken(getToken);
-  }, [getToken]);
 
   const login = useCallback(async (): Promise<boolean> => {
     try {
@@ -188,7 +200,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       const accessToken = await acquireTokenSilently(account);
 
       setUser(account);
-      setToken(accessToken);
+      setTokenWithStorage(accessToken);
       extractRoles(accessToken);
       setIsAuthenticated(true);
       setError(null);
@@ -220,7 +232,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
         setIsAuthenticated(false);
         setUser(null);
-        setToken(null);
+        setTokenWithStorage(null);
         setRoles([]);
         setError(null);
         router.push("/login");

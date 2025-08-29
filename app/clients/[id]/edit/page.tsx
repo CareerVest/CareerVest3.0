@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
 import { getClient } from "../../actions/clientActions";
+import { useApiWithLoading } from "../../../../lib/apiWithLoading";
 import type { ClientDetail } from "../../../types/Clients/ClientDetail";
 import { useAuth } from "../../../../contexts/authContext";
 import permissions from "../../../utils/permissions";
@@ -11,9 +11,9 @@ import EditClientForm from "../../components/EditClientForm";
 
 export default function EditClientPage({ params }: { params: { id: string } }) {
   const [client, setClient] = useState<ClientDetail | null>(null);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { roles } = useAuth();
+  const { apiCall } = useApiWithLoading();
 
   const userRole =
     roles.length > 0
@@ -35,7 +35,7 @@ export default function EditClientPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     const fetchClient = async () => {
       try {
-        const clientData = await getClient(Number(params.id));
+        const clientData = await apiCall(getClient(Number(params.id)), { showLoading: true });
         if (clientData) {
           setClient(clientData);
         } else {
@@ -45,8 +45,6 @@ export default function EditClientPage({ params }: { params: { id: string } }) {
       } catch (error) {
         console.error("Failed to fetch client:", error);
         router.push("/clients");
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -56,30 +54,25 @@ export default function EditClientPage({ params }: { params: { id: string } }) {
   const canEdit =
     !!permissions.clients[userRole]?.basicInfo.edit ||
     (typeof permissions.clients[userRole]?.marketingInfo.edit === "object"
-      ? Object.values(permissions.clients[userRole]?.marketingInfo.edit || {}).some(
-          (v) => v
-        )
+      ? Object.values(
+          permissions.clients[userRole]?.marketingInfo.edit || {}
+        ).some((v) => v)
       : !!permissions.clients[userRole]?.marketingInfo.edit) ||
     !!permissions.clients[userRole]?.subscriptionInfo.edit ||
     !!permissions.clients[userRole]?.postPlacementInfo.edit;
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-50vh w-full">
-        <div className="flex items-center space-x-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span className="text-sm text-muted-foreground">Loading client...</span>
-        </div>
-      </div>
-    );
-  }
+
 
   if (!client) {
     return (
       <div className="p-6">
         <div className="text-center">
-          <h2 className="text-2xl font-semibold text-gray-900">Client Not Found</h2>
-          <p className="text-gray-600 mt-2">The requested client could not be found.</p>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            Client Not Found
+          </h2>
+          <p className="text-gray-600 mt-2">
+            The requested client could not be found.
+          </p>
         </div>
       </div>
     );
@@ -89,8 +82,12 @@ export default function EditClientPage({ params }: { params: { id: string } }) {
     return (
       <div className="p-6">
         <div className="text-center">
-          <h2 className="text-2xl font-semibold text-gray-900">Access Denied</h2>
-          <p className="text-gray-600 mt-2">You don't have permission to edit this client.</p>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            Access Denied
+          </h2>
+          <p className="text-gray-600 mt-2">
+            You don't have permission to edit this client.
+          </p>
         </div>
       </div>
     );

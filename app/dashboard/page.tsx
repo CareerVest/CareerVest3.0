@@ -62,7 +62,6 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState(
     isAdmin ? "overview" : "interview-chains"
   );
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -78,7 +77,6 @@ export default function Dashboard() {
         }
       }
 
-      setLoading(true);
       try {
         // Simulate loading dashboard data
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -88,18 +86,18 @@ export default function Dashboard() {
         if (err.message.includes("token") || err.message.includes("login")) {
           router.push("/login");
         }
-      } finally {
-        setLoading(false);
       }
     };
 
     initializeDashboard();
   }, [isAuthenticated, isInitialized, login, router]);
 
-  if (!isInitialized || loading) {
+  if (!isInitialized) {
     return (
       <div className="flex justify-center items-center h-50vh w-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="text-center">
+          <span className="text-sm text-muted-foreground">Loading...</span>
+        </div>
       </div>
     );
   }

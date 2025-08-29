@@ -1,18 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import AddClientButton from "./components/AddClientButton";
-import type { ClientList as ClientListType } from "../types/Clients/ClientList";
-import { fetchClients } from "./actions/clientActions";
+import AddEmployeeButton from "./components/AddEmployeeButton";
+import type { EmployeeList as EmployeeListType } from "../types/employees/employeeList";
+import { fetchEmployees } from "./actions/employeeActions";
 import { useApiWithLoading } from "../../lib/apiWithLoading";
-import ClientList from "./components/ClientList";
+import EmployeeList from "@/app/employees/components/EmployeeList";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/authContext";
 
 import permissions from "../utils/permissions";
 
-export default function ClientsPage() {
-  const [clients, setClients] = useState<ClientListType[]>([]);
+export default function EmployeesPage() {
+  const [employees, setEmployees] = useState<EmployeeListType[]>([]);
   const { isAuthenticated, isInitialized, user, login, roles } = useAuth();
   const { apiCall } = useApiWithLoading();
   const router = useRouter();
@@ -23,8 +23,14 @@ export default function ClientsPage() {
         ? "Admin"
         : roles.includes("Sales_Executive")
         ? "Sales_Executive"
+        : roles.includes("Senior_Recruiter")
+        ? "Senior_Recruiter"
         : roles.includes("Recruiter")
         ? "Recruiter"
+        : roles.includes("Resume_Writer")
+        ? "Resume_Writer"
+        : roles.includes("Marketing_Manager")
+        ? "Marketing_Manager"
         : "default"
       : "default";
 
@@ -60,15 +66,14 @@ export default function ClientsPage() {
         }
       }
 
-      const loadClients = async () => {
+      const loadEmployees = async () => {
         try {
-          const fetchedClients = await apiCall(fetchClients(), {
+          const fetchedEmployees = await apiCall(fetchEmployees(), {
             showLoading: true,
           });
-          console.log("🔹 Clients Received:", fetchedClients);
-          setClients(fetchedClients);
+          setEmployees(fetchedEmployees);
         } catch (error) {
-          console.error("❌ Failed to fetch clients:", error);
+          console.error("❌ Failed to fetch employees:", error);
           if (
             error instanceof Error &&
             error.message.includes("Authentication required")
@@ -78,7 +83,7 @@ export default function ClientsPage() {
         }
       };
 
-      loadClients();
+      loadEmployees();
     };
 
     checkAuthAndLoad();
@@ -94,13 +99,25 @@ export default function ClientsPage() {
     );
   }
 
+  if (!permissions.employees[userRole]?.basicInfo?.view) {
+    return (
+      <div className="flex justify-center items-center h-50vh w-full">
+        <div className="text-center">
+          <h2 className="text-lg font-semibold text-red-600">
+            You do not have permission to view employees.
+          </h2>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-semibold text-[#682A53]">Clients</h1>
-        {permissions.clients[userRole]?.addClient && <AddClientButton />}
+        <h1 className="text-3xl font-semibold text-[#682A53]">Employees</h1>
+        {permissions.employees[userRole]?.addEmployee && <AddEmployeeButton />}
       </div>
-      <ClientList clients={clients} />
+      <EmployeeList employees={employees} />
     </div>
   );
 }
