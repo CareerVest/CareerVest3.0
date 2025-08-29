@@ -11,7 +11,8 @@ export default function EmployeesLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true); // Start collapsed by default
+  const [sidebarWidth, setSidebarWidth] = useState(80); // Default collapsed width
   const [userRole, setUserRole] = useState("Admin"); // Default to Admin for demo
 
   // Inactivity timeout hook
@@ -24,11 +25,11 @@ export default function EmployeesLayout({
         userRole={userRole}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
+        onWidthChange={setSidebarWidth}
       />
       <main
-        className={`flex-1 overflow-auto transition-all duration-300 ${
-          isCollapsed ? "ml-20" : "ml-70"
-        }`}
+        className="flex-1 overflow-auto transition-all duration-300"
+        style={{ marginLeft: `${sidebarWidth}px` }}
       >
         <div className="h-full">{children}</div>
       </main>

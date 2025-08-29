@@ -38,6 +38,7 @@ interface SidebarProps {
   userRole: string;
   isCollapsed: boolean;
   setIsCollapsed: (value: boolean) => void;
+  onWidthChange?: (width: number) => void;
 }
 
 const menuItems = [
@@ -118,6 +119,7 @@ export default function Sidebar({
   userRole,
   isCollapsed,
   setIsCollapsed,
+  onWidthChange,
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -125,6 +127,7 @@ export default function Sidebar({
   const [mounted, setMounted] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -132,6 +135,12 @@ export default function Sidebar({
       setUserData(user);
     }
   }, [user, userData]);
+
+  // Notify parent of width changes
+  useEffect(() => {
+    const effectiveWidth = isCollapsed && !isHovered ? 80 : 280; // 20 = 80px, 70 = 280px
+    onWidthChange?.(effectiveWidth);
+  }, [isCollapsed, isHovered, onWidthChange]);
 
   const handleLogoutClick = () => {
     setLogoutDialogOpen(true);
@@ -149,21 +158,27 @@ export default function Sidebar({
     <>
       <div
         className={cn(
-          "fixed left-0 top-0 h-full bg-[#682A53] text-white transition-all duration-300 ease-in-out z-50",
-          isCollapsed ? "w-20" : "w-70"
+          "fixed left-0 top-0 h-full bg-[#682A53] text-white transition-all duration-300 ease-in-out z-50 overflow-hidden shadow-lg",
+          isCollapsed && !isHovered ? "w-20" : "w-70"
         )}
+        onMouseEnter={() => isCollapsed && setIsHovered(true)}
+        onMouseLeave={() => isCollapsed && setIsHovered(false)}
       >
-        <div className="flex items-center justify-between p-4">
-          {!isCollapsed && (
-            <h1 className="text-xl font-semibold text-white">CareerVest</h1>
-          )}
+        <div className="flex items-center justify-between p-4 min-h-[72px]">
+          <div className="flex items-center flex-1">
+            {(!isCollapsed || isHovered) && (
+              <h1 className="text-xl font-semibold text-white transition-opacity duration-300">
+                CareerVest
+              </h1>
+            )}
+          </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-white hover:bg-white/10"
+            className="text-white hover:bg-white/10 flex-shrink-0"
           >
-            {isCollapsed ? (
+            {isCollapsed && !isHovered ? (
               <ChevronRight className="h-4 w-4" />
             ) : (
               <ChevronLeft className="h-4 w-4" />
@@ -172,23 +187,25 @@ export default function Sidebar({
         </div>
 
         <div className="px-4 py-6">
-          <div className="flex items-center mb-6">
-            <Avatar className="h-10 w-10 mr-3">
+          <div className="flex items-center mb-6 min-h-[60px]">
+            <Avatar className="h-10 w-10 mr-3 flex-shrink-0">
               <AvatarImage src="" />
               <AvatarFallback>
                 {userData?.name?.charAt(0) || "U"}
               </AvatarFallback>
             </Avatar>
-            {!isCollapsed && userData && (
-              <div>
-                <p className="text-sm font-medium text-white">
-                  {userData.name || "User"}
-                </p>
-                <p className="text-xs text-white/70">
-                  {userData.email || userData.username || "No email"}
-                </p>
-              </div>
-            )}
+            <div className="flex-1 min-w-0">
+              {(!isCollapsed || isHovered) && userData && (
+                <div className="transition-opacity duration-300">
+                  <p className="text-sm font-medium text-white truncate">
+                    {userData.name || "User"}
+                  </p>
+                  <p className="text-xs text-white/70 truncate">
+                    {userData.email || userData.username || "No email"}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -219,22 +236,31 @@ export default function Sidebar({
                     <Link
                       href={item.path}
                       className={cn(
-                        "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                        "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 min-h-[44px]",
                         isActive
                           ? "bg-[#FDC500]/20 text-[#FDC500]"
                           : "text-white hover:bg-white/10"
                       )}
-                      title={isCollapsed ? item.title : undefined}
+                      title={isCollapsed && !isHovered ? item.title : undefined}
                     >
                       <span
                         className={cn(
-                          "mr-3",
+                          "mr-3 flex-shrink-0",
                           isActive ? "text-[#FDC500]" : "text-white"
                         )}
                       >
                         <item.icon className="h-5 w-5" />
                       </span>
-                      {!isCollapsed && <span>{item.title}</span>}
+                      <span
+                        className={cn(
+                          "transition-opacity duration-300",
+                          !isCollapsed || isHovered
+                            ? "opacity-100"
+                            : "opacity-0"
+                        )}
+                      >
+                        {item.title}
+                      </span>
                     </Link>
                   </li>
                 );
@@ -245,11 +271,18 @@ export default function Sidebar({
               <Button
                 variant="ghost"
                 onClick={handleLogoutClick}
-                className="w-full justify-start text-white hover:bg-white/10"
-                title={isCollapsed ? "Logout" : undefined}
+                className="w-full justify-start text-white hover:bg-white/10 min-h-[44px]"
+                title={isCollapsed && !isHovered ? "Logout" : undefined}
               >
-                <LogOut className="h-5 w-5 mr-3" />
-                {!isCollapsed && <span>Logout</span>}
+                <LogOut className="h-5 w-5 mr-3 flex-shrink-0" />
+                <span
+                  className={cn(
+                    "transition-opacity duration-300",
+                    !isCollapsed || isHovered ? "opacity-100" : "opacity-0"
+                  )}
+                >
+                  Logout
+                </span>
               </Button>
             </li>
           </ul>

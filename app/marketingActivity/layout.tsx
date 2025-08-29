@@ -11,7 +11,8 @@ export default function MarketingActivityLayout({
   children: React.ReactNode;
 }) {
   const { user } = useAuth();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true); // Start collapsed by default
+  const [sidebarWidth, setSidebarWidth] = useState(80); // Default collapsed width
   const [userRole, setUserRole] = useState<string>("Admin"); // Default to Admin for demo
 
   useEffect(() => {
@@ -27,11 +28,11 @@ export default function MarketingActivityLayout({
         userRole={userRole}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
+        onWidthChange={setSidebarWidth}
       />
       <main
-        className={`flex-1 transition-all duration-300 ease-in-out ${
-          isCollapsed ? "ml-20" : "ml-70"
-        }`}
+        className="flex-1 transition-all duration-300 ease-in-out"
+        style={{ marginLeft: `${sidebarWidth}px` }}
       >
         <div className="h-full overflow-auto">{children}</div>
       </main>

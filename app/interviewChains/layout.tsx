@@ -13,7 +13,8 @@ export default function InterviewChainsLayout({
   children: React.ReactNode;
 }) {
   const { user } = useAuth();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true); // Start collapsed by default
+  const [sidebarWidth, setSidebarWidth] = useState(80); // Default collapsed width
   const [userRole, setUserRole] = useState<string>("Admin"); // Default to Admin for demo
 
   // Inactivity timeout hook
@@ -32,11 +33,11 @@ export default function InterviewChainsLayout({
         setIsCollapsed={setIsCollapsed}
         permissions={permissions}
         userRole={userRole}
+        onWidthChange={setSidebarWidth}
       />
       <main
-        className={`flex-1 overflow-auto transition-all duration-300 ${
-          isCollapsed ? "ml-20" : "ml-70"
-        }`}
+        className="flex-1 overflow-auto transition-all duration-300"
+        style={{ marginLeft: `${sidebarWidth}px` }}
       >
         <div className="h-full">{children}</div>
       </main>
