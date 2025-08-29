@@ -187,7 +187,7 @@ export function FilteredKanbanBoard({
         </div>
       ) : (
         <div className="space-y-3 sm:space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-1 sm:gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">
             {paginatedInterviews.map((interview) => (
               <InterviewCard
                 key={interview.interviewChainID}
@@ -198,7 +198,7 @@ export function FilteredKanbanBoard({
               />
             ))}
           </div>
-          
+
           {paginatedInterviews.length < sortedInterviews.length && (
             <div className="text-center mt-4 sm:mt-6">
               <Button

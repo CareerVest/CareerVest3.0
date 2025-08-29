@@ -74,7 +74,7 @@ export function StandupFilterBar({
       <Card className="mb-4 border border-gray-200 bg-transparent">
         <CardContent className="p-3 sm:p-4">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <div className="flex-1">
+            <div className="flex-[3]">
               <Input
                 type="text"
                 placeholder="Search interviews..."
@@ -84,7 +84,7 @@ export function StandupFilterBar({
                 aria-label="Search interviews"
               />
             </div>
-            <div className="flex-1">
+            <div className="flex-[1] min-w-[140px]">
               <Input
                 type="date"
                 value={filters.selectedDate?.format("YYYY-MM-DD") || ""}

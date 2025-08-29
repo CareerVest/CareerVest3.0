@@ -172,7 +172,7 @@ export function StandupKanbanBoard({
           <CardHeader className="pb-2 sm:pb-4">
             <div className="flex items-center justify-between mb-2 sm:mb-4">
               <h3 className="text-base sm:text-lg font-semibold text-[#682A53]">
-                Received Interviews
+                Received Interviews (Entered Today)
               </h3>
               <Badge className="bg-[#FDC500] text-[#682A53] text-xs sm:text-sm font-medium px-2 sm:px-4 py-1 rounded-full">
                 {todayStats?.received.total || 0}
@@ -245,7 +245,7 @@ export function StandupKanbanBoard({
                 No received interviews found.
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1 sm:gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
                 {paginatedReceivedInterviews.map((interview) => (
                   <InterviewCard
                     key={interview.interviewChainID}
@@ -277,7 +277,7 @@ export function StandupKanbanBoard({
           <CardHeader className="pb-2 sm:pb-4">
             <div className="flex items-center justify-between mb-2 sm:mb-4">
               <h3 className="text-base sm:text-lg font-semibold text-[#682A53]">
-                Scheduled Interviews
+                Scheduled Interviews (For Today)
               </h3>
               <Badge className="bg-[#FDC500] text-[#682A53] text-xs sm:text-sm font-medium px-2 sm:px-4 py-1 rounded-full">
                 {todayStats?.scheduled.total || 0}
@@ -350,7 +350,7 @@ export function StandupKanbanBoard({
                 No scheduled interviews found.
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1 sm:gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
                 {paginatedScheduledInterviews.map((interview) => (
                   <InterviewCard
                     key={interview.interviewChainID}

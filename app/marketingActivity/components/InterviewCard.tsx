@@ -56,71 +56,230 @@ export const InterviewCard = memo(function InterviewCard({
   // Check if interviewOutcome is "Pending Update"
   const isPendingUpdate = interview.interviewOutcome === "Pending Update";
 
+  // Check if this is standup mode
+  const isStandupMode = section === "received" || section === "scheduled";
+
   return (
     <>
       <Card
         ref={cardRef}
         onClick={handleCardClick}
         className={`cursor-pointer transition-all duration-200 hover:shadow-md border ${
-          activeInterviewId === interview.interviewChainID
+          isUrgent()
+            ? "border-red-500 bg-red-50"
+            : activeInterviewId === interview.interviewChainID
             ? "border-[#682A53] bg-[#FDC500]/10"
+            : isPendingUpdate
+            ? "border-red-300 bg-red-50"
             : "border-gray-200"
         } hover:border-[#682A53] hover:bg-[#FDC500]/5`}
         aria-label={`Interview card for ${interview.interviewType} - ${interview.clientName}`}
       >
-        <CardContent className="p-2 sm:p-3">
-          <div className="space-y-1 sm:space-y-2">
-            <div className="flex items-start justify-between gap-1">
+        <CardContent
+          className={`${isStandupMode ? "p-3 sm:p-4" : "p-4 sm:p-6"}`}
+        >
+          <div
+            className={`${
+              isStandupMode
+                ? "space-y-2 sm:space-y-3"
+                : "space-y-3 sm:space-y-4"
+            }`}
+          >
+            {/* Header with badges */}
+            <div className="flex items-start justify-between gap-2">
               <Badge className="bg-[#FDC500] text-[#682A53] text-xs font-medium rounded-lg">
                 {interview.interviewType || "Unknown"}
               </Badge>
-              {interview.interviewStatus === "Completed" && (
+              {isUrgent() && (
                 <Badge className="bg-red-500 text-white text-xs rounded-lg">
-                  Completed
+                  Upcoming in 1 hr
                 </Badge>
               )}
             </div>
 
-            <div className="space-y-1">
-              <p className="text-xs sm:text-sm font-semibold text-[#682A53] truncate">
-                {interview.clientName || "Unknown Client"}
+            {/* Client Information */}
+            <div className={`${isStandupMode ? "space-y-1.5" : "space-y-2"}`}>
+              <p
+                className={`${
+                  isStandupMode
+                    ? "text-sm sm:text-base"
+                    : "text-base sm:text-lg"
+                } font-semibold text-[#682A53] truncate`}
+              >
+                Client: {interview.clientName || "Unknown Client"}
               </p>
+              {interview.recruiterName && (
+                <p
+                  className={`${
+                    isStandupMode
+                      ? "text-xs sm:text-sm"
+                      : "text-sm sm:text-base"
+                  } text-gray-600 truncate`}
+                >
+                  <strong>Recruiter:</strong> {interview.recruiterName}
+                </p>
+              )}
               {interview.endClientName && (
-                <p className="text-xs text-gray-600 truncate">
-                  End Client: {interview.endClientName}
+                <p
+                  className={`${
+                    isStandupMode
+                      ? "text-xs sm:text-sm"
+                      : "text-sm sm:text-base"
+                  } text-gray-600 truncate whitespace-nowrap overflow-hidden`}
+                >
+                  <strong>End Client:</strong> {interview.endClientName}
                 </p>
               )}
               {interview.technology && (
-                <p className="text-xs text-gray-600 truncate">
-                  Tech: {interview.technology}
+                <p
+                  className={`${
+                    isStandupMode
+                      ? "text-xs sm:text-sm"
+                      : "text-sm sm:text-base"
+                  } text-gray-600 truncate`}
+                >
+                  <strong>Technology:</strong> {interview.technology}
                 </p>
               )}
             </div>
 
-            <div className="space-y-1">
+            {/* Interview Details */}
+            <div className={`${isStandupMode ? "space-y-1.5" : "space-y-2"}`}>
+              {interview.interviewStatus && (
+                <p
+                  className={`${
+                    isStandupMode
+                      ? "text-xs sm:text-sm"
+                      : "text-sm sm:text-base"
+                  } text-gray-600 truncate`}
+                >
+                  <strong>Status:</strong> {interview.interviewStatus}
+                </p>
+              )}
+              {interview.interviewOutcome && (
+                <p
+                  className={`${
+                    isStandupMode
+                      ? "text-xs sm:text-sm"
+                      : "text-sm sm:text-base"
+                  } text-gray-600 truncate`}
+                >
+                  <strong>Outcome:</strong> {interview.interviewOutcome}
+                </p>
+              )}
+              {interview.interviewEntryDate && (
+                <p
+                  className={`${
+                    isStandupMode
+                      ? "text-xs sm:text-sm"
+                      : "text-sm sm:text-base"
+                  } text-gray-600 truncate`}
+                >
+                  <strong>Entry Date:</strong>{" "}
+                  {dayjs(interview.interviewEntryDate).format("M/D/YYYY")}
+                </p>
+              )}
               {interview.interviewDate && (
-                <p className="text-xs text-gray-500">
-                  Date: {dayjs(interview.interviewDate).format("MMM DD, YYYY")}
+                <p
+                  className={`${
+                    isStandupMode
+                      ? "text-xs sm:text-sm"
+                      : "text-sm sm:text-base"
+                  } text-gray-600 truncate`}
+                >
+                  <strong>Date:</strong>{" "}
+                  {dayjs(interview.interviewDate).format("M/D/YYYY")}
                 </p>
               )}
               {interview.interviewStartTime && interview.interviewEndTime && (
-                <p className="text-xs text-gray-500">
-                  Time: {interview.interviewStartTime} -{" "}
-                  {interview.interviewEndTime}
+                <p
+                  className={`${
+                    isStandupMode
+                      ? "text-xs sm:text-sm"
+                      : "text-sm sm:text-base"
+                  } text-gray-600 truncate`}
+                >
+                  <strong>Time:</strong>{" "}
+                  {formatTime(interview.interviewStartTime)} -{" "}
+                  {formatTime(interview.interviewEndTime)}
                 </p>
               )}
-              {interview.recruiterName && (
-                <p className="text-xs text-gray-500 truncate">
-                  Recruiter: {interview.recruiterName}
+              {interview.interviewMethod && (
+                <p
+                  className={`${
+                    isStandupMode
+                      ? "text-xs sm:text-sm"
+                      : "text-sm sm:text-base"
+                  } text-gray-600 truncate`}
+                >
+                  <strong>Method:</strong> {interview.interviewMethod}
                 </p>
               )}
             </div>
 
+            {/* Additional Details */}
+            <div className={`${isStandupMode ? "space-y-1.5" : "space-y-2"}`}>
+              {interview.interviewSupport && (
+                <p
+                  className={`${
+                    isStandupMode
+                      ? "text-xs sm:text-sm"
+                      : "text-sm sm:text-base"
+                  } text-gray-600 truncate`}
+                >
+                  <strong>Support:</strong> {interview.interviewSupport}
+                </p>
+              )}
+              {interview.interviewFeedback && (
+                <p
+                  className={`${
+                    isStandupMode
+                      ? "text-xs sm:text-sm"
+                      : "text-sm sm:text-base"
+                  } text-gray-600 truncate`}
+                >
+                  <strong>Feedback:</strong> {interview.interviewFeedback}
+                </p>
+              )}
+            </div>
+
+            {/* Comments */}
             {interview.comments && (
-              <p className="text-xs text-gray-600 line-clamp-2">
-                {interview.comments}
+              <p
+                className={`${
+                  isStandupMode ? "text-xs sm:text-sm" : "text-sm sm:text-base"
+                } text-gray-600 line-clamp-2`}
+              >
+                <strong>Comments:</strong> {interview.comments}
               </p>
             )}
+
+            {/* End Client Recruiter Details - Only show in standup mode */}
+            {isStandupMode &&
+              (interview.endClientRecruiterName ||
+                interview.endClientRecruiterEmail ||
+                interview.endClientRecruiterPhone) && (
+                <div className="space-y-1.5 pt-2 border-t border-gray-100">
+                  <p className="text-xs sm:text-sm font-medium text-gray-700">
+                    End Client Recruiter:
+                  </p>
+                  {interview.endClientRecruiterName && (
+                    <p className="text-xs sm:text-sm text-gray-600 truncate">
+                      {interview.endClientRecruiterName}
+                    </p>
+                  )}
+                  {interview.endClientRecruiterEmail && (
+                    <p className="text-xs sm:text-sm text-gray-600 truncate">
+                      {interview.endClientRecruiterEmail}
+                    </p>
+                  )}
+                  {interview.endClientRecruiterPhone && (
+                    <p className="text-xs sm:text-sm text-gray-600 truncate">
+                      {interview.endClientRecruiterPhone}
+                    </p>
+                  )}
+                </div>
+              )}
           </div>
         </CardContent>
       </Card>
