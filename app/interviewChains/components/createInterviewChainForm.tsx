@@ -258,7 +258,7 @@ export default function CreateInterviewChainForm({
             <div>
               <Label htmlFor="recruiterId">Recruiter Name *</Label>
               <Select
-                value={newInterview.RecruiterID || ""}
+                value={newInterview.RecruiterID?.toString() || ""}
                 onValueChange={(value) =>
                   handleAutocompleteChange("RecruiterID", value)
                 }
@@ -271,7 +271,7 @@ export default function CreateInterviewChainForm({
                   {recruiters.map((recruiter) => (
                     <SelectItem
                       key={recruiter.employeeID}
-                      value={recruiter.employeeID}
+                      value={recruiter.employeeID.toString()}
                     >
                       {`${recruiter.firstName} ${recruiter.lastName}`}
                     </SelectItem>
@@ -289,7 +289,7 @@ export default function CreateInterviewChainForm({
             <div>
               <Label htmlFor="clientId">Client Name *</Label>
               <Select
-                value={newInterview.ClientID || ""}
+                value={newInterview.ClientID?.toString() || ""}
                 onValueChange={(value) =>
                   handleAutocompleteChange("ClientID", value)
                 }
@@ -300,7 +300,10 @@ export default function CreateInterviewChainForm({
                 </SelectTrigger>
                 <SelectContent>
                   {clients.map((client) => (
-                    <SelectItem key={client.clientID} value={client.clientID}>
+                    <SelectItem
+                      key={client.clientID}
+                      value={client.clientID.toString()}
+                    >
                       {client.clientName}
                     </SelectItem>
                   ))}
@@ -647,12 +650,16 @@ export default function CreateInterviewChainForm({
                     <span className="ml-2 font-medium">
                       {
                         recruiters.find(
-                          (r) => r.employeeID === newInterview.RecruiterID
+                          (r) =>
+                            r.employeeID.toString() ===
+                            newInterview.RecruiterID?.toString()
                         )?.firstName
                       }{" "}
                       {
                         recruiters.find(
-                          (r) => r.employeeID === newInterview.RecruiterID
+                          (r) =>
+                            r.employeeID.toString() ===
+                            newInterview.RecruiterID?.toString()
                         )?.lastName
                       }
                     </span>
@@ -662,7 +669,9 @@ export default function CreateInterviewChainForm({
                     <span className="ml-2 font-medium">
                       {
                         clients.find(
-                          (c) => c.clientID === newInterview.ClientID
+                          (c) =>
+                            c.clientID.toString() ===
+                            newInterview.ClientID?.toString()
                         )?.clientName
                       }
                     </span>
