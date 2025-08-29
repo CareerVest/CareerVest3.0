@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../sharedComponents/sidebar";
 import { useAuth } from "../../contexts/authContext";
+import permissions from "../utils/permissions";
 
 export default function MarketingActivityLayout({
   children,
@@ -11,23 +12,11 @@ export default function MarketingActivityLayout({
 }) {
   const { user } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [permissions, setPermissions] = useState<any>({});
-  const [userRole, setUserRole] = useState<string>("");
+  const [userRole, setUserRole] = useState<string>("Admin"); // Default to Admin for demo
 
   useEffect(() => {
     if (user) {
-      setUserRole((user as any).role || "user");
-      // Set default permissions for marketing activity
-      setPermissions({
-        interviewChains: {
-          user: {
-            viewInterviewChainsMenu: true,
-          },
-          admin: {
-            viewInterviewChainsMenu: true,
-          },
-        },
-      });
+      setUserRole((user as any).role || "Admin");
     }
   }, [user]);
 
