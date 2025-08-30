@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "../../../components/ui/card";
 import { Badge } from "../../../components/ui/badge";
-import { ArrowLeft, Edit, AlertCircle, User } from "lucide-react";
+import { ArrowLeft, Edit, AlertCircle, User, Loader2 } from "lucide-react";
 import { useAuth } from "../../../contexts/authContext";
 import { getEmployee } from "../actions/employeeActions";
 import { useApiWithLoading } from "../../../lib/apiWithLoading";
@@ -50,7 +50,9 @@ export default function EmployeeDetailPage() {
 
     const fetchEmployee = async () => {
       try {
-        const employeeData = await apiCall(getEmployee(employeeId), { showLoading: true });
+        const employeeData = await apiCall(getEmployee(employeeId), {
+          showLoading: true,
+        });
         setEmployee(employeeData);
       } catch (error) {
         console.error("Error fetching employee:", error);
@@ -112,8 +114,6 @@ export default function EmployeeDetailPage() {
       </div>
     );
   }
-
-
 
   if (error) {
     return (

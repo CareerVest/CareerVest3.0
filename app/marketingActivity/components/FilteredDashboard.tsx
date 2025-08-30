@@ -136,7 +136,12 @@ export default function FilteredDashboard({
             undefined,
             filters.status !== "all" ? filters.status : undefined,
             filters.type !== "all" ? filters.type : undefined,
-            filters.dateRange,
+            filters.dateRange
+              ? ([
+                  filters.dateRange[0]?.toDate() || null,
+                  filters.dateRange[1]?.toDate() || null,
+                ] as [Date | null, Date | null])
+              : undefined,
             filters.searchQuery,
             filters.quickFilters
           ),
@@ -195,11 +200,11 @@ export default function FilteredDashboard({
           setFilteredInterviews([]);
           setApplicationClients({});
         }
-              } finally {
-          if (mounted) {
-            console.log("Fetch complete");
-          }
+      } finally {
+        if (mounted) {
+          console.log("Fetch complete");
         }
+      }
     };
 
     const timer = setTimeout(loadData, 300);

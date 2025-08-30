@@ -389,7 +389,7 @@ const permissions: AppPermissions = {
   },
   pipelines: {
     Admin: {
-      viewPipelinesMenu: false,
+      viewPipelinesMenu: true,
       viewDashboard: true,
       addClientToPipeline: true,
       moveToResume: true,
@@ -402,7 +402,7 @@ const permissions: AppPermissions = {
       assignRecruiter: true,
     },
     Sales_Executive: {
-      viewPipelinesMenu: false,
+      viewPipelinesMenu: true,
       viewDashboard: true,
       addClientToPipeline: true,
       moveToResume: true,
@@ -415,7 +415,7 @@ const permissions: AppPermissions = {
       assignRecruiter: false,
     },
     Resume_Writer: {
-      viewPipelinesMenu: false,
+      viewPipelinesMenu: true,
       viewDashboard: true,
       addClientToPipeline: false,
       moveToResume: false,
@@ -428,7 +428,7 @@ const permissions: AppPermissions = {
       assignRecruiter: false,
     },
     Recruiter: {
-      viewPipelinesMenu: false,
+      viewPipelinesMenu: true,
       viewDashboard: true,
       addClientToPipeline: false,
       moveToResume: false,
@@ -441,7 +441,7 @@ const permissions: AppPermissions = {
       assignRecruiter: true,
     },
     Senior_Recruiter: {
-      viewPipelinesMenu: false,
+      viewPipelinesMenu: true,
       viewDashboard: true,
       addClientToPipeline: false,
       moveToResume: false,
@@ -454,7 +454,7 @@ const permissions: AppPermissions = {
       assignRecruiter: true,
     },
     Marketing_Manager: {
-      viewPipelinesMenu: false,
+      viewPipelinesMenu: true,
       viewDashboard: true,
       addClientToPipeline: false,
       moveToResume: false,
@@ -467,7 +467,7 @@ const permissions: AppPermissions = {
       assignRecruiter: true,
     },
     default: {
-      viewPipelinesMenu: false,
+      viewPipelinesMenu: true,
       viewDashboard: false,
       addClientToPipeline: false,
       moveToResume: false,

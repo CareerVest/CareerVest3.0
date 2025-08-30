@@ -85,6 +85,13 @@ const menuItems = [
     module: "interviewChains",
   },
   {
+    title: "Pipelines",
+    icon: GitPullRequest,
+    path: "/pipelines",
+    permissionKey: "viewPipelinesMenu",
+    module: "pipelines",
+  },
+  {
     title: "Team Hierarchy",
     icon: OrganizationChart,
     path: "/supervisors",
@@ -97,13 +104,6 @@ const menuItems = [
     path: "/accounting",
     permissionKey: "viewAccountingMenu",
     module: "accounting",
-  },
-  {
-    title: "Pipelines",
-    icon: GitPullRequest,
-    path: "/pipelines",
-    permissionKey: "viewPipelinesMenu",
-    module: "pipelines",
   },
   {
     title: "Settings",
