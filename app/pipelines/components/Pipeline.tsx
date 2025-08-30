@@ -3,7 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Filter, Plus, LayoutGrid, X } from "lucide-react";
-import { Client, ClientStatus, UserRole, ActionType } from "../types/pipeline";
+import {
+  Client,
+  ClientStatus,
+  UserRole,
+  ActionType,
+} from "../../types/pipelines/pipeline";
 import { mockClients, mainStages, specialStates } from "./constants";
 import { DroppableStage } from "./DroppableStage";
 import { PipelineStats } from "./PipelineStats";

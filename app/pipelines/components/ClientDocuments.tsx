@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, Eye, Calendar, User } from "lucide-react";
-import { ClientDocument } from "../types/pipeline";
+import { ClientDocument } from "../../types/pipelines/pipeline";
 
 interface ClientDocumentsProps {
   documents: ClientDocument[];

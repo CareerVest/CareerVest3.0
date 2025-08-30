@@ -10,7 +10,7 @@ import {
   Calendar,
   Eye,
 } from "lucide-react";
-import { ActionHistory as ActionHistoryType } from "../types/pipeline";
+import { ActionHistory as ActionHistoryType } from "../../types/pipelines/pipeline";
 
 interface ActionHistoryProps {
   actions: ActionHistoryType[];

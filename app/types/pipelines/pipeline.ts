@@ -6,6 +6,7 @@ export type ClientStatus =
   | "backed-out"
   | "remarketing"
   | "on-hold";
+
 export type UserRole =
   | "admin"
   | "marketing-manager"

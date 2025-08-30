@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Client, UserRole } from "../types/pipeline";
+import { Client, UserRole } from "../../types/pipelines/pipeline";
 import { calculateDepartmentTime } from "./utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

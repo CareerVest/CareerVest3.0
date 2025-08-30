@@ -17,7 +17,12 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Client, ClientStatus, UserRole, ActionType } from "../types/pipeline";
+import {
+  Client,
+  ClientStatus,
+  UserRole,
+  ActionType,
+} from "../../types/pipelines/pipeline";
 import { canMoveClient, getAvailableStages } from "./utils";
 import {
   stageConfig,

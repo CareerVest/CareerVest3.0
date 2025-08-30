@@ -1,4 +1,4 @@
-import { Client, ClientStatus, UserRole } from "../types/pipeline";
+import { Client, ClientStatus, UserRole } from "../../types/pipelines/pipeline";
 import { areAllActionsCompleted } from "./constants";
 
 export const canMoveClient = (client: Client, userRole: UserRole): boolean => {

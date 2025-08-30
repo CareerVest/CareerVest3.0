@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Client, ClientStatus, UserRole } from "../types/pipeline";
+import { Client, ClientStatus, UserRole } from "../../types/pipelines/pipeline";
 import { stageConfig } from "./constants";
 import { DraggableClientCard } from "./DraggableClientCard";
 import { canMoveClient, getAvailableStages } from "./utils";

@@ -1,5 +1,5 @@
 import React from "react";
-import { UserRole } from "../types/pipeline";
+import { UserRole } from "../../types/pipelines/pipeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

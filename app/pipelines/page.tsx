@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Pipeline } from "./components/Pipeline";
-import { Client, UserRole } from "./types/pipeline";
+import { Client, UserRole } from "../types/pipelines/pipeline";
 import { ClientDetails } from "./components/ClientDetails";
 
 export default function PipelinesPage() {

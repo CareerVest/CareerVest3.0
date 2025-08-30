@@ -9,7 +9,7 @@ import {
   CheckCircle2,
   AlertTriangle,
 } from "lucide-react";
-import { Client } from "../types/pipeline";
+import { Client } from "../../types/pipelines/pipeline";
 
 interface PipelineStatsProps {
   clients: Client[];

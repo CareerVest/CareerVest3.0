@@ -13,7 +13,7 @@ import {
   ActionType,
   FileRequirement,
   UserRole,
-} from "../types/pipeline";
+} from "../../types/pipelines/pipeline";
 
 export const stageConfig = {
   sales: {

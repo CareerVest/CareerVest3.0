@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Client, ClientStatus, UserRole } from "../types/pipeline";
+import { Client, ClientStatus, UserRole } from "../../types/pipelines/pipeline";
 import { canMoveClient } from "./utils";
 import { getRequiredActions } from "./constants";
 
