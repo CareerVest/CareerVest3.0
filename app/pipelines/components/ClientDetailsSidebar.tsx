@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Client, UserRole } from "../../types/pipelines/pipeline";
 import { calculateDepartmentTime } from "./utils";
 import { formatDateEST } from "../../utils/dateUtils";
@@ -6,20 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-import { Switch } from "@/components/ui/switch";
-import {
-  User,
-  Mail,
-  Phone,
-  Calendar,
-  Edit3,
-  Save,
-  X,
-  CheckCircle2,
-  Clock,
-  Check,
-  TrendingUp,
-} from "lucide-react";
+import { User, X, CheckCircle2, Clock, Check, TrendingUp } from "lucide-react";
 import { ClientDocuments } from "./ClientDocuments";
 import { ActionHistory } from "./ActionHistory";
 
@@ -27,7 +14,6 @@ interface ClientDetailsSidebarProps {
   client: Client | null;
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (client: Client) => void;
   currentUserRole: UserRole;
 }
 
@@ -35,12 +21,9 @@ export function ClientDetailsSidebar({
   client,
   isOpen,
   onClose,
-  onUpdate,
   currentUserRole,
 }: ClientDetailsSidebarProps) {
   if (!client) return null;
-
-
 
   const getStageActions = (status: string) => {
     switch (status) {
@@ -220,8 +203,6 @@ export function ClientDetailsSidebar({
               />
             </CardContent>
           </Card>
-
-
         </div>
       </div>
     </div>
