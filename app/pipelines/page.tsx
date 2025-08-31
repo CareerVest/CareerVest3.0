@@ -43,13 +43,13 @@ export default function PipelinesPage() {
       <Pipeline
         currentUserRole={currentUserRole}
         onClientSelect={handleClientSelect}
+        isSidebarOpen={isClientDetailsOpen}
       />
 
       <ClientDetailsSidebar
         client={selectedClient}
         isOpen={isClientDetailsOpen}
         onClose={handleCloseSidebar}
-        onUpdate={handleClientUpdate}
         currentUserRole={currentUserRole}
       />
     </div>

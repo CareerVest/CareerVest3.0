@@ -7,6 +7,8 @@ import { stageConfig } from "./constants";
 import { DraggableClientCard } from "./DraggableClientCard";
 import { canMoveClient, getAvailableStages } from "./utils";
 import { formatDateEST } from "../../utils/dateUtils";
+import { getSLAStatus } from "./slaConfig";
+import { calculateDepartmentTime } from "./utils";
 
 interface DroppableStageProps {
   status: ClientStatus;
@@ -42,6 +44,26 @@ export function DroppableStage({
   const [isDragOver, setIsDragOver] = useState(false);
   const config = stageConfig[status];
   const Icon = config.icon;
+
+  // Calculate SLA violations for this stage (exclude terminal stages)
+  const slaViolations = clients.filter((client) => {
+    // Don't apply SLA to terminal stages
+    if (["placed", "on-hold", "backed-out"].includes(client.status)) {
+      return false;
+    }
+
+    const departmentTime = calculateDepartmentTime(client);
+    const currentStageData = departmentTime.find((dept) => dept.current);
+    if (!currentStageData) return false;
+
+    const slaStatus = getSLAStatus(
+      client.status,
+      currentStageData.businessDays || currentStageData.days,
+      true
+    );
+
+    return slaStatus && slaStatus.status === "overdue";
+  }).length;
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -115,7 +137,9 @@ export function DroppableStage({
 
   return (
     <Card
-      className={`h-full transition-all duration-200 ${getBorderColor()}`}
+      className={`h-full transition-all duration-200 ${getBorderColor()} ${
+        slaViolations > 0 ? "border-red-300 bg-red-50/20" : ""
+      }`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -127,9 +151,16 @@ export function DroppableStage({
           <div className={`w-3 h-3 rounded-full ${config.color}`} />
           <Icon className="w-4 h-4" />
           <span className="truncate">{config.title}</span>
-          <Badge variant="secondary" className="ml-auto">
-            {clients.length}
-          </Badge>
+          <div className="ml-auto flex items-center gap-2">
+            {slaViolations > 0 && (
+              <Badge variant="destructive" className="text-xs">
+                🚨 {slaViolations}
+              </Badge>
+            )}
+            <Badge variant="secondary" className="text-xs">
+              {clients.length}
+            </Badge>
+          </div>
         </CardTitle>
       </CardHeader>
 

@@ -119,6 +119,13 @@ export const mockClients: Client[] = [
       startDate: "2024-01-15",
     },
     daysInCurrentStage: 5,
+    departmentHistory: [
+      {
+        department: "sales",
+        startDate: "2024-01-15",
+        endDate: undefined,
+      },
+    ],
     documents: [],
     assignments: [],
     actionHistory: [],
@@ -229,6 +236,18 @@ export const mockClients: Client[] = [
       startDate: "2024-01-10",
     },
     daysInCurrentStage: 12,
+    departmentHistory: [
+      {
+        department: "sales",
+        startDate: "2024-01-10",
+        endDate: "2024-01-15",
+      },
+      {
+        department: "resume",
+        startDate: "2024-01-15",
+        endDate: undefined,
+      },
+    ],
     documents: [
       {
         id: "emily-resume-1",

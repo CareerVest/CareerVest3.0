@@ -49,6 +49,8 @@ import {
   getTransitionRequirement,
   getFileRequirementsForTransition,
 } from "./documentRequirements";
+import { getSLAStatus, getSLAStatusColor, getSLAStatusIcon } from "./slaConfig";
+import { calculateDepartmentTime } from "./utils";
 
 interface DraggableClientCardProps {
   client: Client;
@@ -97,6 +99,17 @@ export function DraggableClientCard({
   useEffect(() => {
     setLocalPriority(client.priority);
   }, [client.priority]);
+
+  // Calculate SLA status for current stage
+  const departmentTime = calculateDepartmentTime(client);
+  const currentStageData = departmentTime.find((dept) => dept.current);
+  const slaStatus = currentStageData
+    ? getSLAStatus(
+        client.status,
+        currentStageData.businessDays || currentStageData.days,
+        true
+      )
+    : null;
 
   const handleDragStart = (e: React.DragEvent) => {
     // Check if client can be moved (all actions completed for non-admin users)
@@ -533,6 +546,24 @@ export function DraggableClientCard({
                 </Badge>
               )}
             </div>
+
+            {/* SLA Status Indicator - Only show for active pipeline stages */}
+            {slaStatus &&
+              slaStatus.status !== "completed" &&
+              !["placed", "on-hold", "backed-out"].includes(client.status) && (
+                <div
+                  className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium mt-2 ${getSLAStatusColor(
+                    slaStatus.status
+                  )}`}
+                >
+                  <span>{getSLAStatusIcon(slaStatus.status)}</span>
+                  {slaStatus.status === "overdue"
+                    ? `${slaStatus.daysOverdue} days overdue`
+                    : slaStatus.status === "warning"
+                    ? `${slaStatus.daysRemaining.toFixed(1)} days left`
+                    : "On track"}
+                </div>
+              )}
           </div>
 
           <div className="mb-2">

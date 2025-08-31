@@ -35,6 +35,7 @@ interface DepartmentCountsProps {
     data: { comment: string; file?: File; additionalFiles?: File[] }
   ) => void;
   selectedClientId?: string | null;
+  isSidebarOpen?: boolean;
 }
 
 interface DepartmentData {
@@ -53,6 +54,7 @@ export function DepartmentCounts({
   onMoveClient,
   onActionComplete,
   selectedClientId = null,
+  isSidebarOpen = false,
 }: DepartmentCountsProps) {
   const [selectedDepartment, setSelectedDepartment] =
     useState<DepartmentData | null>(null);
@@ -183,7 +185,15 @@ export function DepartmentCounts({
       </div>
 
       {/* Client List Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          // Prevent dialog from closing when sidebar is open
+          if (!open && !isSidebarOpen) {
+            setIsDialogOpen(false);
+          }
+        }}
+      >
         <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
           <DialogHeader className="flex-shrink-0 pb-4">
             <DialogTitle className="flex items-center gap-2">

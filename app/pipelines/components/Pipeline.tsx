@@ -36,9 +36,14 @@ import {
 interface PipelineProps {
   currentUserRole: UserRole;
   onClientSelect?: (client: Client) => void;
+  isSidebarOpen?: boolean;
 }
 
-export function Pipeline({ currentUserRole, onClientSelect }: PipelineProps) {
+export function Pipeline({
+  currentUserRole,
+  onClientSelect,
+  isSidebarOpen = false,
+}: PipelineProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -498,6 +503,7 @@ export function Pipeline({ currentUserRole, onClientSelect }: PipelineProps) {
         onMoveClient={moveClient}
         onActionComplete={handleActionComplete}
         selectedClientId={selectedClientId}
+        isSidebarOpen={isSidebarOpen}
       />
 
       {/* Pipeline Content - 4 Main Departments */}

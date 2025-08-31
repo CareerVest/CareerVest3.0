@@ -115,22 +115,39 @@ export const getAvailableStages = (
 
 export const calculateDepartmentTime = (
   client: Client
-): { department: string; days: number; current: boolean }[] => {
+): { department: string; days: number; current: boolean; businessDays: number }[] => {
   const departmentHistory = client.departmentHistory || [];
   const currentDate = new Date();
 
   // If no history, calculate from creation date to current
   if (departmentHistory.length === 0) {
     const createdDate = new Date(client.createdAt);
-    const daysDiff = Math.ceil(
-      (currentDate.getTime() - createdDate.getTime()) / (1000 * 3600 * 24)
+    // Use Math.floor instead of Math.ceil to avoid rounding up partial days
+    // Also normalize dates to start of day to avoid time zone issues
+    const startOfCreated = new Date(
+      createdDate.getFullYear(),
+      createdDate.getMonth(),
+      createdDate.getDate()
     );
+    const startOfCurrent = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate()
+    );
+    const daysDiff = Math.floor(
+      (startOfCurrent.getTime() - startOfCreated.getTime()) / (1000 * 3600 * 24)
+    );
+
+    // Calculate business days
+    const businessDays = calculateBusinessDays(startOfCreated, startOfCurrent);
+
     return [
       {
         department: client.status
           .replace("-", " ")
           .replace(/\b\w/g, (l) => l.toUpperCase()),
-        days: daysDiff,
+        days: Math.max(0, daysDiff), // Ensure we don't show negative days
+        businessDays: Math.max(0, businessDays),
         current: true,
       },
     ];
@@ -139,18 +156,52 @@ export const calculateDepartmentTime = (
   return departmentHistory.map((history, index) => {
     const startDate = new Date(history.startDate);
     const endDate = history.endDate ? new Date(history.endDate) : currentDate;
-    const daysDiff = Math.ceil(
-      (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24)
+
+    // Normalize dates to start of day to avoid time zone issues
+    const startOfStart = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      startDate.getDate()
     );
+    const startOfEnd = new Date(
+      endDate.getFullYear(),
+      endDate.getMonth(),
+      endDate.getDate()
+    );
+
+    const daysDiff = Math.floor(
+      (startOfEnd.getTime() - startOfStart.getTime()) / (1000 * 3600 * 24)
+    );
+
+    // Calculate business days
+    const businessDays = calculateBusinessDays(startOfStart, startOfEnd);
 
     return {
       department: history.department
         .replace("-", " ")
         .replace(/\b\w/g, (l) => l.toUpperCase()),
-      days: daysDiff,
+      days: Math.max(0, daysDiff), // Ensure we don't show negative days
+      businessDays: Math.max(0, businessDays),
       current: !history.endDate,
     };
   });
+};
+
+// Helper function to calculate business days
+const calculateBusinessDays = (startDate: Date, endDate: Date): number => {
+  let businessDays = 0;
+  const currentDate = new Date(startDate);
+  
+  while (currentDate <= endDate) {
+    const dayOfWeek = currentDate.getDay();
+    // 0 = Sunday, 6 = Saturday
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      businessDays++;
+    }
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return businessDays;
 };
 
 export const shouldResetActions = (
