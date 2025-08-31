@@ -6,6 +6,7 @@ import { Client, ClientStatus, UserRole } from "../../types/pipelines/pipeline";
 import { stageConfig } from "./constants";
 import { DraggableClientCard } from "./DraggableClientCard";
 import { canMoveClient, getAvailableStages } from "./utils";
+import { formatDateEST } from "../../utils/dateUtils";
 
 interface DroppableStageProps {
   status: ClientStatus;
@@ -15,10 +16,16 @@ interface DroppableStageProps {
   onActionComplete: (
     clientId: string,
     action: string,
-    data: { comment: string; file?: File }
+    data: { comment: string; file?: File; additionalFiles?: File[] }
+  ) => void;
+  onTransitionAction?: (
+    client: Client,
+    fromStage: ClientStatus,
+    toStage: ClientStatus
   ) => void;
   currentUserRole: UserRole;
   isMainStage?: boolean;
+  selectedClientId?: string | null;
 }
 
 export function DroppableStage({
@@ -27,8 +34,10 @@ export function DroppableStage({
   onMoveClient,
   onViewDetails,
   onActionComplete,
+  onTransitionAction,
   currentUserRole,
   isMainStage = false,
+  selectedClientId = null,
 }: DroppableStageProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const config = stageConfig[status];
@@ -155,7 +164,10 @@ export function DroppableStage({
                       onMoveClient={onMoveClient}
                       onViewDetails={onViewDetails}
                       onActionComplete={onActionComplete}
+                      onTransitionAction={onTransitionAction}
                       currentUserRole={currentUserRole}
+                      isSelected={selectedClientId === client.id}
+                      currentStage={status}
                     />
                   ))
                 )}
@@ -182,18 +194,25 @@ export function DroppableStage({
                   clients.map((client) => (
                     <div
                       key={client.id}
-                      className="flex items-center justify-between p-2 bg-muted/30 rounded cursor-pointer hover:bg-muted/50 transition-colors"
+                      className="flex flex-col p-2 bg-muted/30 rounded cursor-pointer hover:bg-muted/50 transition-colors"
                       onClick={() => onViewDetails(client)}
                     >
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
                         <div
                           className={`w-2 h-2 rounded-full ${config.color}`}
                         />
-                        <span className="text-sm truncate">{client.name}</span>
+                        <span className="text-sm font-medium text-gray-900 break-words leading-tight">
+                          {client.name}
+                        </span>
                       </div>
-                      <Badge variant="outline" className="text-xs ml-2">
-                        {client.lastUpdated}
-                      </Badge>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">
+                          Updated:
+                        </span>
+                        <span className="text-xs text-gray-700 font-medium break-words leading-tight">
+                          {formatDateEST(client.lastUpdated)}
+                        </span>
+                      </div>
                     </div>
                   ))
                 )}

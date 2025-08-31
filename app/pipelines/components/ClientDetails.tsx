@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Client, UserRole } from "../../types/pipelines/pipeline";
 import { calculateDepartmentTime } from "./utils";
+import { formatDateEST } from "../../utils/dateUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -202,7 +203,7 @@ export function ClientDetails({
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm">Created: {client.createdAt}</span>
+                  <span className="text-sm">Created: {formatDateEST(client.createdAt)}</span>
                 </div>
               </div>
             </CardContent>
@@ -339,8 +340,8 @@ export function ClientDetails({
             </CardHeader>
             <CardContent>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <div>Created: {client.createdAt}</div>
-                <div>Last Updated: {client.lastUpdated}</div>
+                <div>Created: {formatDateEST(client.createdAt)}</div>
+                <div>Last Updated: {formatDateEST(client.lastUpdated)}</div>
                 <div>
                   Current Stage: {client.status.replace("-", " ").toUpperCase()}
                 </div>

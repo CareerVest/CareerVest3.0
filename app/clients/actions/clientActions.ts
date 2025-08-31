@@ -232,8 +232,6 @@ export async function createClient(
   promissoryNoteFile?: File | null
 ): Promise<boolean> {
   try {
-    const formData = new FormData();
-
     if (
       !createClientData.clientName ||
       createClientData.clientName.trim() === ""
@@ -247,8 +245,8 @@ export async function createClient(
       throw new Error("ClientStatus is required.");
     }
 
-    const clientDataToSend = {
-      clientID: createClientData.clientID || 0,
+    // Create the ClientCreateDto object that the backend expects
+    const clientCreateDto = {
       clientName: createClientData.clientName,
       enrollmentDate: createClientData.enrollmentDate
         ? new Date(createClientData.enrollmentDate).toISOString()
@@ -266,8 +264,12 @@ export async function createClient(
         : null,
       marketingEmailID: createClientData.marketingEmailID || null,
       marketingEmailPassword: createClientData.marketingEmailPassword || null,
-      assignedRecruiterID: createClientData.assignedRecruiterID || null,
-      assignedSalesPersonID: createClientData.assignedSalesPersonID || null,
+      assignedRecruiterID: createClientData.assignedRecruiterID
+        ? parseInt(createClientData.assignedRecruiterID.toString())
+        : null,
+      assignedSalesPersonID: createClientData.assignedSalesPersonID
+        ? parseInt(createClientData.assignedSalesPersonID.toString())
+        : null,
       clientStatus: createClientData.clientStatus,
       placedDate: createClientData.placedDate
         ? new Date(createClientData.placedDate).toISOString()
@@ -286,8 +288,61 @@ export async function createClient(
         createClientData.totalPaid !== null
           ? Number(createClientData.totalPaid) || 0.0
           : 0.0,
-      subscriptionPlanID: createClientData.subscriptionPlanID || null,
-      postPlacementPlanID: createClientData.postPlacementPlanID || null,
+      subscriptionPlan: createClientData.subscriptionPlan
+        ? {
+            subscriptionPlanID:
+              createClientData.subscriptionPlan.subscriptionPlanID || 0,
+            planName: createClientData.subscriptionPlan.planName || "",
+            createdTS: createClientData.subscriptionPlan.createdTS
+              ? new Date(
+                  createClientData.subscriptionPlan.createdTS
+                ).toISOString()
+              : null,
+            createdBy: createClientData.subscriptionPlan.createdBy || null,
+            updatedTS: createClientData.subscriptionPlan.updatedTS
+              ? new Date(
+                  createClientData.subscriptionPlan.updatedTS
+                ).toISOString()
+              : null,
+            updatedBy: createClientData.subscriptionPlan.updatedBy || null,
+          }
+        : null,
+      postPlacementPlan: createClientData.postPlacementPlan
+        ? {
+            postPlacementPlanID:
+              createClientData.postPlacementPlan.postPlacementPlanID || 0,
+            planName: createClientData.postPlacementPlan.planName || "",
+            promissoryNoteUrl:
+              createClientData.postPlacementPlan.promissoryNoteUrl || null,
+            postPlacementPlanPaymentStartDate: createClientData
+              .postPlacementPlan.postPlacementPlanPaymentStartDate
+              ? new Date(
+                  createClientData.postPlacementPlan.postPlacementPlanPaymentStartDate
+                ).toISOString()
+              : null,
+            totalPostPlacementAmount:
+              createClientData.postPlacementPlan.totalPostPlacementAmount !==
+                undefined &&
+              createClientData.postPlacementPlan.totalPostPlacementAmount !==
+                null
+                ? Number(
+                    createClientData.postPlacementPlan.totalPostPlacementAmount
+                  ) || 0
+                : null,
+            createdTS: createClientData.postPlacementPlan.createdTS
+              ? new Date(
+                  createClientData.postPlacementPlan.createdTS
+                ).toISOString()
+              : null,
+            createdBy: createClientData.postPlacementPlan.createdBy || null,
+            updatedTS: createClientData.postPlacementPlan.updatedTS
+              ? new Date(
+                  createClientData.postPlacementPlan.updatedTS
+                ).toISOString()
+              : null,
+            updatedBy: createClientData.postPlacementPlan.updatedBy || null,
+          }
+        : null,
       paymentSchedules:
         createClientData.paymentSchedules &&
         createClientData.paymentSchedules.length > 0
@@ -299,12 +354,8 @@ export async function createClient(
                 : null,
               amount:
                 ps.amount !== undefined && ps.amount !== null
-                  ? Number(ps.amount) || 0
-                  : 0,
-              isPaid: ps.isPaid ?? false,
-              paymentType: ps.paymentType || "Subscription",
-              subscriptionPlanID: ps.subscriptionPlanID || null,
-              postPlacementPlanID: ps.postPlacementPlanID || null,
+                  ? Number(ps.amount) || 0.0
+                  : 0.0,
               createdTS: ps.createdTS
                 ? new Date(ps.createdTS).toISOString()
                 : null,
@@ -314,93 +365,25 @@ export async function createClient(
                 : null,
               updatedBy: ps.updatedBy || null,
             }))
-          : undefined,
-      serviceAgreementUrl: createClientData.serviceAgreementUrl || null,
-      promissoryNoteUrl: createClientData.promissoryNoteUrl || null,
-      subscriptionPlan:
-        createClientData.subscriptionPlan &&
-        Object.values(createClientData.subscriptionPlan).some(
-          (v) => v !== null && v !== ""
-        )
-          ? {
-              subscriptionPlanID:
-                createClientData.subscriptionPlan.subscriptionPlanID || 0,
-              planName: createClientData.subscriptionPlan.planName || "",
-              serviceAgreementUrl:
-                createClientData.subscriptionPlan.serviceAgreementUrl || null,
-              subscriptionPlanPaymentStartDate: createClientData
-                .subscriptionPlan.subscriptionPlanPaymentStartDate
-                ? new Date(
-                    createClientData.subscriptionPlan.subscriptionPlanPaymentStartDate
-                  ).toISOString()
-                : null,
-              totalSubscriptionAmount:
-                createClientData.subscriptionPlan.totalSubscriptionAmount !==
-                  undefined &&
-                createClientData.subscriptionPlan.totalSubscriptionAmount !==
-                  null
-                  ? Number(
-                      createClientData.subscriptionPlan.totalSubscriptionAmount
-                    ) || 0
-                  : null,
-              createdTS: createClientData.subscriptionPlan.createdTS
-                ? new Date(
-                    createClientData.subscriptionPlan.createdTS
-                  ).toISOString()
-                : null,
-              createdBy: createClientData.subscriptionPlan.createdBy || null,
-              updatedTS: createClientData.subscriptionPlan.updatedTS
-                ? new Date(
-                    createClientData.subscriptionPlan.updatedTS
-                  ).toISOString()
-                : null,
-              updatedBy: createClientData.subscriptionPlan.updatedBy || null,
-            }
           : null,
-      postPlacementPlan:
-        createClientData.postPlacementPlan &&
-        Object.values(createClientData.postPlacementPlan).some(
-          (v) => v !== null && v !== ""
-        )
-          ? {
-              postPlacementPlanID:
-                createClientData.postPlacementPlan.postPlacementPlanID || 0,
-              planName: createClientData.postPlacementPlan.planName || "",
-              promissoryNoteUrl:
-                createClientData.postPlacementPlan.promissoryNoteUrl || null,
-              postPlacementPlanPaymentStartDate: createClientData
-                .postPlacementPlan.postPlacementPlanPaymentStartDate
-                ? new Date(
-                    createClientData.postPlacementPlan.postPlacementPlanPaymentStartDate
-                  ).toISOString()
-                : null,
-              totalPostPlacementAmount:
-                createClientData.postPlacementPlan.totalPostPlacementAmount !==
-                  undefined &&
-                createClientData.postPlacementPlan.totalPostPlacementAmount !==
-                  null
-                  ? Number(
-                      createClientData.postPlacementPlan
-                        .totalPostPlacementAmount
-                    ) || 0
-                  : null,
-              createdTS: createClientData.postPlacementPlan.createdTS
-                ? new Date(
-                    createClientData.postPlacementPlan.createdTS
-                  ).toISOString()
-                : null,
-              createdBy: createClientData.postPlacementPlan.createdBy || null,
-              updatedTS: createClientData.postPlacementPlan.updatedTS
-                ? new Date(
-                    createClientData.postPlacementPlan.updatedTS
-                  ).toISOString()
-                : null,
-              updatedBy: createClientData.postPlacementPlan.updatedBy || null,
-            }
-          : null,
+      // Pipeline initialization fields
+      initialPipelineStage: "sales", // Default to sales stage
+      priority: "medium", // Default priority
+      pipelineNotes: "Client created from client module", // Initial pipeline notes
     };
 
-    formData.append("clientDto", JSON.stringify(clientDataToSend));
+    console.log(
+      "🔹 ClientCreateDto to Send:",
+      JSON.stringify(clientCreateDto, null, 2)
+    );
+
+    // Create FormData as expected by the ClientCreateDtoBinder
+    const formData = new FormData();
+
+    // Add the clientDto field with JSON string (this is what the binder expects)
+    formData.append("clientDto", JSON.stringify(clientCreateDto));
+
+    // Add files if provided
     if (serviceAgreementFile) {
       formData.append("ServiceAgreement", serviceAgreementFile);
     }
@@ -408,7 +391,7 @@ export async function createClient(
       formData.append("PromissoryNote", promissoryNoteFile);
     }
 
-    console.log("🔹 Final FormData to Send:");
+    console.log("🔹 FormData to Send:");
     for (let [key, value] of Array.from(formData.entries())) {
       console.log(
         `${key}: ${value instanceof File ? value.name : JSON.stringify(value)}`

@@ -2,7 +2,7 @@ export type ClientStatus =
   | "sales"
   | "resume"
   | "marketing"
-  | "completed"
+  | "placed"
   | "backed-out"
   | "remarketing"
   | "on-hold";
@@ -22,9 +22,10 @@ export interface Client {
   phone: string;
   status: ClientStatus;
   assignedTo: string;
+  assignedRecruiterID?: number | null;
   createdAt: string;
   lastUpdated: string;
-  priority: "high" | "medium" | "low";
+  priority: "exceptional" | "real-time" | "fresher" | "standard";
   actions: {
     [key: string]: boolean;
   };
@@ -55,7 +56,10 @@ export type ActionType =
   | "Initial Call Done"
   | "Resume Completed"
   | "AssignSeniorRecruiter"
-  | "AssignRecruiter";
+  | "AssignRecruiter"
+  | "Acknowledged-Remarketing"
+  | "RateCandidate"
+  | "ChangeRecruiter";
 
 // Action completion data
 export interface ActionCompletion {

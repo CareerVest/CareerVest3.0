@@ -49,8 +49,8 @@ export const stageConfig = {
     darkBorderColor: "dark:border-green-800",
     darkTextColor: "dark:text-green-300",
   },
-  completed: {
-    title: "Completed",
+  placed: {
+    title: "Placed",
     icon: CheckCircle2,
     color: "bg-purple-500",
     bgColor: "bg-purple-50",
@@ -106,7 +106,7 @@ export const mockClients: Client[] = [
     assignedTo: "Sarah Johnson",
     createdAt: "2024-01-15",
     lastUpdated: "2024-01-20",
-    priority: "high",
+    priority: "exceptional",
     actions: {
       "initial-contact": true,
       "needs-assessment": false,
@@ -132,7 +132,7 @@ export const mockClients: Client[] = [
     assignedTo: "Sarah Johnson",
     createdAt: "2024-01-16",
     lastUpdated: "2024-01-21",
-    priority: "medium",
+    priority: "real-time",
     actions: {
       "initial-contact": false,
       "needs-assessment": false,
@@ -158,7 +158,7 @@ export const mockClients: Client[] = [
     assignedTo: "Tom Wilson",
     createdAt: "2024-01-18",
     lastUpdated: "2024-01-22",
-    priority: "high",
+    priority: "standard",
     actions: {
       "initial-contact": true,
       "needs-assessment": true,
@@ -184,7 +184,7 @@ export const mockClients: Client[] = [
     assignedTo: "Sarah Johnson",
     createdAt: "2024-01-19",
     lastUpdated: "2024-01-23",
-    priority: "low",
+    priority: "standard",
     actions: {
       "initial-contact": true,
       "needs-assessment": false,
@@ -212,7 +212,7 @@ export const mockClients: Client[] = [
     assignedTo: "Mike Wilson",
     createdAt: "2024-01-10",
     lastUpdated: "2024-01-22",
-    priority: "high",
+    priority: "standard",
     actions: {
       "initial-call": true,
       "resume-draft": true,
@@ -282,7 +282,7 @@ export const mockClients: Client[] = [
     assignedTo: "Mike Wilson",
     createdAt: "2024-01-12",
     lastUpdated: "2024-01-23",
-    priority: "medium",
+    priority: "standard",
     actions: {
       "initial-call": false,
       "resume-draft": false,
@@ -308,7 +308,7 @@ export const mockClients: Client[] = [
     assignedTo: "Anna Rodriguez",
     createdAt: "2024-01-14",
     lastUpdated: "2024-01-24",
-    priority: "high",
+    priority: "standard",
     actions: {
       "initial-call": true,
       "resume-draft": false,
@@ -336,11 +336,11 @@ export const mockClients: Client[] = [
     assignedTo: "Lisa Chen",
     createdAt: "2024-01-05",
     lastUpdated: "2024-01-21",
-    priority: "high",
+    priority: "standard",
     actions: {
       "campaign-setup": true,
       "outreach-started": true,
-      "follow-up": false,
+      "folstandard-up": false,
       "interview-scheduled": false,
     },
     notes: "Senior developer, actively looking",
@@ -361,13 +361,14 @@ export const mockClients: Client[] = [
     phone: "(555) 123-9999",
     status: "marketing",
     assignedTo: "Chris Miller",
+
     createdAt: "2024-01-08",
     lastUpdated: "2024-01-22",
-    priority: "medium",
+    priority: "standard",
     actions: {
       "campaign-setup": true,
       "outreach-started": false,
-      "follow-up": false,
+      "folstandard-up": false,
       "interview-scheduled": false,
     },
     notes: "UX designer with agency background",
@@ -388,13 +389,14 @@ export const mockClients: Client[] = [
     phone: "(555) 444-5555",
     status: "marketing",
     assignedTo: "Lisa Chen",
+
     createdAt: "2024-01-09",
     lastUpdated: "2024-01-23",
-    priority: "high",
+    priority: "standard",
     actions: {
       "campaign-setup": true,
       "outreach-started": true,
-      "follow-up": true,
+      "folstandard-up": true,
       "interview-scheduled": false,
     },
     notes: "DevOps engineer, looking for leadership role",
@@ -409,22 +411,22 @@ export const mockClients: Client[] = [
     actionHistory: [],
   },
 
-  // Completed
+  // Placed
   {
     id: "4",
     name: "Jessica Taylor",
     email: "jessica@example.com",
     phone: "(555) 456-7890",
-    status: "completed",
+    status: "placed",
     assignedTo: "David Kim",
     createdAt: "2023-12-20",
     lastUpdated: "2024-01-18",
-    priority: "medium",
+    priority: "standard",
     actions: { "placement-confirmed": true, "feedback-collected": true },
     notes: "Successfully placed at TechCorp",
     completedActions: [],
     currentStage: {
-      department: "completed",
+      department: "placed",
       startDate: "2023-12-20",
     },
     daysInCurrentStage: 29,
@@ -437,16 +439,16 @@ export const mockClients: Client[] = [
     name: "Amanda White",
     email: "amanda@example.com",
     phone: "(555) 666-7777",
-    status: "completed",
+    status: "placed",
     assignedTo: "David Kim",
     createdAt: "2023-12-15",
     lastUpdated: "2024-01-15",
-    priority: "medium",
+    priority: "standard",
     actions: { "placement-confirmed": true, "feedback-collected": true },
     notes: "Placed at StartupXYZ as Senior Frontend Developer",
     completedActions: [],
     currentStage: {
-      department: "completed",
+      department: "placed",
       startDate: "2023-12-15",
     },
     daysInCurrentStage: 31,
@@ -465,8 +467,8 @@ export const mockClients: Client[] = [
     assignedTo: "Sarah Johnson",
     createdAt: "2024-01-12",
     lastUpdated: "2024-01-19",
-    priority: "low",
-    actions: { "initial-contact": true, "follow-up": true },
+    priority: "standard",
+    actions: { "initial-contact": true, "folstandard-up": true },
     notes: "Changed mind about job search",
     completedActions: [],
     currentStage: {
@@ -489,7 +491,7 @@ export const mockClients: Client[] = [
     assignedTo: "Tom Wilson",
     createdAt: "2024-01-11",
     lastUpdated: "2024-01-20",
-    priority: "medium",
+    priority: "standard",
     actions: { "initial-contact": true, "needs-assessment": true },
     notes: "Waiting for current project to finish",
     completedActions: [],
@@ -513,7 +515,7 @@ export const mockClients: Client[] = [
     assignedTo: "Chris Miller",
     createdAt: "2023-12-01",
     lastUpdated: "2024-01-17",
-    priority: "high",
+    priority: "standard",
     actions: { "campaign-setup": true, "outreach-started": false },
     notes: "Previous placement fell through, restarting process",
     completedActions: [],
@@ -528,11 +530,15 @@ export const mockClients: Client[] = [
   },
 ];
 
-export const mainStages: ClientStatus[] = ["sales", "resume", "marketing"];
-export const specialStates: ClientStatus[] = [
-  "completed",
-  "backed-out",
+export const mainStages: ClientStatus[] = [
+  "sales",
+  "resume",
+  "marketing",
   "remarketing",
+];
+export const specialStates: ClientStatus[] = [
+  "placed",
+  "backed-out",
   "on-hold",
 ];
 
@@ -542,18 +548,35 @@ export const getRequiredActions = (
   userRole: string
 ): string[] => {
   switch (department) {
+    case "sales":
+      return ["RateCandidate", "Upload Required Docs"];
     case "resume":
       return [
         `Acknowledged-${userRole}-Resume`,
         "Initial Call Done",
         "Resume Completed",
+        "Upload Required Docs",
       ];
     case "marketing":
-    case "remarketing":
       if (userRole === "marketing-manager") {
-        return [`Acknowledged-Marketing_Manager-Marketing`];
+        // Actions must be completed in sequence:
+        // 1. Acknowledged-Marketing_Manager-Marketing (required first)
+        // 2. AssignRecruiter (always required for action history)
+        return [`Acknowledged-Marketing_Manager-Marketing`, "AssignRecruiter"];
       }
       // Senior recruiters and recruiters have no actions in marketing
+      return [];
+    case "remarketing":
+      if (userRole === "marketing-manager") {
+        // Actions must be completed in sequence:
+        // 1. Acknowledged-Marketing_Manager-Remarketing (required first)
+        // 2. AssignRecruiter (always required for action history)
+        return [
+          `Acknowledged-Marketing_Manager-Remarketing`,
+          "AssignRecruiter",
+        ];
+      }
+      // Senior recruiters and recruiters have no actions in remarketing
       return [];
     default:
       return [];
@@ -594,6 +617,46 @@ export const isActionDisabled = (
     }
   }
 
+  if (department === "sales") {
+    if (action === "Upload Required Docs") {
+      return !client.completedActions.includes("RateCandidate");
+    }
+  }
+
+  // Marketing stage prerequisites
+  if (department === "marketing") {
+    if (action === "AssignRecruiter") {
+      // AssignRecruiter requires Acknowledged-Marketing_Manager-Marketing to be completed first
+      // If client already has a recruiter assigned, AssignRecruiter should be considered completed
+      if (client.assignedRecruiterID) {
+        return true; // Disable AssignRecruiter (mark as completed) if recruiter exists
+      }
+      return !client.completedActions.includes(
+        `Acknowledged-Marketing_Manager-Marketing`
+      );
+    }
+    if (action === "ChangeRecruiter") {
+      // ChangeRecruiter requires Acknowledged-Marketing_Manager-Marketing to be completed first
+      // AND client must have an assigned recruiter
+      if (!client.assignedRecruiterID) {
+        return true; // Disable ChangeRecruiter if no recruiter assigned
+      }
+      return !client.completedActions.includes(
+        `Acknowledged-Marketing_Manager-Marketing`
+      );
+    }
+    if (role === "senior-recruiter" && action === "Acknowledged") {
+      return !client.completedActions.includes(
+        `Acknowledged-Marketing_Manager-Marketing`
+      );
+    }
+    if (role === "recruiter" && action === "Acknowledged") {
+      return !client.completedActions.includes(
+        `Acknowledged-Senior_Recruiter-Marketing`
+      );
+    }
+  }
+
   if (
     department === "marketing" &&
     role === "senior-recruiter" &&
@@ -614,7 +677,105 @@ export const isActionDisabled = (
     );
   }
 
+  // Remarketing stage prerequisites
+  if (department === "remarketing") {
+    if (action === "AssignRecruiter") {
+      // AssignRecruiter requires Acknowledged-Marketing_Manager-Remarketing to be completed first
+      // If client already has a recruiter assigned, AssignRecruiter should be considered completed
+      if (client.assignedRecruiterID) {
+        return true; // Disable AssignRecruiter (mark as completed) if recruiter exists
+      }
+      return !client.completedActions.includes(
+        `Acknowledged-Marketing_Manager-Remarketing`
+      );
+    }
+    if (action === "ChangeRecruiter") {
+      // ChangeRecruiter requires Acknowledged-Marketing_Manager-Remarketing to be completed first
+      // AND client must have an assigned recruiter
+      if (!client.assignedRecruiterID) {
+        return true; // Disable ChangeRecruiter if no recruiter assigned
+      }
+      return !client.completedActions.includes(
+        `Acknowledged-Marketing_Manager-Remarketing`
+      );
+    }
+    if (role === "senior-recruiter" && action === "Acknowledged") {
+      return !client.completedActions.includes(
+        `Acknowledged-Marketing_Manager-Remarketing`
+      );
+    }
+    if (role === "recruiter" && action === "Acknowledged") {
+      return !client.completedActions.includes(
+        `Acknowledged-Marketing_Manager-Remarketing`
+      );
+    }
+  }
+
+  if (
+    department === "remarketing" &&
+    role === "senior-recruiter" &&
+    action === "Acknowledged"
+  ) {
+    return !client.completedActions.includes(
+      `Acknowledged-Marketing_Manager-Remarketing`
+    );
+  }
+
+  if (
+    department === "remarketing" &&
+    role === "recruiter" &&
+    action === "Acknowledged"
+  ) {
+    return !client.completedActions.includes(
+      `Acknowledged-Senior_Recruiter-Remarketing`
+    );
+  }
+
   return false; // No prerequisites for other actions
+};
+
+// Get prerequisite information for an action
+export const getActionPrerequisites = (
+  action: string,
+  department: ClientStatus,
+  role: string
+): string[] => {
+  const prerequisites: string[] = [];
+
+  if (department === "marketing") {
+    if (action === "AssignRecruiter") {
+      prerequisites.push("Acknowledged-Marketing_Manager-Marketing");
+    }
+    if (action === "ChangeRecruiter") {
+      prerequisites.push("Acknowledged-Marketing_Manager-Marketing");
+    }
+  }
+
+  if (department === "remarketing") {
+    if (action === "AssignRecruiter") {
+      prerequisites.push("Acknowledged-Marketing_Manager-Remarketing");
+    }
+    if (action === "ChangeRecruiter") {
+      prerequisites.push("Acknowledged-Marketing_Manager-Remarketing");
+    }
+  }
+
+  if (department === "resume") {
+    if (action === "Initial Call Done") {
+      prerequisites.push(`Acknowledged-${role}-Resume`);
+    }
+    if (action === "Resume Completed") {
+      prerequisites.push("Initial Call Done");
+    }
+  }
+
+  if (department === "sales") {
+    if (action === "Upload Required Docs") {
+      prerequisites.push("RateCandidate");
+    }
+  }
+
+  return prerequisites;
 };
 
 // File upload requirements for stage transitions
@@ -637,7 +798,8 @@ export const getFileRequirements = (
     "Resume Completed": {
       action: "Resume Completed",
       fileType: "pdf,doc,docx",
-      description: "Upload Resume/Checklist document",
+      description:
+        "Upload Drafted Resume (Required) and Additional Documents (Optional)",
       required: true,
     },
     AssignSeniorRecruiter: {
@@ -648,6 +810,24 @@ export const getFileRequirements = (
     },
     AssignRecruiter: {
       action: "AssignRecruiter",
+      fileType: "",
+      description: "",
+      required: false,
+    },
+    "Acknowledged-Remarketing": {
+      action: "Acknowledged-Remarketing",
+      fileType: "",
+      description: "",
+      required: false,
+    },
+    RateCandidate: {
+      action: "RateCandidate",
+      fileType: "",
+      description: "",
+      required: false,
+    },
+    ChangeRecruiter: {
+      action: "ChangeRecruiter",
       fileType: "",
       description: "",
       required: false,
@@ -681,6 +861,42 @@ export const getRoleHierarchy = (): Record<UserRole, number> => {
   };
 };
 
+// Check if user can access a specific stage/department based on their role
+export const canAccessStageForRole = (
+  userRole: UserRole,
+  department: ClientStatus
+): boolean => {
+  // Admin can access all stages
+  if (userRole === "admin") return true;
+
+  // Marketing Manager can only access marketing and remarketing stages
+  if (userRole === "marketing-manager") {
+    return department === "marketing" || department === "remarketing";
+  }
+
+  // Sales Executive can only access sales stage
+  if (userRole === "sales-executive") {
+    return department === "sales";
+  }
+
+  // Resume Writer can only access resume stage
+  if (userRole === "resume-writer") {
+    return department === "resume";
+  }
+
+  // Senior Recruiter can access marketing and remarketing stages
+  if (userRole === "senior-recruiter") {
+    return department === "marketing" || department === "remarketing";
+  }
+
+  // Recruiter can access marketing and remarketing stages
+  if (userRole === "recruiter") {
+    return department === "marketing" || department === "remarketing";
+  }
+
+  return false;
+};
+
 // Check if user can perform action based on role hierarchy
 export const canPerformAction = (
   action: ActionType,
@@ -688,30 +904,24 @@ export const canPerformAction = (
   client: Client,
   department: ClientStatus
 ): boolean => {
-  const hierarchy = getRoleHierarchy();
-  const userLevel = hierarchy[userRole];
-
   // Admin can perform any action
   if (userRole === "admin") return true;
 
-  // Marketing Manager can perform any action in marketing
-  if (userRole === "marketing-manager" && department === "marketing")
-    return true;
+  // Check if user has access to this department/stage
+  const canAccessStage = canAccessStageForRole(userRole, department);
+  if (!canAccessStage) {
+    return false; // User cannot perform actions in stages they can't access
+  }
 
   // Check role-specific permissions
   switch (action) {
     case "Acknowledged":
-      if (department === "marketing") {
-        // In marketing, only Marketing Manager can acknowledge
-        if (userRole === "marketing-manager") {
-          return true;
-        }
-        // Recruiters cannot acknowledge in marketing (no marketing team access)
-        if (userRole === "recruiter" || userRole === "senior-recruiter") {
-          return false;
-        }
+      if (department === "marketing" || department === "remarketing") {
+        // In marketing and remarketing, only Marketing Manager can acknowledge
+        return userRole === "marketing-manager";
       }
-      return true; // Other roles can acknowledge in their departments
+      // For other departments, check if user has access
+      return canAccessStageForRole(userRole, department);
 
     case "Initial Call Done":
     case "Resume Completed":
@@ -723,11 +933,29 @@ export const canPerformAction = (
 
     case "AssignSeniorRecruiter":
     case "AssignRecruiter":
-      // Only Marketing Managers can assign recruiters
-      return userRole === "marketing-manager";
+    case "ChangeRecruiter":
+      // Only Marketing Managers and Admins can assign/change recruiters
+      // But they must also have access to the stage
+      if (!["marketing-manager", "admin"].includes(userRole)) {
+        return false;
+      }
+      // Check if user has access to this stage
+      return canAccessStageForRole(userRole, department);
+
+    case "RateCandidate":
+      // Sales executives and admins can rate candidates
+      return ["sales-executive", "admin"].includes(userRole);
+
+    case "Acknowledged-Remarketing":
+      // Only Marketing Managers can acknowledge in remarketing
+      if (department === "remarketing") {
+        return userRole === "marketing-manager";
+      }
+      return false;
 
     default:
-      return true;
+      // For other actions, check if user has access to the stage
+      return canAccessStageForRole(userRole, department);
   }
 };
 
@@ -737,12 +965,20 @@ export const getAvailableActionsForRole = (
   department: ClientStatus,
   client: Client
 ): ActionType[] => {
+  // First check if user can access this stage
+  if (!canAccessStageForRole(userRole, department)) {
+    return []; // User cannot access this stage, so no actions available
+  }
+
   const allActions: ActionType[] = [
     "Acknowledged",
     "Initial Call Done",
     "Resume Completed",
     "AssignSeniorRecruiter",
     "AssignRecruiter",
+    "Acknowledged-Remarketing",
+    "RateCandidate",
+    "ChangeRecruiter",
   ];
 
   return allActions.filter((action) =>
@@ -757,6 +993,11 @@ export const isActionRequiredForTransition = (
   toStage: ClientStatus,
   userRole: UserRole
 ): boolean => {
+  // Sales to Resume transition requires "Upload Required Docs" action
+  if (fromStage === "sales" && toStage === "resume") {
+    return false; // This is handled by the transition system, not individual actions
+  }
+
   // Resume stage requires all actions to be completed
   if (fromStage === "resume" && toStage === "marketing") {
     return ["Acknowledged", "Initial Call Done", "Resume Completed"].includes(
@@ -765,7 +1006,7 @@ export const isActionRequiredForTransition = (
   }
 
   // Marketing stage requires acknowledgment only from Marketing Manager
-  if (fromStage === "marketing" && toStage === "completed") {
+  if (fromStage === "marketing" && toStage === "placed") {
     if (userRole === "marketing-manager") {
       return action === "Acknowledged";
     }

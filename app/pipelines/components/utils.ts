@@ -2,20 +2,29 @@ import { Client, ClientStatus, UserRole } from "../../types/pipelines/pipeline";
 import { areAllActionsCompleted } from "./constants";
 
 export const canMoveClient = (client: Client, userRole: UserRole): boolean => {
-  // Check if all actions for current stage are completed (except for admin)
-  if (userRole !== "admin" && userRole !== "marketing-manager") {
-    if (!areAllActionsCompleted(client, client.status, userRole)) {
-      return false;
-    }
-  }
-
   switch (userRole) {
     case "admin":
-    case "marketing-manager":
+      // Admin can move clients regardless of action completion, but with restrictions for placed stage
+      if (client.status === "placed") {
+        // From placed stage, admin can only move to remarketing
+        return true; // Allow movement, but getAvailableStages will restrict destinations
+      }
       return true;
+    case "marketing-manager":
+      // Marketing manager can move clients regardless of action completion, but NOT from sales or placed
+      if (client.status === "sales" || client.status === "placed") {
+        return false;
+      }
+      // Only allow movement from marketing and remarketing stages
+      return client.status === "marketing" || client.status === "remarketing";
     case "sales-executive":
+      // Sales people can move clients from sales stage
       return client.status === "sales";
     case "resume-writer":
+      // Resume people can only move if all actions are completed
+      if (!areAllActionsCompleted(client, client.status, userRole)) {
+        return false;
+      }
       return client.status === "resume";
     case "senior-recruiter":
     case "recruiter":
@@ -34,15 +43,36 @@ export const getAvailableStages = (
     "sales",
     "resume",
     "marketing",
-    "completed",
+    "placed",
     "backed-out",
     "remarketing",
     "on-hold",
   ];
 
-  // Admin can move to any stage except current
-  if (userRole === "admin" || userRole === "marketing-manager") {
+  // Admin can move to any stage except current, but with restrictions for placed stage
+  if (userRole === "admin") {
+    if (currentStatus === "placed") {
+      // From placed stage, admin can only move to remarketing
+      return ["remarketing"];
+    }
     return allStages.filter((stage) => stage !== currentStatus);
+  }
+
+  // Marketing Manager can only move clients from marketing to specific stages
+  if (userRole === "marketing-manager") {
+    if (currentStatus === "marketing") {
+      return ["placed", "backed-out", "on-hold"];
+    }
+    if (currentStatus === "remarketing") {
+      return ["placed", "backed-out", "on-hold"];
+    }
+    // For other stages, marketing manager has limited access
+    return [];
+  }
+
+  // For placed stage, only admin can move clients
+  if (currentStatus === "placed") {
+    return [];
   }
 
   const moves: ClientStatus[] = [];
@@ -61,13 +91,13 @@ export const getAvailableStages = (
       }
       break;
     case "marketing":
-      // Only Marketing Manager can move clients in marketing stage
-      if (userRole === "marketing-manager") {
-        moves.push("completed", "backed-out", "remarketing", "on-hold");
-      }
+      // Marketing Manager access handled above
       break;
-    case "completed":
-      // Only admin/marketing-manager can move from completed
+    case "placed":
+      // Only admin can move from placed, and only to remarketing
+      if (userRole === "admin") {
+        moves.push("remarketing");
+      }
       break;
     case "backed-out":
       // Only admin/marketing-manager can move from backed-out
@@ -76,10 +106,7 @@ export const getAvailableStages = (
       // Only admin/marketing-manager can move from on-hold
       break;
     case "remarketing":
-      // Only Marketing Manager can move clients in remarketing stage
-      if (userRole === "marketing-manager") {
-        moves.push("completed", "backed-out", "on-hold");
-      }
+      // Marketing Manager access handled above
       break;
   }
 
@@ -124,4 +151,59 @@ export const calculateDepartmentTime = (
       current: !history.endDate,
     };
   });
+};
+
+export const shouldResetActions = (
+  fromStage: ClientStatus,
+  toStage: ClientStatus
+): boolean => {
+  // Define the normal forward progression
+  const stageOrder = ["sales", "resume", "marketing", "placed"];
+
+  const fromIndex = stageOrder.indexOf(fromStage);
+  const toIndex = stageOrder.indexOf(toStage);
+
+  // If moving backwards (to earlier stage), reset actions
+  if (fromIndex > toIndex) {
+    return true;
+  }
+
+  // Special cases: moving to special states doesn't reset actions
+  if (
+    toStage === "backed-out" ||
+    toStage === "on-hold" ||
+    toStage === "remarketing"
+  ) {
+    return false;
+  }
+
+  return false;
+};
+
+export const getActionsToReset = (
+  fromStage: ClientStatus,
+  toStage: ClientStatus
+): string[] => {
+  if (!shouldResetActions(fromStage, toStage)) {
+    return [];
+  }
+
+  // Return actions that should be reset based on the target stage
+  switch (toStage) {
+    case "sales":
+      return ["RateCandidate", "Upload Required Docs"];
+    case "resume":
+      return [
+        "Acknowledged-Resume_Writer-Resume",
+        "Initial Call Done",
+        "Resume Completed",
+        "Upload Required Docs",
+      ];
+    case "marketing":
+      return ["Acknowledged-Marketing_Manager-Marketing"];
+    case "remarketing":
+      return ["Acknowledged-Marketing_Manager-Remarketing", "AssignRecruiter"];
+    default:
+      return [];
+  }
 };

@@ -12,6 +12,7 @@ import {
 import { Client, ClientStatus, UserRole } from "../../types/pipelines/pipeline";
 import { canMoveClient } from "./utils";
 import { getRequiredActions } from "./constants";
+import { formatDateEST } from "../../utils/dateUtils";
 
 interface ClientCardProps {
   client: Client;
@@ -77,7 +78,7 @@ export function ClientCard({
           </div>
 
           <p className="text-xs text-muted-foreground mt-2">
-            Updated: {client.lastUpdated}
+            Updated: {formatDateEST(client.lastUpdated)}
           </p>
         </div>
 

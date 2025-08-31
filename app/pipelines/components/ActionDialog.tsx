@@ -22,6 +22,7 @@ interface ActionDialogProps {
   requiresFile?: boolean;
   fileType?: string;
   fileDescription?: string;
+  requiresComments?: boolean;
 }
 
 export function ActionDialog({
@@ -33,6 +34,7 @@ export function ActionDialog({
   requiresFile = false,
   fileType = "pdf,doc,docx",
   fileDescription = "Upload a file",
+  requiresComments = false,
 }: ActionDialogProps) {
   const [comment, setComment] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -41,6 +43,9 @@ export function ActionDialog({
   const handleSubmit = async () => {
     if (requiresFile && !file) {
       return; // Don't submit if file is required but not provided
+    }
+    if (requiresComments && !comment.trim()) {
+      return; // Don't submit if comments are required but not provided
     }
 
     setIsSubmitting(true);
@@ -86,10 +91,18 @@ export function ActionDialog({
 
         <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
           <div>
-            <Label htmlFor="comment">Notes (Optional)</Label>
+            <Label htmlFor="comment">
+              Notes{" "}
+              {requiresComments && <span className="text-red-500">*</span>}
+              {!requiresComments && " (Optional)"}
+            </Label>
             <Textarea
               id="comment"
-              placeholder="Add any notes about this action..."
+              placeholder={
+                requiresComments
+                  ? "Add required notes about this action..."
+                  : "Add any notes about this action..."
+              }
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               className="mt-1"
@@ -174,7 +187,11 @@ export function ActionDialog({
               e.stopPropagation();
               handleSubmit();
             }}
-            disabled={isSubmitting || (requiresFile && !file)}
+            disabled={
+              isSubmitting ||
+              (requiresFile && !file) ||
+              (requiresComments && !comment.trim())
+            }
           >
             {isSubmitting ? "Completing..." : "Complete Action"}
           </Button>

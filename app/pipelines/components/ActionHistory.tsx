@@ -11,6 +11,7 @@ import {
   Eye,
 } from "lucide-react";
 import { ActionHistory as ActionHistoryType } from "../../types/pipelines/pipeline";
+import { formatDateEST } from "../../utils/dateUtils";
 
 interface ActionHistoryProps {
   actions: ActionHistoryType[];
@@ -19,13 +20,7 @@ interface ActionHistoryProps {
 
 export function ActionHistory({ actions, clientName }: ActionHistoryProps) {
   const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatDateEST(dateString);
   };
 
   const getActionIcon = (actionType: string) => {

@@ -1,3 +1,76 @@
+/**
+ * Date utility functions for formatting dates in EST timezone
+ */
+
+export const formatDateEST = (date: string | Date): string => {
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).format(dateObj);
+};
+
+export const formatDateOnlyEST = (date: string | Date): string => {
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(dateObj);
+};
+
+export const formatTimeOnlyEST = (date: string | Date): string => {
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).format(dateObj);
+};
+
+export const getCurrentDateEST = (): string => {
+  return new Date().toLocaleString("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+};
+
+export const formatRelativeTimeEST = (date: string | Date): string => {
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+  const now = new Date();
+  const diffInMs = now.getTime() - dateObj.getTime();
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+
+  if (diffInDays > 0) {
+    return `${diffInDays} day${diffInDays > 1 ? "s" : ""} ago`;
+  } else if (diffInHours > 0) {
+    return `${diffInHours} hour${diffInHours > 1 ? "s" : ""} ago`;
+  } else if (diffInMinutes > 0) {
+    return `${diffInMinutes} minute${diffInMinutes > 1 ? "s" : ""} ago`;
+  } else {
+    return "Just now";
+  }
+};
+
+// Legacy functions for client forms
 export const formatDateForInput = (date: Date | null): string => {
   if (!date) return "";
   const year = date.getFullYear();

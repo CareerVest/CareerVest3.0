@@ -3,10 +3,10 @@
 import React, { useState } from "react";
 import { Pipeline } from "./components/Pipeline";
 import { Client, UserRole } from "../types/pipelines/pipeline";
-import { ClientDetails } from "./components/ClientDetails";
+import { ClientDetailsSidebar } from "./components/ClientDetailsSidebar";
 
 export default function PipelinesPage() {
-  const currentUserRole: UserRole = "resume-writer"; // Simulating resume-writer role
+  const currentUserRole: UserRole = "marketing-manager"; // Simulating marketing-manager role
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isClientDetailsOpen, setIsClientDetailsOpen] = useState(false);
 
@@ -21,6 +21,11 @@ export default function PipelinesPage() {
     setIsClientDetailsOpen(true);
   };
 
+  const handleCloseSidebar = () => {
+    setIsClientDetailsOpen(false);
+    setSelectedClient(null);
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -28,7 +33,9 @@ export default function PipelinesPage() {
           <h1 className="text-3xl font-semibold text-[#682A53]">Pipelines</h1>
           <p className="text-sm text-gray-600 mt-1">
             Logged in as:{" "}
-            <span className="font-medium text-indigo-600">Resume Writer</span>
+            <span className="font-medium text-indigo-600">
+              Marketing Manager
+            </span>
           </p>
         </div>
       </div>
@@ -38,10 +45,10 @@ export default function PipelinesPage() {
         onClientSelect={handleClientSelect}
       />
 
-      <ClientDetails
+      <ClientDetailsSidebar
         client={selectedClient}
         isOpen={isClientDetailsOpen}
-        onClose={() => setIsClientDetailsOpen(false)}
+        onClose={handleCloseSidebar}
         onUpdate={handleClientUpdate}
         currentUserRole={currentUserRole}
       />
