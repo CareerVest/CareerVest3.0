@@ -19,6 +19,16 @@ interface ActionHistoryProps {
 }
 
 export function ActionHistory({ actions, clientName }: ActionHistoryProps) {
+  // Debug logging to see what's being received
+  console.log("🔍 ActionHistory received actions:", {
+    actions,
+    type: typeof actions,
+    isArray: Array.isArray(actions),
+    clientName,
+  });
+
+  // Ensure actions is always an array
+  const safeActions = Array.isArray(actions) ? actions : [];
   const formatDate = (dateString: string): string => {
     return formatDateEST(dateString);
   };
@@ -41,24 +51,24 @@ export function ActionHistory({ actions, clientName }: ActionHistoryProps) {
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case "admin":
+      case "Admin":
         return "bg-red-100 text-red-800 border-red-200";
-      case "marketing-manager":
+      case "Marketing_Manager":
         return "bg-blue-100 text-blue-800 border-blue-200";
-      case "senior-recruiter":
+      case "Senior_Recruiter":
         return "bg-purple-100 text-purple-800 border-purple-200";
-      case "recruiter":
+      case "Recruiter":
         return "bg-green-100 text-green-800 border-green-200";
-      case "sales-executive":
+      case "Sales_Executive":
         return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "resume-writer":
+      case "Resume_Writer":
         return "bg-indigo-100 text-indigo-800 border-indigo-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
-  if (actions.length === 0) {
+  if (safeActions.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -85,12 +95,12 @@ export function ActionHistory({ actions, clientName }: ActionHistoryProps) {
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Clock className="h-5 w-5" />
-          Action History ({actions.length})
+          Action History ({safeActions.length})
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {actions
+          {safeActions
             .sort(
               (a, b) =>
                 new Date(b.timestamp).getTime() -

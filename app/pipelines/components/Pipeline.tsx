@@ -37,12 +37,14 @@ interface PipelineProps {
   currentUserRole: UserRole;
   onClientSelect?: (client: Client) => void;
   isSidebarOpen?: boolean;
+  onClientUpdate?: (updatedClient: Client) => void;
 }
 
 export function Pipeline({
   currentUserRole,
   onClientSelect,
   isSidebarOpen = false,
+  onClientUpdate,
 }: PipelineProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -302,18 +304,28 @@ export function Pipeline({
   ) => {
     try {
       console.log("🔄 Completing action:", action, "for client:", clientId);
+      console.log("🔄 Action data:", data);
+      console.log("🔄 User role:", currentUserRole);
+
       // Call the API to complete the action
-      await completePipelineAction(
+      const result = await completePipelineAction(
         clientId,
         action as ActionType,
         currentUserRole,
         data
       );
 
+      console.log("🔄 API call result:", result);
+
       // Update local state
       console.log("🔄 Adding action to completedActions:", action);
-      setClients((prev) =>
-        prev.map((client) =>
+      console.log(
+        "🔄 Before update - client completedActions:",
+        clients.find((c) => c.id === clientId)?.completedActions
+      );
+
+      setClients((prev) => {
+        const updatedClients = prev.map((client) =>
           client.id === clientId
             ? {
                 ...client,
@@ -401,10 +413,24 @@ export function Pipeline({
                 ],
               }
             : client
-        )
-      );
+        );
+
+        // Notify parent component about the client update
+        if (onClientUpdate) {
+          const updatedClient = updatedClients.find((c) => c.id === clientId);
+          if (updatedClient) {
+            onClientUpdate(updatedClient);
+          }
+        }
+
+        return updatedClients;
+      });
 
       console.log("✅ Completed action", action, "for client", clientId);
+      console.log(
+        "🔄 Updated client completedActions:",
+        clients.find((c) => c.id === clientId)?.completedActions
+      );
     } catch (err: any) {
       console.error("❌ Error completing action:", err);
       // You might want to show a toast notification here

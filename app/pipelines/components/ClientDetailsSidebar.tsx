@@ -32,6 +32,7 @@ import {
   Activity,
   Zap,
   AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { ClientDocuments } from "./ClientDocuments";
 import { ActionHistory } from "./ActionHistory";
@@ -41,6 +42,7 @@ interface ClientDetailsSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   currentUserRole: UserRole;
+  onRefresh?: () => void;
 }
 
 export function ClientDetailsSidebar({
@@ -48,6 +50,7 @@ export function ClientDetailsSidebar({
   isOpen,
   onClose,
   currentUserRole,
+  onRefresh,
 }: ClientDetailsSidebarProps) {
   const sidebarRef = React.useRef<HTMLDivElement>(null);
 
@@ -60,32 +63,45 @@ export function ClientDetailsSidebar({
 
   if (!client) return null;
 
-  const getStageActions = (status: string) => {
+  const getStageActions = (status: string, userRole: string) => {
     switch (status) {
       case "sales":
         return [
-          { key: "initial-contact", label: "Initial Contact" },
-          { key: "needs-assessment", label: "Needs Assessment" },
-          { key: "qualification", label: "Qualification" },
+          { key: "RateCandidate", label: "Rate Candidate" },
+          {
+            key: "Upload Required Docs - Sales",
+            label: "Upload Required Documents",
+          },
         ];
       case "resume":
         return [
-          { key: "acknowledgment", label: "Acknowledgment" },
-          { key: "initial-call", label: "Initial Call Done" },
-          { key: "resume-completed", label: "Resume Completed" },
-          { key: "review-completed", label: "Review Completed" },
+          { key: `Acknowledged-${userRole}-Resume`, label: "Acknowledged" },
+          { key: "Initial Call Done", label: "Initial Call Done" },
+          { key: "Resume Completed", label: "Resume Completed" },
+          {
+            key: "Upload Required Docs - Resume",
+            label: "Upload Required Documents",
+          },
         ];
       case "marketing":
         return [
-          { key: "acknowledgment", label: "Acknowledgment" },
-          { key: "assign-senior-recruiter", label: "Assign Senior Recruiter" },
+          { key: `Acknowledged-${userRole}-Marketing`, label: "Acknowledged" },
+          { key: "AssignRecruiter", label: "Assign Recruiter" },
+        ];
+      case "remarketing":
+        return [
+          {
+            key: `Acknowledged-${userRole}-Remarketing`,
+            label: "Acknowledged",
+          },
+          { key: "AssignRecruiter", label: "Assign Recruiter" },
         ];
       default:
         return [];
     }
   };
 
-  const stageActions = getStageActions(client.status);
+  const stageActions = getStageActions(client.status, currentUserRole);
   const departmentTime = calculateDepartmentTime(client);
 
   // Calculate performance metrics
@@ -95,12 +111,15 @@ export function ClientDetailsSidebar({
     0
   );
   const avgDaysPerStage = totalDays / Math.max(departmentTime.length, 1);
-  const completedActions = Object.values(client.actions || {}).filter(
-    Boolean
+  // Calculate action progress for current department only
+  const currentStageActions = getStageActions(client.status, currentUserRole);
+  const currentStageCompletedActions = currentStageActions.filter((action) =>
+    client.completedActions?.includes(action.key)
   ).length;
-  const totalActions = Object.keys(client.actions || {}).length;
   const actionCompletionRate =
-    totalActions > 0 ? (completedActions / totalActions) * 100 : 0;
+    currentStageActions.length > 0
+      ? (currentStageCompletedActions / currentStageActions.length) * 100
+      : 0;
 
   // Get current stage SLA status (exclude terminal stages)
   const currentStageData = departmentTime.find((dept) => dept.current);
@@ -277,14 +296,27 @@ export function ClientDetailsSidebar({
                     </div>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onClose}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  {onRefresh && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onRefresh}
+                      className="h-8 w-8 p-0"
+                      title="Refresh client data"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onClose}
+                    className="h-8 w-8 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               {/* Performance Overview Cards */}
@@ -369,18 +401,26 @@ export function ClientDetailsSidebar({
                 <CardContent>
                   <div className="space-y-4">
                     {departmentTime.map((dept, index) => {
-                      const slaConfig = getSLAConfig(dept.department);
-                      const slaStatus =
-                        dept.current &&
-                        !["placed", "on-hold", "backed-out"].includes(
-                          client.status
-                        )
-                          ? getSLAStatus(
-                              dept.department,
-                              dept.businessDays || dept.days,
-                              true
-                            )
-                          : null;
+                      // Convert department name back to lowercase for SLA config lookup
+                      const stageName = dept.department
+                        .toLowerCase()
+                        .replace(" ", "-");
+                      const slaConfig = getSLAConfig(stageName);
+                      // Calculate SLA status for all departments
+                      // For current stage, show actual SLA status
+                      // For completed stages, show "completed" status
+                      const slaStatus = dept.current
+                        ? getSLAStatus(
+                            stageName,
+                            dept.businessDays || dept.days,
+                            true
+                          )
+                        : {
+                            status: "completed" as const,
+                            daysRemaining: 0,
+                            daysOverdue: 0,
+                            percentageComplete: 100,
+                          };
 
                       return (
                         <div key={index} className="relative">
@@ -403,33 +443,35 @@ export function ClientDetailsSidebar({
                                 <div>
                                   <span className="font-medium text-gray-900 capitalize">
                                     {dept.department}
+                                    {slaConfig && (
+                                      <span className="text-gray-500 font-normal">
+                                        {" "}
+                                        (SLA Deadline: {slaConfig.maxDays} days)
+                                      </span>
+                                    )}
                                   </span>
-                                  {slaConfig && (
-                                    <p className="text-xs text-gray-500">
-                                      SLA: {slaConfig.maxDays} business days
-                                    </p>
-                                  )}
                                 </div>
                                 <div className="text-right">
                                   <span className="text-sm text-gray-500">
                                     {dept.businessDays || dept.days} days
                                   </span>
-                                  {slaStatus &&
-                                    slaStatus.status !== "completed" && (
-                                      <div
-                                        className={`text-xs px-2 py-1 rounded-full mt-1 ${getSLAStatusColor(
-                                          slaStatus.status
-                                        )}`}
-                                      >
-                                        {slaStatus.status === "overdue"
-                                          ? `${slaStatus.daysOverdue} overdue`
-                                          : slaStatus.status === "warning"
-                                          ? `${slaStatus.daysRemaining.toFixed(
-                                              1
-                                            )} left`
-                                          : "On track"}
-                                      </div>
-                                    )}
+                                  {slaStatus && (
+                                    <div
+                                      className={`text-xs px-2 py-1 rounded-full mt-1 ${getSLAStatusColor(
+                                        slaStatus.status
+                                      )}`}
+                                    >
+                                      {slaStatus.status === "overdue"
+                                        ? `${slaStatus.daysOverdue} overdue`
+                                        : slaStatus.status === "warning"
+                                        ? `${slaStatus.daysRemaining.toFixed(
+                                            1
+                                          )} left`
+                                        : slaStatus.status === "completed"
+                                        ? "Completed"
+                                        : "On track"}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                               <div className="mt-1">
@@ -441,92 +483,6 @@ export function ClientDetailsSidebar({
                             </div>
                             {index < departmentTime.length - 1 && (
                               <ArrowRight className="w-4 h-4 text-gray-400" />
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* SLA Overview */}
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Clock className="w-5 h-5" />
-                    SLA Deadlines & Compliance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {STAGE_SLA_CONFIG.map((sla) => {
-                      const stageData = departmentTime.find(
-                        (dept) =>
-                          dept.department.toLowerCase().replace(" ", "-") ===
-                          sla.stage
-                      );
-                      const isCurrentStage = stageData?.current || false;
-                      const daysInStage = stageData
-                        ? stageData.businessDays || stageData.days
-                        : 0;
-                      const slaStatus = getSLAStatus(
-                        sla.stage,
-                        daysInStage,
-                        isCurrentStage
-                      );
-
-                      // Skip SLA display for terminal stages
-                      if (
-                        ["placed", "on-hold", "backed-out"].includes(
-                          client.status
-                        )
-                      ) {
-                        return null;
-                      }
-
-                      return (
-                        <div
-                          key={sla.stage}
-                          className="flex items-center justify-between p-3 border rounded-lg"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-6 h-6 rounded-full flex items-center justify-center text-sm ${
-                                slaStatus.status === "overdue"
-                                  ? "bg-red-100 text-red-600"
-                                  : slaStatus.status === "warning"
-                                  ? "bg-yellow-100 text-yellow-600"
-                                  : "bg-green-100 text-green-600"
-                              }`}
-                            >
-                              {getSLAStatusIcon(slaStatus.status)}
-                            </div>
-                            <div>
-                              <span className="font-medium text-gray-900 capitalize">
-                                {sla.stage.replace("-", " ")}
-                              </span>
-                              <p className="text-xs text-gray-500">
-                                {sla.description}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm font-medium text-gray-900">
-                              {sla.maxDays} business days
-                            </div>
-                            {isCurrentStage && (
-                              <div
-                                className={`text-xs px-2 py-1 rounded-full mt-1 ${getSLAStatusColor(
-                                  slaStatus.status
-                                )}`}
-                              >
-                                {slaStatus.status === "overdue"
-                                  ? `${slaStatus.daysOverdue} overdue`
-                                  : slaStatus.status === "warning"
-                                  ? `${slaStatus.daysRemaining.toFixed(1)} left`
-                                  : "On track"}
-                              </div>
                             )}
                           </div>
                         </div>
@@ -579,7 +535,8 @@ export function ClientDetailsSidebar({
                         Overall Completion
                       </span>
                       <span className="text-sm text-gray-500">
-                        {completedActions}/{totalActions} actions
+                        {currentStageCompletedActions}/
+                        {currentStageActions.length} actions
                       </span>
                     </div>
                     <Progress value={actionCompletionRate} className="h-3" />
@@ -598,7 +555,7 @@ export function ClientDetailsSidebar({
                           {action.label}
                         </span>
                         <div className="flex items-center gap-2">
-                          {client.actions[action.key] ? (
+                          {client.completedActions?.includes(action.key) ? (
                             <div className="flex items-center gap-2 text-green-600">
                               <Check className="w-4 h-4" />
                               <span className="text-xs font-medium">
@@ -611,63 +568,6 @@ export function ClientDetailsSidebar({
                               <span className="text-xs">Pending</span>
                             </div>
                           )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Department Performance */}
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5" />
-                    Department Performance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {departmentTime.map((dept, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 border rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                              dept.current
-                                ? "bg-blue-100 text-blue-600"
-                                : "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {dept.current ? (
-                              <Zap className="w-4 h-4" />
-                            ) : (
-                              <CheckCircle2 className="w-4 h-4" />
-                            )}
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-gray-700 capitalize">
-                              {dept.department}
-                            </span>
-                            {dept.current && (
-                              <p className="text-xs text-blue-600">
-                                Current Stage
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-lg font-bold text-gray-900">
-                            {dept.businessDays || dept.days}
-                          </span>
-                          <p className="text-xs text-gray-500">
-                            {dept.businessDays !== dept.days
-                              ? `${dept.businessDays} business`
-                              : ""}{" "}
-                            days
-                          </p>
                         </div>
                       </div>
                     ))}

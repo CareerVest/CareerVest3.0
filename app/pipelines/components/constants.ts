@@ -95,460 +95,6 @@ export const stageConfig = {
   },
 };
 
-export const mockClients: Client[] = [
-  // Sales Stage - Multiple clients
-  {
-    id: "1",
-    name: "John Smith",
-    email: "john@example.com",
-    phone: "(555) 123-4567",
-    status: "sales",
-    assignedTo: "Sarah Johnson",
-    createdAt: "2024-01-15",
-    lastUpdated: "2024-01-20",
-    priority: "exceptional",
-    actions: {
-      "initial-contact": true,
-      "needs-assessment": false,
-      qualification: false,
-    },
-    notes: "Interested in tech roles",
-    completedActions: [],
-    currentStage: {
-      department: "sales",
-      startDate: "2024-01-15",
-    },
-    daysInCurrentStage: 5,
-    departmentHistory: [
-      {
-        department: "sales",
-        startDate: "2024-01-15",
-        endDate: undefined,
-      },
-    ],
-    documents: [],
-    assignments: [],
-    actionHistory: [],
-  },
-  {
-    id: "6",
-    name: "Alex Rodriguez",
-    email: "alex@example.com",
-    phone: "(555) 111-2222",
-    status: "sales",
-    assignedTo: "Sarah Johnson",
-    createdAt: "2024-01-16",
-    lastUpdated: "2024-01-21",
-    priority: "real-time",
-    actions: {
-      "initial-contact": false,
-      "needs-assessment": false,
-      qualification: false,
-    },
-    notes: "Potential client, waiting for callback",
-    completedActions: [],
-    currentStage: {
-      department: "sales",
-      startDate: "2024-01-16",
-    },
-    daysInCurrentStage: 5,
-    documents: [],
-    assignments: [],
-    actionHistory: [],
-  },
-  {
-    id: "7",
-    name: "Maria Garcia",
-    email: "maria@example.com",
-    phone: "(555) 333-4444",
-    status: "sales",
-    assignedTo: "Tom Wilson",
-    createdAt: "2024-01-18",
-    lastUpdated: "2024-01-22",
-    priority: "standard",
-    actions: {
-      "initial-contact": true,
-      "needs-assessment": true,
-      qualification: false,
-    },
-    notes: "Data scientist with 5 years experience",
-    completedActions: [],
-    currentStage: {
-      department: "sales",
-      startDate: "2024-01-18",
-    },
-    daysInCurrentStage: 4,
-    documents: [],
-    assignments: [],
-    actionHistory: [],
-  },
-  {
-    id: "8",
-    name: "David Chen",
-    email: "david@example.com",
-    phone: "(555) 555-6666",
-    status: "sales",
-    assignedTo: "Sarah Johnson",
-    createdAt: "2024-01-19",
-    lastUpdated: "2024-01-23",
-    priority: "standard",
-    actions: {
-      "initial-contact": true,
-      "needs-assessment": false,
-      qualification: false,
-    },
-    notes: "Looking for remote opportunities",
-    completedActions: [],
-    currentStage: {
-      department: "sales",
-      startDate: "2024-01-19",
-    },
-    daysInCurrentStage: 4,
-    documents: [],
-    assignments: [],
-    actionHistory: [],
-  },
-
-  // Resume Stage - Multiple clients
-  {
-    id: "2",
-    name: "Emily Davis",
-    email: "emily@example.com",
-    phone: "(555) 234-5678",
-    status: "resume",
-    assignedTo: "Mike Wilson",
-    createdAt: "2024-01-10",
-    lastUpdated: "2024-01-22",
-    priority: "standard",
-    actions: {
-      "initial-call": true,
-      "resume-draft": true,
-      "review-completed": true,
-    },
-    notes: "Marketing professional, 8 years experience",
-    completedActions: [
-      "Acknowledged-resume-writer-Resume",
-      "Initial Call Done",
-      "Resume Completed",
-    ],
-    currentStage: {
-      department: "resume",
-      startDate: "2024-01-10",
-    },
-    daysInCurrentStage: 12,
-    departmentHistory: [
-      {
-        department: "sales",
-        startDate: "2024-01-10",
-        endDate: "2024-01-15",
-      },
-      {
-        department: "resume",
-        startDate: "2024-01-15",
-        endDate: undefined,
-      },
-    ],
-    documents: [
-      {
-        id: "emily-resume-1",
-        name: "Emily_Davis_Resume.pdf",
-        type: "application/pdf",
-        uploadedAt: "2024-01-20T10:30:00Z",
-        uploadedBy: "Resume Writer",
-        fileSize: 245760,
-        notes: "Updated resume with latest experience",
-      },
-    ],
-    assignments: [],
-    actionHistory: [
-      {
-        id: "emily-action-1",
-        clientId: "2",
-        actionType: "Acknowledged",
-        performedBy: "Resume Writer",
-        performedByRole: "resume-writer",
-        timestamp: "2024-01-18T09:00:00Z",
-        notes: "Client acknowledged for resume work",
-      },
-      {
-        id: "emily-action-2",
-        clientId: "2",
-        actionType: "Initial Call Done",
-        performedBy: "Resume Writer",
-        performedByRole: "resume-writer",
-        timestamp: "2024-01-19T14:30:00Z",
-        notes: "Initial consultation completed",
-      },
-      {
-        id: "emily-action-3",
-        clientId: "2",
-        actionType: "Resume Completed",
-        performedBy: "Resume Writer",
-        performedByRole: "resume-writer",
-        timestamp: "2024-01-20T10:30:00Z",
-        notes: "Resume updated and finalized",
-        fileUploaded: true,
-        fileName: "Emily_Davis_Resume.pdf",
-      },
-    ],
-  },
-  {
-    id: "9",
-    name: "Sarah Kim",
-    email: "sarah@example.com",
-    phone: "(555) 777-8888",
-    status: "resume",
-    assignedTo: "Mike Wilson",
-    createdAt: "2024-01-12",
-    lastUpdated: "2024-01-23",
-    priority: "standard",
-    actions: {
-      "initial-call": false,
-      "resume-draft": false,
-      "review-completed": false,
-    },
-    notes: "Software engineer, needs resume update",
-    completedActions: [],
-    currentStage: {
-      department: "resume",
-      startDate: "2024-01-12",
-    },
-    daysInCurrentStage: 11,
-    documents: [],
-    assignments: [],
-    actionHistory: [],
-  },
-  {
-    id: "10",
-    name: "James Lee",
-    email: "james@example.com",
-    phone: "(555) 999-0000",
-    status: "resume",
-    assignedTo: "Anna Rodriguez",
-    createdAt: "2024-01-14",
-    lastUpdated: "2024-01-24",
-    priority: "standard",
-    actions: {
-      "initial-call": true,
-      "resume-draft": false,
-      "review-completed": false,
-    },
-    notes: "Product manager with startup experience",
-    completedActions: [],
-    currentStage: {
-      department: "resume",
-      startDate: "2024-01-14",
-    },
-    daysInCurrentStage: 10,
-    documents: [],
-    assignments: [],
-    actionHistory: [],
-  },
-
-  // Marketing Stage - Multiple clients
-  {
-    id: "3",
-    name: "Robert Brown",
-    email: "robert@example.com",
-    phone: "(555) 345-6789",
-    status: "marketing",
-    assignedTo: "Lisa Chen",
-    createdAt: "2024-01-05",
-    lastUpdated: "2024-01-21",
-    priority: "standard",
-    actions: {
-      "campaign-setup": true,
-      "outreach-started": true,
-      "folstandard-up": false,
-      "interview-scheduled": false,
-    },
-    notes: "Senior developer, actively looking",
-    completedActions: [],
-    currentStage: {
-      department: "marketing",
-      startDate: "2024-01-05",
-    },
-    daysInCurrentStage: 16,
-    documents: [],
-    assignments: [],
-    actionHistory: [],
-  },
-  {
-    id: "11",
-    name: "Rachel Green",
-    email: "rachel@example.com",
-    phone: "(555) 123-9999",
-    status: "marketing",
-    assignedTo: "Chris Miller",
-
-    createdAt: "2024-01-08",
-    lastUpdated: "2024-01-22",
-    priority: "standard",
-    actions: {
-      "campaign-setup": true,
-      "outreach-started": false,
-      "folstandard-up": false,
-      "interview-scheduled": false,
-    },
-    notes: "UX designer with agency background",
-    completedActions: [],
-    currentStage: {
-      department: "marketing",
-      startDate: "2024-01-08",
-    },
-    daysInCurrentStage: 14,
-    documents: [],
-    assignments: [],
-    actionHistory: [],
-  },
-  {
-    id: "12",
-    name: "Kevin Wong",
-    email: "kevin@example.com",
-    phone: "(555) 444-5555",
-    status: "marketing",
-    assignedTo: "Lisa Chen",
-
-    createdAt: "2024-01-09",
-    lastUpdated: "2024-01-23",
-    priority: "standard",
-    actions: {
-      "campaign-setup": true,
-      "outreach-started": true,
-      "folstandard-up": true,
-      "interview-scheduled": false,
-    },
-    notes: "DevOps engineer, looking for leadership role",
-    completedActions: [],
-    currentStage: {
-      department: "marketing",
-      startDate: "2024-01-09",
-    },
-    daysInCurrentStage: 14,
-    documents: [],
-    assignments: [],
-    actionHistory: [],
-  },
-
-  // Placed
-  {
-    id: "4",
-    name: "Jessica Taylor",
-    email: "jessica@example.com",
-    phone: "(555) 456-7890",
-    status: "placed",
-    assignedTo: "David Kim",
-    createdAt: "2023-12-20",
-    lastUpdated: "2024-01-18",
-    priority: "standard",
-    actions: { "placement-confirmed": true, "feedback-collected": true },
-    notes: "Successfully placed at TechCorp",
-    completedActions: [],
-    currentStage: {
-      department: "placed",
-      startDate: "2023-12-20",
-    },
-    daysInCurrentStage: 29,
-    documents: [],
-    assignments: [],
-    actionHistory: [],
-  },
-  {
-    id: "13",
-    name: "Amanda White",
-    email: "amanda@example.com",
-    phone: "(555) 666-7777",
-    status: "placed",
-    assignedTo: "David Kim",
-    createdAt: "2023-12-15",
-    lastUpdated: "2024-01-15",
-    priority: "standard",
-    actions: { "placement-confirmed": true, "feedback-collected": true },
-    notes: "Placed at StartupXYZ as Senior Frontend Developer",
-    completedActions: [],
-    currentStage: {
-      department: "placed",
-      startDate: "2023-12-15",
-    },
-    daysInCurrentStage: 31,
-    documents: [],
-    assignments: [],
-    actionHistory: [],
-  },
-
-  // Backed Out
-  {
-    id: "5",
-    name: "Michael Johnson",
-    email: "michael@example.com",
-    phone: "(555) 567-8901",
-    status: "backed-out",
-    assignedTo: "Sarah Johnson",
-    createdAt: "2024-01-12",
-    lastUpdated: "2024-01-19",
-    priority: "standard",
-    actions: { "initial-contact": true, "folstandard-up": true },
-    notes: "Changed mind about job search",
-    completedActions: [],
-    currentStage: {
-      department: "backed-out",
-      startDate: "2024-01-12",
-    },
-    daysInCurrentStage: 7,
-    documents: [],
-    assignments: [],
-    actionHistory: [],
-  },
-
-  // On Hold
-  {
-    id: "14",
-    name: "Brian Clark",
-    email: "brian@example.com",
-    phone: "(555) 888-9999",
-    status: "on-hold",
-    assignedTo: "Tom Wilson",
-    createdAt: "2024-01-11",
-    lastUpdated: "2024-01-20",
-    priority: "standard",
-    actions: { "initial-contact": true, "needs-assessment": true },
-    notes: "Waiting for current project to finish",
-    completedActions: [],
-    currentStage: {
-      department: "on-hold",
-      startDate: "2024-01-11",
-    },
-    daysInCurrentStage: 9,
-    documents: [],
-    assignments: [],
-    actionHistory: [],
-  },
-
-  // ReMarketing
-  {
-    id: "15",
-    name: "Lisa Thompson",
-    email: "lisa@example.com",
-    phone: "(555) 111-3333",
-    status: "remarketing",
-    assignedTo: "Chris Miller",
-    createdAt: "2023-12-01",
-    lastUpdated: "2024-01-17",
-    priority: "standard",
-    actions: { "campaign-setup": true, "outreach-started": false },
-    notes: "Previous placement fell through, restarting process",
-    completedActions: [],
-    currentStage: {
-      department: "remarketing",
-      startDate: "2023-12-01",
-    },
-    daysInCurrentStage: 47,
-    documents: [],
-    assignments: [],
-    actionHistory: [],
-  },
-];
-
 export const mainStages: ClientStatus[] = [
   "sales",
   "resume",
@@ -568,16 +114,16 @@ export const getRequiredActions = (
 ): string[] => {
   switch (department) {
     case "sales":
-      return ["RateCandidate", "Upload Required Docs"];
+      return ["RateCandidate", "Upload Required Docs - Sales"];
     case "resume":
       return [
         `Acknowledged-${userRole}-Resume`,
         "Initial Call Done",
         "Resume Completed",
-        "Upload Required Docs",
+        "Upload Required Docs - Resume",
       ];
     case "marketing":
-      if (userRole === "marketing-manager") {
+      if (userRole === "Marketing_Manager") {
         // Actions must be completed in sequence:
         // 1. Acknowledged-Marketing_Manager-Marketing (required first)
         // 2. AssignRecruiter (always required for action history)
@@ -586,7 +132,7 @@ export const getRequiredActions = (
       // Senior recruiters and recruiters have no actions in marketing
       return [];
     case "remarketing":
-      if (userRole === "marketing-manager") {
+      if (userRole === "Marketing_Manager") {
         // Actions must be completed in sequence:
         // 1. Acknowledged-Marketing_Manager-Remarketing (required first)
         // 2. AssignRecruiter (always required for action history)
@@ -637,8 +183,22 @@ export const isActionDisabled = (
   }
 
   if (department === "sales") {
-    if (action === "Upload Required Docs") {
+    if (action === "Upload Required Docs - Sales") {
       return !client.completedActions.includes("RateCandidate");
+    }
+  }
+
+  if (department === "resume") {
+    if (action === "Upload Required Docs - Resume") {
+      // Upload Required Docs - Resume requires all other resume actions to be completed first
+      const requiredActions = [
+        `Acknowledged-${role}-Resume`,
+        "Initial Call Done",
+        "Resume Completed",
+      ];
+      return !requiredActions.every((action) =>
+        client.completedActions.includes(action)
+      );
     }
   }
 
@@ -664,12 +224,12 @@ export const isActionDisabled = (
         `Acknowledged-Marketing_Manager-Marketing`
       );
     }
-    if (role === "senior-recruiter" && action === "Acknowledged") {
+    if (role === "Senior_Recruiter" && action === "Acknowledged") {
       return !client.completedActions.includes(
         `Acknowledged-Marketing_Manager-Marketing`
       );
     }
-    if (role === "recruiter" && action === "Acknowledged") {
+    if (role === "Recruiter" && action === "Acknowledged") {
       return !client.completedActions.includes(
         `Acknowledged-Senior_Recruiter-Marketing`
       );
@@ -678,7 +238,7 @@ export const isActionDisabled = (
 
   if (
     department === "marketing" &&
-    role === "senior-recruiter" &&
+    role === "Senior_Recruiter" &&
     action === "Acknowledged"
   ) {
     return !client.completedActions.includes(
@@ -688,7 +248,7 @@ export const isActionDisabled = (
 
   if (
     department === "marketing" &&
-    role === "recruiter" &&
+    role === "Recruiter" &&
     action === "Acknowledged"
   ) {
     return !client.completedActions.includes(
@@ -718,12 +278,12 @@ export const isActionDisabled = (
         `Acknowledged-Marketing_Manager-Remarketing`
       );
     }
-    if (role === "senior-recruiter" && action === "Acknowledged") {
+    if (role === "Senior_Recruiter" && action === "Acknowledged") {
       return !client.completedActions.includes(
         `Acknowledged-Marketing_Manager-Remarketing`
       );
     }
-    if (role === "recruiter" && action === "Acknowledged") {
+    if (role === "Recruiter" && action === "Acknowledged") {
       return !client.completedActions.includes(
         `Acknowledged-Marketing_Manager-Remarketing`
       );
@@ -732,7 +292,7 @@ export const isActionDisabled = (
 
   if (
     department === "remarketing" &&
-    role === "senior-recruiter" &&
+    role === "Senior_Recruiter" &&
     action === "Acknowledged"
   ) {
     return !client.completedActions.includes(
@@ -742,7 +302,7 @@ export const isActionDisabled = (
 
   if (
     department === "remarketing" &&
-    role === "recruiter" &&
+    role === "Recruiter" &&
     action === "Acknowledged"
   ) {
     return !client.completedActions.includes(
@@ -789,8 +349,16 @@ export const getActionPrerequisites = (
   }
 
   if (department === "sales") {
-    if (action === "Upload Required Docs") {
+    if (action === "Upload Required Docs - Sales") {
       prerequisites.push("RateCandidate");
+    }
+  }
+
+  if (department === "resume") {
+    if (action === "Upload Required Docs - Resume") {
+      prerequisites.push(`Acknowledged-${role}-Resume`);
+      prerequisites.push("Initial Call Done");
+      prerequisites.push("Resume Completed");
     }
   }
 
@@ -851,6 +419,19 @@ export const getFileRequirements = (
       description: "",
       required: false,
     },
+    "Upload Required Docs - Sales": {
+      action: "Upload Required Docs - Sales",
+      fileType: "pdf,doc,docx,jpg,png",
+      description: "Upload required documents for Sales to Resume transition",
+      required: true,
+    },
+    "Upload Required Docs - Resume": {
+      action: "Upload Required Docs - Resume",
+      fileType: "pdf,doc,docx,jpg,png",
+      description:
+        "Upload required documents for Resume to Marketing transition",
+      required: true,
+    },
   };
 
   return requirements[action] || null;
@@ -871,12 +452,12 @@ export const getFileUploadDescription = (action: ActionType): string => {
 // Role hierarchy for action completion
 export const getRoleHierarchy = (): Record<UserRole, number> => {
   return {
-    admin: 0,
-    "marketing-manager": 1,
-    "senior-recruiter": 2,
-    recruiter: 3,
-    "sales-executive": 4,
-    "resume-writer": 5,
+    Admin: 0,
+    Marketing_Manager: 1,
+    Senior_Recruiter: 2,
+    Recruiter: 3,
+    Sales_Executive: 4,
+    Resume_Writer: 5,
   };
 };
 
@@ -886,30 +467,30 @@ export const canAccessStageForRole = (
   department: ClientStatus
 ): boolean => {
   // Admin can access all stages
-  if (userRole === "admin") return true;
+  if (userRole === "Admin") return true;
 
   // Marketing Manager can only access marketing and remarketing stages
-  if (userRole === "marketing-manager") {
+  if (userRole === "Marketing_Manager") {
     return department === "marketing" || department === "remarketing";
   }
 
   // Sales Executive can only access sales stage
-  if (userRole === "sales-executive") {
+  if (userRole === "Sales_Executive") {
     return department === "sales";
   }
 
   // Resume Writer can only access resume stage
-  if (userRole === "resume-writer") {
+  if (userRole === "Resume_Writer") {
     return department === "resume";
   }
 
   // Senior Recruiter can access marketing and remarketing stages
-  if (userRole === "senior-recruiter") {
+  if (userRole === "Senior_Recruiter") {
     return department === "marketing" || department === "remarketing";
   }
 
   // Recruiter can access marketing and remarketing stages
-  if (userRole === "recruiter") {
+  if (userRole === "Recruiter") {
     return department === "marketing" || department === "remarketing";
   }
 
@@ -924,7 +505,7 @@ export const canPerformAction = (
   department: ClientStatus
 ): boolean => {
   // Admin can perform any action
-  if (userRole === "admin") return true;
+  if (userRole === "Admin") return true;
 
   // Check if user has access to this department/stage
   const canAccessStage = canAccessStageForRole(userRole, department);
@@ -937,7 +518,7 @@ export const canPerformAction = (
     case "Acknowledged":
       if (department === "marketing" || department === "remarketing") {
         // In marketing and remarketing, only Marketing Manager can acknowledge
-        return userRole === "marketing-manager";
+        return userRole === "Marketing_Manager";
       }
       // For other departments, check if user has access
       return canAccessStageForRole(userRole, department);
@@ -946,7 +527,7 @@ export const canPerformAction = (
     case "Resume Completed":
       // These actions can be performed by appropriate roles in resume stage
       if (department === "resume") {
-        return ["resume-writer", "admin"].includes(userRole);
+        return ["Resume_Writer", "Admin"].includes(userRole);
       }
       return false;
 
@@ -955,7 +536,7 @@ export const canPerformAction = (
     case "ChangeRecruiter":
       // Only Marketing Managers and Admins can assign/change recruiters
       // But they must also have access to the stage
-      if (!["marketing-manager", "admin"].includes(userRole)) {
+      if (!["Marketing_Manager", "Admin"].includes(userRole)) {
         return false;
       }
       // Check if user has access to this stage
@@ -963,12 +544,26 @@ export const canPerformAction = (
 
     case "RateCandidate":
       // Sales executives and admins can rate candidates
-      return ["sales-executive", "admin"].includes(userRole);
+      return ["Sales_Executive", "Admin"].includes(userRole);
 
     case "Acknowledged-Remarketing":
       // Only Marketing Managers can acknowledge in remarketing
       if (department === "remarketing") {
-        return userRole === "marketing-manager";
+        return userRole === "Marketing_Manager";
+      }
+      return false;
+
+    case "Upload Required Docs - Sales":
+      // Sales executives and admins can upload documents in sales stage
+      if (department === "sales") {
+        return ["Sales_Executive", "Admin"].includes(userRole);
+      }
+      return false;
+
+    case "Upload Required Docs - Resume":
+      // Resume writers and admins can upload documents in resume stage
+      if (department === "resume") {
+        return ["Resume_Writer", "Admin"].includes(userRole);
       }
       return false;
 
@@ -1012,7 +607,7 @@ export const isActionRequiredForTransition = (
   toStage: ClientStatus,
   userRole: UserRole
 ): boolean => {
-  // Sales to Resume transition requires "Upload Required Docs" action
+  // Sales to Resume transition requires "Upload Required Docs - Sales" action
   if (fromStage === "sales" && toStage === "resume") {
     return false; // This is handled by the transition system, not individual actions
   }
@@ -1026,7 +621,7 @@ export const isActionRequiredForTransition = (
 
   // Marketing stage requires acknowledgment only from Marketing Manager
   if (fromStage === "marketing" && toStage === "placed") {
-    if (userRole === "marketing-manager") {
+    if (userRole === "Marketing_Manager") {
       return action === "Acknowledged";
     }
   }

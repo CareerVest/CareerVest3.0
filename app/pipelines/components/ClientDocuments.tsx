@@ -14,6 +14,16 @@ export function ClientDocuments({
   documents,
   clientName,
 }: ClientDocumentsProps) {
+  // Debug logging to see what's being received
+  console.log("🔍 ClientDocuments received documents:", {
+    documents,
+    type: typeof documents,
+    isArray: Array.isArray(documents),
+    clientName,
+  });
+
+  // Ensure documents is always an array
+  const safeDocuments = Array.isArray(documents) ? documents : [];
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -49,7 +59,7 @@ export function ClientDocuments({
     console.log("Viewing document:", document.name);
   };
 
-  if (documents.length === 0) {
+  if (safeDocuments.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -73,12 +83,12 @@ export function ClientDocuments({
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <FileText className="h-5 w-5" />
-          Documents ({documents.length})
+          Documents ({safeDocuments.length})
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {documents.map((document) => (
+          {safeDocuments.map((document) => (
             <div
               key={document.id}
               className="border rounded-lg p-3 hover:bg-gray-50 transition-colors"

@@ -105,7 +105,7 @@ export function DraggableClientCard({
   const currentStageData = departmentTime.find((dept) => dept.current);
   const slaStatus = currentStageData
     ? getSLAStatus(
-        client.status,
+        client.status, // Use client.status directly for consistency
         currentStageData.businessDays || currentStageData.days,
         true
       )
@@ -150,7 +150,7 @@ export function DraggableClientCard({
     }
 
     // Check if this is a transition action
-    if (action === "Upload Required Docs" && onTransitionAction) {
+    if (action.startsWith("Upload Required Docs") && onTransitionAction) {
       // This is a transition action, handle it differently
       const nextStage = client.status === "sales" ? "resume" : "marketing";
       onTransitionAction(client, client.status, nextStage);
@@ -238,12 +238,13 @@ export function DraggableClientCard({
           file: undefined,
         };
 
+        // Complete the action first
+        await onActionComplete(client.id, "RateCandidate", actionData);
+
         // Update local priority immediately for instant UI feedback
         setLocalPriority(
           data.priority as "exceptional" | "real-time" | "fresher" | "standard"
         );
-
-        await onActionComplete(client.id, "RateCandidate", actionData);
 
         setPriorityDialogOpen(false);
       } else {
@@ -466,8 +467,8 @@ export function DraggableClientCard({
           : ""
       } ${
         !canMoveClient(client, currentUserRole) &&
-        currentUserRole !== "admin" &&
-        currentUserRole !== "marketing-manager"
+        currentUserRole !== "Admin" &&
+        currentUserRole !== "Marketing_Manager"
           ? "border-orange-200 bg-orange-50/30"
           : ""
       }`}
@@ -486,8 +487,8 @@ export function DraggableClientCard({
 
       {/* Can't Move Indicator */}
       {!canMoveClient(client, currentUserRole) &&
-        currentUserRole !== "admin" &&
-        currentUserRole !== "marketing-manager" && (
+        currentUserRole !== "Admin" &&
+        currentUserRole !== "Marketing_Manager" && (
           <div
             className="absolute left-1 top-1/2 transform -translate-y-1/2"
             title="Complete all actions to enable moving"
@@ -615,7 +616,7 @@ export function DraggableClientCard({
 
               // Check if user can perform this action based on role
               const canPerform = canPerformAction(
-                actionDisplayName as ActionType,
+                action as ActionType,
                 currentUserRole,
                 client,
                 client.status
@@ -702,7 +703,7 @@ export function DraggableClientCard({
 
                 // Check if user can perform this action based on role
                 const canPerform = canPerformAction(
-                  actionDisplayName as ActionType,
+                  action as ActionType,
                   currentUserRole,
                   client,
                   client.status
@@ -843,7 +844,10 @@ export function DraggableClientCard({
           fileDescription={getFileUploadDescription(
             selectedAction as ActionType
           )}
-          requiresComments={false}
+          requiresComments={
+            selectedAction === "Initial Call Done" ||
+            selectedAction === "Resume Completed"
+          }
         />
       )}
 

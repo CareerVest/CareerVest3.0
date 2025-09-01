@@ -4,9 +4,12 @@ import React, { useState } from "react";
 import { Pipeline } from "./components/Pipeline";
 import { Client, UserRole } from "../types/pipelines/pipeline";
 import { ClientDetailsSidebar } from "./components/ClientDetailsSidebar";
+import { getPipelineCandidateById } from "./actions/pipelineActions";
+import { useAuth } from "../../contexts/authContext";
 
 export default function PipelinesPage() {
-  const currentUserRole: UserRole = "marketing-manager"; // Simulating marketing-manager role
+  const { roles } = useAuth();
+  const currentUserRole: UserRole = "Admin"; // Simulating Admin role
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isClientDetailsOpen, setIsClientDetailsOpen] = useState(false);
 
@@ -16,9 +19,22 @@ export default function PipelinesPage() {
     setSelectedClient(updatedClient);
   };
 
-  const handleClientSelect = (client: Client) => {
-    setSelectedClient(client);
-    setIsClientDetailsOpen(true);
+  const handleClientSelect = async (client: Client) => {
+    try {
+      // Fetch fresh client data from the API using our action
+      console.log("🔄 Fetching fresh data for client:", client.id);
+      const freshClientData = await getPipelineCandidateById(client.id);
+
+      console.log("✅ Fresh client data received:", freshClientData);
+
+      setSelectedClient(freshClientData);
+      setIsClientDetailsOpen(true);
+    } catch (error) {
+      console.error("❌ Error fetching fresh client data:", error);
+      // Fallback to the original client data if API call fails
+      setSelectedClient(client);
+      setIsClientDetailsOpen(true);
+    }
   };
 
   const handleCloseSidebar = () => {
@@ -34,7 +50,8 @@ export default function PipelinesPage() {
           <p className="text-sm text-gray-600 mt-1">
             Logged in as:{" "}
             <span className="font-medium text-indigo-600">
-              Marketing Manager
+              {currentUserRole.charAt(0).toUpperCase() +
+                currentUserRole.slice(1)}
             </span>
           </p>
         </div>
@@ -44,6 +61,7 @@ export default function PipelinesPage() {
         currentUserRole={currentUserRole}
         onClientSelect={handleClientSelect}
         isSidebarOpen={isClientDetailsOpen}
+        onClientUpdate={handleClientUpdate}
       />
 
       <ClientDetailsSidebar
@@ -51,6 +69,7 @@ export default function PipelinesPage() {
         isOpen={isClientDetailsOpen}
         onClose={handleCloseSidebar}
         currentUserRole={currentUserRole}
+        onRefresh={() => selectedClient && handleClientSelect(selectedClient)}
       />
     </div>
   );

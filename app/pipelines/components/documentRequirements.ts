@@ -25,7 +25,7 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
   {
     fromStage: "sales",
     toStage: "resume",
-    actionName: "Upload Required Docs",
+    actionName: "Upload Required Docs - Sales",
     title: "Upload Required Documents for Resume Stage",
     description:
       "Complete the required documents to move from Sales to Resume stage",
@@ -60,7 +60,7 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
   {
     fromStage: "resume",
     toStage: "marketing",
-    actionName: "Upload Required Docs",
+    actionName: "Upload Required Docs - Resume",
     title: "Upload Required Documents for Marketing Stage",
     description:
       "Complete the required documents to move from Resume to Marketing stage",
@@ -98,7 +98,7 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
         maxSize: 20,
       },
     ],
-    allowedRoles: ["resume-writer", "admin"],
+    allowedRoles: ["Resume_Writer", "Admin"],
     requiresComments: true,
   },
   {
@@ -126,7 +126,7 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
         maxSize: 10,
       },
     ],
-    allowedRoles: ["marketing-manager", "admin"],
+    allowedRoles: ["Marketing_Manager", "Admin"],
     requiresComments: true,
   },
   {
@@ -162,7 +162,7 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
         maxSize: 15,
       },
     ],
-    allowedRoles: ["marketing-manager", "admin"],
+    allowedRoles: ["Marketing_Manager", "Admin"],
     requiresComments: true,
   },
   {
@@ -272,7 +272,7 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
         maxSize: 10,
       },
     ],
-    allowedRoles: ["sales-executive", "admin"],
+    allowedRoles: ["Sales_Executive", "Admin"],
     requiresComments: true,
   },
   {
@@ -300,7 +300,7 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
         maxSize: 10,
       },
     ],
-    allowedRoles: ["resume-writer", "admin"],
+    allowedRoles: ["Resume_Writer", "Admin"],
     requiresComments: true,
   },
   {
@@ -328,7 +328,7 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
         maxSize: 10,
       },
     ],
-    allowedRoles: ["admin"],
+    allowedRoles: ["Admin"],
     requiresComments: true,
   },
   {
@@ -356,7 +356,7 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
         maxSize: 10,
       },
     ],
-    allowedRoles: ["admin"],
+    allowedRoles: ["Admin"],
     requiresComments: true,
   },
 ];

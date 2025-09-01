@@ -8,12 +8,12 @@ export type ClientStatus =
   | "on-hold";
 
 export type UserRole =
-  | "admin"
-  | "marketing-manager"
-  | "sales-executive"
-  | "resume-writer"
-  | "senior-recruiter"
-  | "recruiter";
+  | "Admin"
+  | "Marketing_Manager"
+  | "Sales_Executive"
+  | "Resume_Writer"
+  | "Senior_Recruiter"
+  | "Recruiter";
 
 export interface Client {
   id: string;
@@ -59,7 +59,9 @@ export type ActionType =
   | "AssignRecruiter"
   | "Acknowledged-Remarketing"
   | "RateCandidate"
-  | "ChangeRecruiter";
+  | "ChangeRecruiter"
+  | "Upload Required Docs - Sales"
+  | "Upload Required Docs - Resume";
 
 // Action completion data
 export interface ActionCompletion {

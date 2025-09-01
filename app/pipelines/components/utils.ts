@@ -3,31 +3,31 @@ import { areAllActionsCompleted } from "./constants";
 
 export const canMoveClient = (client: Client, userRole: UserRole): boolean => {
   switch (userRole) {
-    case "admin":
+    case "Admin":
       // Admin can move clients regardless of action completion, but with restrictions for placed stage
       if (client.status === "placed") {
         // From placed stage, admin can only move to remarketing
         return true; // Allow movement, but getAvailableStages will restrict destinations
       }
       return true;
-    case "marketing-manager":
+    case "Marketing_Manager":
       // Marketing manager can move clients regardless of action completion, but NOT from sales or placed
       if (client.status === "sales" || client.status === "placed") {
         return false;
       }
       // Only allow movement from marketing and remarketing stages
       return client.status === "marketing" || client.status === "remarketing";
-    case "sales-executive":
+    case "Sales_Executive":
       // Sales people can move clients from sales stage
       return client.status === "sales";
-    case "resume-writer":
+    case "Resume_Writer":
       // Resume people can only move if all actions are completed
       if (!areAllActionsCompleted(client, client.status, userRole)) {
         return false;
       }
       return client.status === "resume";
-    case "senior-recruiter":
-    case "recruiter":
+    case "Senior_Recruiter":
+    case "Recruiter":
       // Senior recruiters and recruiters have no access to marketing stage
       return false;
     default:
@@ -50,7 +50,7 @@ export const getAvailableStages = (
   ];
 
   // Admin can move to any stage except current, but with restrictions for placed stage
-  if (userRole === "admin") {
+  if (userRole === "Admin") {
     if (currentStatus === "placed") {
       // From placed stage, admin can only move to remarketing
       return ["remarketing"];
@@ -59,7 +59,7 @@ export const getAvailableStages = (
   }
 
   // Marketing Manager can only move clients from marketing to specific stages
-  if (userRole === "marketing-manager") {
+  if (userRole === "Marketing_Manager") {
     if (currentStatus === "marketing") {
       return ["placed", "backed-out", "on-hold"];
     }
@@ -79,13 +79,13 @@ export const getAvailableStages = (
 
   switch (currentStatus) {
     case "sales":
-      if (userRole === "sales-executive") {
+      if (userRole === "Sales_Executive") {
         // Sales people can only move to resume, backed-out, or on-hold
         moves.push("resume", "backed-out", "on-hold");
       }
       break;
     case "resume":
-      if (userRole === "resume-writer") {
+      if (userRole === "Resume_Writer") {
         // Resume people can only move to marketing, backed-out, or on-hold
         moves.push("marketing", "backed-out", "on-hold");
       }
@@ -95,7 +95,7 @@ export const getAvailableStages = (
       break;
     case "placed":
       // Only admin can move from placed, and only to remarketing
-      if (userRole === "admin") {
+      if (userRole === "Admin") {
         moves.push("remarketing");
       }
       break;
@@ -115,19 +115,27 @@ export const getAvailableStages = (
 
 export const calculateDepartmentTime = (
   client: Client
-): { department: string; days: number; current: boolean; businessDays: number }[] => {
+): {
+  department: string;
+  days: number;
+  current: boolean;
+  businessDays: number;
+}[] => {
   const departmentHistory = client.departmentHistory || [];
   const currentDate = new Date();
 
-  // If no history, calculate from creation date to current
+  // If no history, calculate from current stage start date to current
   if (departmentHistory.length === 0) {
-    const createdDate = new Date(client.createdAt);
+    // For old clients without stage transitions, use currentStageStartDate
+    const stageStartDate = client.currentStage?.startDate || client.createdAt;
+    const startDate = new Date(stageStartDate);
+
     // Use Math.floor instead of Math.ceil to avoid rounding up partial days
     // Also normalize dates to start of day to avoid time zone issues
-    const startOfCreated = new Date(
-      createdDate.getFullYear(),
-      createdDate.getMonth(),
-      createdDate.getDate()
+    const startOfStage = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      startDate.getDate()
     );
     const startOfCurrent = new Date(
       currentDate.getFullYear(),
@@ -135,11 +143,11 @@ export const calculateDepartmentTime = (
       currentDate.getDate()
     );
     const daysDiff = Math.floor(
-      (startOfCurrent.getTime() - startOfCreated.getTime()) / (1000 * 3600 * 24)
+      (startOfCurrent.getTime() - startOfStage.getTime()) / (1000 * 3600 * 24)
     );
 
     // Calculate business days
-    const businessDays = calculateBusinessDays(startOfCreated, startOfCurrent);
+    const businessDays = calculateBusinessDays(startOfStage, startOfCurrent);
 
     return [
       {
@@ -191,7 +199,7 @@ export const calculateDepartmentTime = (
 const calculateBusinessDays = (startDate: Date, endDate: Date): number => {
   let businessDays = 0;
   const currentDate = new Date(startDate);
-  
+
   while (currentDate <= endDate) {
     const dayOfWeek = currentDate.getDay();
     // 0 = Sunday, 6 = Saturday
@@ -200,7 +208,7 @@ const calculateBusinessDays = (startDate: Date, endDate: Date): number => {
     }
     currentDate.setDate(currentDate.getDate() + 1);
   }
-  
+
   return businessDays;
 };
 
@@ -242,13 +250,13 @@ export const getActionsToReset = (
   // Return actions that should be reset based on the target stage
   switch (toStage) {
     case "sales":
-      return ["RateCandidate", "Upload Required Docs"];
+      return ["RateCandidate", "Upload Required Docs - Sales"];
     case "resume":
       return [
         "Acknowledged-Resume_Writer-Resume",
         "Initial Call Done",
         "Resume Completed",
-        "Upload Required Docs",
+        "Upload Required Docs - Resume",
       ];
     case "marketing":
       return ["Acknowledged-Marketing_Manager-Marketing"];

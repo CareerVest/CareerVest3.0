@@ -93,10 +93,10 @@ export async function fetchRecruiters(): Promise<
       console.log("🔍 Processing employee:", emp);
       const role = emp.Role?.toLowerCase() || "";
       const isRecruiter =
-        role.includes("recruiter") ||
-        role.includes("senior") ||
-        role.includes("marketing") ||
-        role.includes("manager");
+        role.includes("Recruiter") ||
+        role.includes("Senior") ||
+        role.includes("Marketing") ||
+        role.includes("Manager");
       console.log(
         `🔍 Employee ${emp.FirstName} ${emp.LastName} (${role}) - isRecruiter: ${isRecruiter}`
       );
@@ -572,9 +572,20 @@ export async function completePipelineAction(
 ): Promise<boolean> {
   try {
     const formData = new FormData();
-    formData.append("ClientID", candidateId);
+    formData.append("ClientID", candidateId.toString()); // Ensure it's a string
     formData.append("ActionType", actionType);
     formData.append("Notes", data.comment || "");
+
+    // Debug logging
+    console.log("🔄 FormData being sent:", {
+      ClientID: candidateId,
+      ActionType: actionType,
+      Notes: data.comment || "",
+      hasFile: !!data.file,
+      hasAdditionalFiles:
+        data.additionalFiles && data.additionalFiles.length > 0,
+      userRole: userRole,
+    });
 
     // Add main file if provided
     if (data.file) {
@@ -1146,6 +1157,141 @@ export async function exportPipelineData(
 // ============================================================================
 
 /**
+ * Get a single pipeline candidate by ID with fresh data
+ */
+export async function getPipelineCandidateById(id: string): Promise<Client> {
+  try {
+    console.log("🔍 Fetching single pipeline candidate:", id);
+
+    const response = await axiosInstance.get(
+      `/api/v1/pipelines/candidates/${id}`
+    );
+
+    console.log("📡 Single candidate API Response:", {
+      status: response.status,
+      statusText: response.statusText,
+      dataType: typeof response.data,
+      data: response.data,
+    });
+
+    const candidate = response.data;
+
+    // Transform backend data to frontend format
+    const transformedCandidate: Client = {
+      id: candidate.clientID.toString(),
+      name: candidate.clientName,
+      email: candidate.personalEmailAddress || "",
+      phone: candidate.personalPhoneNumber || "",
+      status: candidate.currentStageDepartment as ClientStatus,
+      priority: (() => {
+        const backendPriority = candidate.priority?.toLowerCase();
+        if (
+          backendPriority === "exceptional" ||
+          backendPriority === "⭐ exceptional"
+        ) {
+          return "exceptional";
+        } else if (
+          backendPriority === "real-time" ||
+          backendPriority === "⚡ real-time"
+        ) {
+          return "real-time";
+        } else if (
+          backendPriority === "fresher" ||
+          backendPriority === "🌱 fresher"
+        ) {
+          return "fresher";
+        } else if (backendPriority === "standard") {
+          return "standard";
+        }
+        return "standard";
+      })(),
+      assignedRecruiterID: candidate.assignedRecruiterID || null,
+      assignedTo: (() => {
+        if (candidate.currentStageDepartment === "sales") {
+          return (
+            candidate.assignedSalesPersonName ||
+            candidate.assignedRecruiterName ||
+            "Unassigned"
+          );
+        } else {
+          return (
+            candidate.assignedRecruiterName ||
+            candidate.assignedSalesPersonName ||
+            "Unassigned"
+          );
+        }
+      })(),
+      createdAt: candidate.enrollmentDate || new Date().toISOString(),
+      lastUpdated: new Date().toISOString(),
+      actions: {},
+      notes: candidate.notes || "",
+      completedActions: candidate.completedActions
+        ? JSON.parse(candidate.completedActions)
+        : [],
+      currentStage: {
+        department: candidate.currentStageDepartment as ClientStatus,
+        startDate: candidate.currentStageStartDate || new Date().toISOString(),
+        notes: candidate.currentStageNotes || "",
+      },
+      daysInCurrentStage: candidate.daysInCurrentStage || 0,
+      documents: candidate.documents?.$values || candidate.documents || [],
+      assignments:
+        candidate.assignments?.$values || candidate.assignments || [],
+      actionHistory:
+        candidate.actionHistory?.$values || candidate.actionHistory || [],
+      departmentHistory: (() => {
+        // Convert stageTransitions to departmentHistory format
+        const stageTransitions =
+          candidate.stageTransitions?.$values ||
+          candidate.stageTransitions ||
+          [];
+        const departmentHistory = [];
+
+        // Add all completed stages from transitions
+        stageTransitions.forEach((transition: any) => {
+          departmentHistory.push({
+            department: transition.fromStage,
+            startDate: transition.transitionedAt,
+            endDate: transition.transitionedAt, // End date is when they moved to next stage
+          });
+        });
+
+        // Add current stage (the last "toStage" from transitions, or currentStageDepartment if no transitions)
+        if (stageTransitions.length > 0) {
+          const lastTransition = stageTransitions[stageTransitions.length - 1];
+          departmentHistory.push({
+            department: lastTransition.toStage,
+            startDate: lastTransition.transitionedAt,
+            endDate: undefined, // Current stage has no end date
+          });
+        } else {
+          // If no transitions, use current stage
+          departmentHistory.push({
+            department: candidate.currentStageDepartment,
+            startDate:
+              candidate.currentStageStartDate || candidate.enrollmentDate,
+            endDate: undefined,
+          });
+        }
+
+        console.log("🔍 Converting stageTransitions to departmentHistory:", {
+          stageTransitions:
+            candidate.stageTransitions?.$values || candidate.stageTransitions,
+          departmentHistory,
+        });
+        return departmentHistory;
+      })(),
+    };
+
+    console.log("✅ Transformed single candidate:", transformedCandidate);
+    return transformedCandidate;
+  } catch (error: any) {
+    console.error("❌ Error fetching single pipeline candidate:", error);
+    throw new Error(`Failed to fetch client data: ${error.message}`);
+  }
+}
+
+/**
  * Hook to use pipeline actions with loading state
  */
 export const usePipelineActions = () => {
@@ -1156,6 +1302,8 @@ export const usePipelineActions = () => {
       apiCall(fetchPipelineCandidates(filters), { showLoading: true }),
     getPipelineCandidate: (id: string) =>
       apiCall(getPipelineCandidate(id), { showLoading: true }),
+    getPipelineCandidateById: (id: string) =>
+      apiCall(getPipelineCandidateById(id), { showLoading: true }),
     createPipelineCandidate: (data: any) =>
       apiCall(createPipelineCandidate(data), { showLoading: true }),
     updatePipelineCandidate: (id: string, updates: any) =>

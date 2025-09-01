@@ -39,6 +39,9 @@ export function ResumeCompletedDialog({
     if (!draftedResume) {
       return; // Don't submit if drafted resume is not provided
     }
+    if (!comment.trim()) {
+      return; // Don't submit if comment is not provided
+    }
 
     setIsSubmitting(true);
     try {
@@ -82,7 +85,7 @@ export function ResumeCompletedDialog({
     setAdditionalDocuments((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const canSubmit = draftedResume !== null;
+  const canSubmit = draftedResume !== null && comment.trim() !== "";
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -95,18 +98,20 @@ export function ResumeCompletedDialog({
           <DialogTitle>Complete Resume Action</DialogTitle>
           <DialogDescription>
             Complete the resume action for client <strong>{clientName}</strong>.
-            Upload the drafted resume (required) and any additional documents
-            (optional).
+            Add notes (required), upload the drafted resume (required), and any
+            additional documents (optional).
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
           {/* Comments Section */}
           <div>
-            <Label htmlFor="comment">Notes (Optional)</Label>
+            <Label htmlFor="comment">
+              Notes <span className="text-red-500">*</span>
+            </Label>
             <Textarea
               id="comment"
-              placeholder="Add any notes about the resume completion..."
+              placeholder="Add required notes about the resume completion..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               className="mt-1"
