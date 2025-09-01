@@ -16,11 +16,7 @@ import { Upload, FileText, X, AlertCircle } from "lucide-react";
 interface ResumeCompletedDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: {
-    comment: string;
-    draftedResume: File;
-    additionalDocuments?: File[];
-  }) => void;
+  onSubmit: (data: { comment: string; draftedResume: File }) => void;
   clientName: string;
 }
 
@@ -32,7 +28,6 @@ export function ResumeCompletedDialog({
 }: ResumeCompletedDialogProps) {
   const [comment, setComment] = useState("");
   const [draftedResume, setDraftedResume] = useState<File | null>(null);
-  const [additionalDocuments, setAdditionalDocuments] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -48,12 +43,9 @@ export function ResumeCompletedDialog({
       await onSubmit({
         comment,
         draftedResume,
-        additionalDocuments:
-          additionalDocuments.length > 0 ? additionalDocuments : undefined,
       });
       setComment("");
       setDraftedResume(null);
-      setAdditionalDocuments([]);
     } catch (error) {
       console.error("Error submitting resume completed action:", error);
     } finally {
@@ -70,19 +62,8 @@ export function ResumeCompletedDialog({
     }
   };
 
-  const handleAdditionalDocumentsChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const selectedFiles = Array.from(e.target.files || []);
-    setAdditionalDocuments((prev) => [...prev, ...selectedFiles]);
-  };
-
   const removeDraftedResume = () => {
     setDraftedResume(null);
-  };
-
-  const removeAdditionalDocument = (index: number) => {
-    setAdditionalDocuments((prev) => prev.filter((_, i) => i !== index));
   };
 
   const canSubmit = draftedResume !== null && comment.trim() !== "";
@@ -98,8 +79,7 @@ export function ResumeCompletedDialog({
           <DialogTitle>Complete Resume Action</DialogTitle>
           <DialogDescription>
             Complete the resume action for client <strong>{clientName}</strong>.
-            Add notes (required), upload the drafted resume (required), and any
-            additional documents (optional).
+            Add notes (required) and upload the resume draft (required).
           </DialogDescription>
         </DialogHeader>
 
@@ -180,75 +160,6 @@ export function ResumeCompletedDialog({
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Additional Documents Section - Optional */}
-          <div>
-            <Label htmlFor="additionalDocuments">
-              Additional Documents (Optional)
-            </Label>
-            <div className="mt-1">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                <Upload className="mx-auto h-6 w-6 text-gray-400 mb-2" />
-                <div className="text-sm text-gray-600 mb-2">
-                  Click to upload additional documents
-                </div>
-                <div className="text-xs text-gray-500 mb-2">
-                  PDF, DOC, DOCX, JPG, PNG files (Max 20MB each)
-                </div>
-                <Input
-                  id="additionalDocuments"
-                  type="file"
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                  multiple
-                  onChange={handleAdditionalDocumentsChange}
-                  className="hidden"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    document.getElementById("additionalDocuments")?.click();
-                  }}
-                >
-                  Choose Files
-                </Button>
-              </div>
-            </div>
-
-            {/* Display uploaded additional documents */}
-            {additionalDocuments.length > 0 && (
-              <div className="mt-3 space-y-2">
-                <Label className="text-sm font-medium">
-                  Uploaded Additional Documents:
-                </Label>
-                {additionalDocuments.map((file, index) => (
-                  <div key={index} className="border rounded-lg p-2 bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <FileText className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium">{file.name}</span>
-                        <span className="text-xs text-gray-500">
-                          ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeAdditionalDocument(index);
-                        }}
-                        className="h-6 w-6 p-0"
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 

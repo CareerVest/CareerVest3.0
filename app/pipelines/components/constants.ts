@@ -123,13 +123,29 @@ export const getRequiredActions = (
         "Upload Required Docs - Resume",
       ];
     case "marketing":
-      if (userRole === "Marketing_Manager") {
+      const userRoleLower = userRole.toLowerCase();
+      if (userRoleLower === "admin") {
+        // Admin can perform all actions
+        return [`Acknowledged-Admin-Marketing`, "AssignRecruiter"];
+      }
+      if (
+        userRoleLower === "marketing_manager" ||
+        userRoleLower === "marketing-manager"
+      ) {
         // Actions must be completed in sequence:
         // 1. Acknowledged-Marketing_Manager-Marketing (required first)
         // 2. AssignRecruiter (always required for action history)
         return [`Acknowledged-Marketing_Manager-Marketing`, "AssignRecruiter"];
       }
-      // Senior recruiters and recruiters have no actions in marketing
+      // Senior recruiters and recruiters can view marketing stage but have limited actions
+      if (
+        userRoleLower === "senior_recruiter" ||
+        userRoleLower === "senior-recruiter" ||
+        userRoleLower === "recruiter"
+      ) {
+        // They can see the stage but only Marketing Manager can perform actions
+        return [];
+      }
       return [];
     case "remarketing":
       if (userRole === "Marketing_Manager") {
@@ -205,34 +221,58 @@ export const isActionDisabled = (
   // Marketing stage prerequisites
   if (department === "marketing") {
     if (action === "AssignRecruiter") {
-      // AssignRecruiter requires Acknowledged-Marketing_Manager-Marketing to be completed first
+      // AssignRecruiter requires acknowledgment to be completed first
       // If client already has a recruiter assigned, AssignRecruiter should be considered completed
       if (client.assignedRecruiterID) {
         return true; // Disable AssignRecruiter (mark as completed) if recruiter exists
       }
-      return !client.completedActions.includes(
-        `Acknowledged-Marketing_Manager-Marketing`
+
+      // Check for acknowledgment from any role that can acknowledge in marketing
+      const hasAcknowledgment = client.completedActions.some(
+        (completedAction) =>
+          completedAction.startsWith("Acknowledged-") &&
+          completedAction.endsWith("-Marketing")
       );
+
+      return !hasAcknowledgment;
     }
     if (action === "ChangeRecruiter") {
-      // ChangeRecruiter requires Acknowledged-Marketing_Manager-Marketing to be completed first
+      // ChangeRecruiter requires acknowledgment to be completed first
       // AND client must have an assigned recruiter
       if (!client.assignedRecruiterID) {
         return true; // Disable ChangeRecruiter if no recruiter assigned
       }
-      return !client.completedActions.includes(
-        `Acknowledged-Marketing_Manager-Marketing`
+
+      // Check for acknowledgment from any role that can acknowledge in marketing
+      const hasAcknowledgment = client.completedActions.some(
+        (completedAction) =>
+          completedAction.startsWith("Acknowledged-") &&
+          completedAction.endsWith("-Marketing")
       );
+
+      return !hasAcknowledgment;
     }
     if (role === "Senior_Recruiter" && action === "Acknowledged") {
-      return !client.completedActions.includes(
-        `Acknowledged-Marketing_Manager-Marketing`
+      // Senior Recruiter acknowledgment requires Marketing Manager acknowledgment first
+      const hasMarketingManagerAcknowledgment = client.completedActions.some(
+        (completedAction) =>
+          completedAction.startsWith("Acknowledged-") &&
+          (completedAction.includes("Marketing_Manager") ||
+            completedAction.includes("marketing-manager")) &&
+          completedAction.endsWith("-Marketing")
       );
+      return !hasMarketingManagerAcknowledgment;
     }
     if (role === "Recruiter" && action === "Acknowledged") {
-      return !client.completedActions.includes(
-        `Acknowledged-Senior_Recruiter-Marketing`
+      // Recruiter acknowledgment requires Senior Recruiter acknowledgment first
+      const hasSeniorRecruiterAcknowledgment = client.completedActions.some(
+        (completedAction) =>
+          completedAction.startsWith("Acknowledged-") &&
+          (completedAction.includes("Senior_Recruiter") ||
+            completedAction.includes("senior-recruiter")) &&
+          completedAction.endsWith("-Marketing")
       );
+      return !hasSeniorRecruiterAcknowledgment;
     }
   }
 
@@ -385,8 +425,7 @@ export const getFileRequirements = (
     "Resume Completed": {
       action: "Resume Completed",
       fileType: "pdf,doc,docx",
-      description:
-        "Upload Drafted Resume (Required) and Additional Documents (Optional)",
+      description: "Upload Resume Draft (Required)",
       required: true,
     },
     AssignSeniorRecruiter: {
@@ -466,31 +505,42 @@ export const canAccessStageForRole = (
   userRole: UserRole,
   department: ClientStatus
 ): boolean => {
+  const userRoleLower = userRole.toLowerCase();
+
   // Admin can access all stages
-  if (userRole === "Admin") return true;
+  if (userRoleLower === "admin") return true;
 
   // Marketing Manager can only access marketing and remarketing stages
-  if (userRole === "Marketing_Manager") {
+  if (
+    userRoleLower === "marketing_manager" ||
+    userRoleLower === "marketing-manager"
+  ) {
     return department === "marketing" || department === "remarketing";
   }
 
   // Sales Executive can only access sales stage
-  if (userRole === "Sales_Executive") {
+  if (
+    userRoleLower === "sales_executive" ||
+    userRoleLower === "sales-executive"
+  ) {
     return department === "sales";
   }
 
   // Resume Writer can only access resume stage
-  if (userRole === "Resume_Writer") {
+  if (userRoleLower === "resume_writer" || userRoleLower === "resume-writer") {
     return department === "resume";
   }
 
   // Senior Recruiter can access marketing and remarketing stages
-  if (userRole === "Senior_Recruiter") {
+  if (
+    userRoleLower === "senior_recruiter" ||
+    userRoleLower === "senior-recruiter"
+  ) {
     return department === "marketing" || department === "remarketing";
   }
 
   // Recruiter can access marketing and remarketing stages
-  if (userRole === "Recruiter") {
+  if (userRoleLower === "recruiter") {
     return department === "marketing" || department === "remarketing";
   }
 
@@ -504,8 +554,10 @@ export const canPerformAction = (
   client: Client,
   department: ClientStatus
 ): boolean => {
+  const userRoleLower = userRole.toLowerCase();
+
   // Admin can perform any action
-  if (userRole === "Admin") return true;
+  if (userRoleLower === "admin") return true;
 
   // Check if user has access to this department/stage
   const canAccessStage = canAccessStageForRole(userRole, department);
@@ -517,8 +569,12 @@ export const canPerformAction = (
   switch (action) {
     case "Acknowledged":
       if (department === "marketing" || department === "remarketing") {
-        // In marketing and remarketing, only Marketing Manager can acknowledge
-        return userRole === "Marketing_Manager";
+        // In marketing and remarketing, only Marketing Manager and Admin can acknowledge
+        return (
+          userRoleLower === "marketing_manager" ||
+          userRoleLower === "marketing-manager" ||
+          userRoleLower === "admin"
+        );
       }
       // For other departments, check if user has access
       return canAccessStageForRole(userRole, department);
@@ -536,7 +592,11 @@ export const canPerformAction = (
     case "ChangeRecruiter":
       // Only Marketing Managers and Admins can assign/change recruiters
       // But they must also have access to the stage
-      if (!["Marketing_Manager", "Admin"].includes(userRole)) {
+      if (
+        !["marketing_manager", "marketing-manager", "admin"].includes(
+          userRoleLower
+        )
+      ) {
         return false;
       }
       // Check if user has access to this stage
@@ -544,26 +604,35 @@ export const canPerformAction = (
 
     case "RateCandidate":
       // Sales executives and admins can rate candidates
-      return ["Sales_Executive", "Admin"].includes(userRole);
+      return ["sales_executive", "sales-executive", "admin"].includes(
+        userRoleLower
+      );
 
     case "Acknowledged-Remarketing":
       // Only Marketing Managers can acknowledge in remarketing
       if (department === "remarketing") {
-        return userRole === "Marketing_Manager";
+        return (
+          userRoleLower === "marketing_manager" ||
+          userRoleLower === "marketing-manager"
+        );
       }
       return false;
 
     case "Upload Required Docs - Sales":
       // Sales executives and admins can upload documents in sales stage
       if (department === "sales") {
-        return ["Sales_Executive", "Admin"].includes(userRole);
+        return ["sales_executive", "sales-executive", "admin"].includes(
+          userRoleLower
+        );
       }
       return false;
 
     case "Upload Required Docs - Resume":
       // Resume writers and admins can upload documents in resume stage
       if (department === "resume") {
-        return ["Resume_Writer", "Admin"].includes(userRole);
+        return ["resume_writer", "resume-writer", "admin"].includes(
+          userRoleLower
+        );
       }
       return false;
 
@@ -621,7 +690,12 @@ export const isActionRequiredForTransition = (
 
   // Marketing stage requires acknowledgment only from Marketing Manager
   if (fromStage === "marketing" && toStage === "placed") {
-    if (userRole === "Marketing_Manager") {
+    const userRoleLower = userRole.toLowerCase();
+    if (
+      userRoleLower === "marketing_manager" ||
+      userRoleLower === "marketing-manager" ||
+      userRoleLower === "admin"
+    ) {
       return action === "Acknowledged";
     }
   }

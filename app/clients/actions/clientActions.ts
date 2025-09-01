@@ -356,6 +356,10 @@ export async function createClient(
                 ps.amount !== undefined && ps.amount !== null
                   ? Number(ps.amount) || 0.0
                   : 0.0,
+              paymentType: ps.paymentType || "Subscription", // Add missing paymentType field
+              isPaid: ps.isPaid || false, // Add missing isPaid field
+              subscriptionPlanID: ps.subscriptionPlanID || null,
+              postPlacementPlanID: ps.postPlacementPlanID || null,
               createdTS: ps.createdTS
                 ? new Date(ps.createdTS).toISOString()
                 : null,

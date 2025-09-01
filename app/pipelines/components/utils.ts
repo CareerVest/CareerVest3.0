@@ -126,7 +126,7 @@ export const calculateDepartmentTime = (
 
   // If no history, calculate from current stage start date to current
   if (departmentHistory.length === 0) {
-    // For old clients without stage transitions, use currentStageStartDate
+    // Use current stage start date, fallback to createdAt only if currentStage is not available
     const stageStartDate = client.currentStage?.startDate || client.createdAt;
     const startDate = new Date(stageStartDate);
 

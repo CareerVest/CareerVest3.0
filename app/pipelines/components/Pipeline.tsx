@@ -32,6 +32,7 @@ import {
   completePipelineAction,
   completeTransitionAction,
 } from "../actions/pipelineActions";
+import { getClient } from "../../clients/actions/clientActions";
 
 interface PipelineProps {
   currentUserRole: UserRole;
@@ -188,7 +189,7 @@ export function Pipeline({
     if (!transitionRequirement) return;
 
     try {
-      // First complete the required action with multiple files
+      // Complete the transition action with multiple files - this now handles both document upload and stage movement
       await completeTransitionAction(
         multiFileDialog.client.id,
         transitionRequirement.actionName,
@@ -197,13 +198,6 @@ export function Pipeline({
           comment: data.comments,
           files: data.files,
         }
-      );
-
-      // Move the client to the new stage
-      await movePipelineCandidate(
-        multiFileDialog.client.id,
-        multiFileDialog.toStage,
-        currentUserRole
       );
 
       // Check if we need to reset actions (moving backwards)
@@ -437,10 +431,45 @@ export function Pipeline({
     }
   };
 
-  const handleViewDetails = (client: Client) => {
+  const handleViewDetails = async (client: Client) => {
+    console.log("🔍 handleViewDetails called for client:", {
+      id: client.id,
+      name: client.name,
+      status: client.status,
+      currentUserRole,
+    });
+
     setSelectedClientId(client.id);
-    if (onClientSelect) {
-      onClientSelect(client);
+
+    // Fetch detailed client data for the sidebar
+    try {
+      console.log("🔍 Fetching detailed client data for ID:", client.id);
+      const detailedClient = await getClient(Number(client.id));
+      console.log("🔍 Detailed client data received:", detailedClient);
+
+      if (detailedClient && onClientSelect) {
+        // Convert ClientDetail to Client format for the sidebar
+        const enrichedClient: Client = {
+          ...client,
+          // Add any additional fields that might be missing
+          phone: detailedClient.personalPhoneNumber || client.phone,
+          email: detailedClient.personalEmailAddress || client.email,
+          // Add any other fields that the sidebar might need
+        };
+        console.log("🔍 Enriched client data:", enrichedClient);
+        onClientSelect(enrichedClient);
+      } else if (onClientSelect) {
+        // Fallback to original client data if detailed fetch fails
+        console.log("🔍 Using fallback client data");
+        onClientSelect(client);
+      }
+    } catch (error) {
+      console.error("❌ Failed to fetch detailed client data:", error);
+      // Fallback to original client data
+      if (onClientSelect) {
+        console.log("🔍 Using fallback client data due to error");
+        onClientSelect(client);
+      }
     }
   };
 

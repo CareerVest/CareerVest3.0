@@ -202,14 +202,12 @@ export function DraggableClientCard({
   const handleResumeCompletedSubmit = async (data: {
     comment: string;
     draftedResume: File;
-    additionalDocuments?: File[];
   }) => {
     console.log("🔄 Submitting Resume Completed action for client:", client.id);
     // Convert to the format expected by onActionComplete
     const actionData = {
       comment: data.comment,
       file: data.draftedResume, // Use drafted resume as the main file
-      additionalFiles: data.additionalDocuments, // Pass additional files separately
     };
     await onActionComplete(client.id, "Resume Completed", actionData);
     setResumeCompletedDialogOpen(false);
@@ -287,9 +285,16 @@ export function DraggableClientCard({
 
         await onActionComplete(client.id, "AssignRecruiter", actionData);
 
-        // Update the client's assignedRecruiterID locally
+        // Update the client's assignedRecruiterID and assignedTo locally
         // This will trigger a re-render and hide the AssignRecruiter action
         client.assignedRecruiterID = data.recruiterId;
+        
+        // Extract recruiter name from the success message
+        // The message format is: "Recruiter {Name} assigned successfully"
+        const recruiterNameMatch = result.message.match(/Recruiter (.+?) assigned successfully/);
+        if (recruiterNameMatch && recruiterNameMatch[1]) {
+          client.assignedTo = recruiterNameMatch[1];
+        }
 
         setAssignRecruiterDialogOpen(false);
       } else {
