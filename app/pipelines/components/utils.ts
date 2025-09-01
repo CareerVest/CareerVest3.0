@@ -44,15 +44,20 @@ export const getAvailableStages = (
     "resume",
     "marketing",
     "placed",
+    "completed",
     "backed-out",
     "remarketing",
     "on-hold",
   ];
 
-  // Admin can move to any stage except current, but with restrictions for placed stage
+  // Admin can move to any stage except current, but with restrictions for placed and completed stages
   if (userRole === "Admin") {
     if (currentStatus === "placed") {
-      // From placed stage, admin can only move to remarketing
+      // From placed stage, admin can only move to remarketing or completed
+      return ["remarketing", "completed"];
+    }
+    if (currentStatus === "completed") {
+      // From completed stage, admin can only move to remarketing
       return ["remarketing"];
     }
     return allStages.filter((stage) => stage !== currentStatus);
@@ -70,10 +75,7 @@ export const getAvailableStages = (
     return [];
   }
 
-  // For placed stage, only admin can move clients
-  if (currentStatus === "placed") {
-    return [];
-  }
+  // For placed stage, only admin can move clients (handled in switch statement)
 
   const moves: ClientStatus[] = [];
 
@@ -93,12 +95,7 @@ export const getAvailableStages = (
     case "marketing":
       // Marketing Manager access handled above
       break;
-    case "placed":
-      // Only admin can move from placed, and only to remarketing
-      if (userRole === "Admin") {
-        moves.push("remarketing");
-      }
-      break;
+
     case "backed-out":
       // Only admin/marketing-manager can move from backed-out
       break;

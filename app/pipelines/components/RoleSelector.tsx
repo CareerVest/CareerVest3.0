@@ -20,7 +20,7 @@ const roleConfig: Record<
     color: string;
   }
 > = {
-  admin: {
+  Admin: {
     title: "Admin",
     description: "Full system access",
     permissions: [
@@ -32,7 +32,7 @@ const roleConfig: Record<
     icon: Shield,
     color: "bg-red-500",
   },
-  "marketing-manager": {
+  Marketing_Manager: {
     title: "Marketing Manager",
     description: "Strategic oversight and management",
     permissions: [
@@ -44,7 +44,7 @@ const roleConfig: Record<
     icon: Users,
     color: "bg-purple-500",
   },
-  "sales-executive": {
+  Sales_Executive: {
     title: "Sales Executive",
     description: "Initial client contact and qualification",
     permissions: [
@@ -56,7 +56,7 @@ const roleConfig: Record<
     icon: User,
     color: "bg-blue-500",
   },
-  "resume-writer": {
+  Resume_Writer: {
     title: "Resume Writer",
     description: "Resume preparation and optimization",
     permissions: [
@@ -68,7 +68,7 @@ const roleConfig: Record<
     icon: FileText,
     color: "bg-yellow-600",
   },
-  "senior-recruiter": {
+  Senior_Recruiter: {
     title: "Senior Recruiter",
     description: "Marketing campaign oversight",
     permissions: [
@@ -80,7 +80,7 @@ const roleConfig: Record<
     icon: Target,
     color: "bg-green-600",
   },
-  recruiter: {
+  Recruiter: {
     title: "Recruiter",
     description: "Campaign execution and client outreach",
     permissions: [

@@ -102,6 +102,14 @@ export function DepartmentCounts({
       textColor: "text-purple-700",
       clients: clients.filter((c) => c.status === "placed"),
     },
+    completed: {
+      title: "Completed",
+      icon: CheckCircle2,
+      color: "bg-emerald-500",
+      bgColor: "bg-emerald-50",
+      textColor: "text-emerald-700",
+      clients: clients.filter((c) => c.status === "completed"),
+    },
     "backed-out": {
       title: "Backed Out",
       icon: AlertTriangle,

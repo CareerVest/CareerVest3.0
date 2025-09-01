@@ -60,6 +60,17 @@ export const stageConfig = {
     darkBorderColor: "dark:border-purple-800",
     darkTextColor: "dark:text-purple-300",
   },
+  completed: {
+    title: "Completed",
+    icon: CheckCircle2,
+    color: "bg-emerald-500",
+    bgColor: "bg-emerald-50",
+    borderColor: "border-emerald-200",
+    textColor: "text-emerald-700",
+    darkBgColor: "dark:bg-emerald-950",
+    darkBorderColor: "dark:border-emerald-800",
+    darkTextColor: "dark:text-emerald-300",
+  },
   "backed-out": {
     title: "Backed Out",
     icon: AlertTriangle,
