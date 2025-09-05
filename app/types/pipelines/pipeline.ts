@@ -37,18 +37,15 @@ export interface Client {
     endDate?: string;
   }[];
   // Enhanced action tracking
-  completedActions: string[];
+  completedActions?: string[];
   currentStage: {
     department: ClientStatus;
     startDate: string;
     notes?: string;
   };
   daysInCurrentStage: number;
-  // Document tracking
-  documents: ClientDocument[];
-  // Role-based tracking
-  assignments: ClientAssignment[];
-  actionHistory: ActionHistory[];
+  // Department-based action tracking
+  departments?: Department[];
 }
 
 // Action types for the pipeline workflow
@@ -110,11 +107,31 @@ export interface FileRequirement {
 
 // Client document tracking
 export interface ClientDocument {
-  id: string;
+  documentID: number;
+  clientID: number;
   name: string;
   type: string;
+  fileSharePointURL: string;
+  fileSize: number;
   uploadedAt: string;
   uploadedBy: string;
-  fileSize: number;
   notes?: string;
+}
+
+// Department-based action organization
+export interface Department {
+  name: string;
+  displayName: string;
+  actions: ActionWithDocuments[];
+}
+
+export interface ActionWithDocuments {
+  actionType: string;
+  actionLabel: string;
+  status: string;
+  performedBy: string;
+  performedByRole: string;
+  timestamp: string;
+  notes?: string;
+  documents: ClientDocument[];
 }

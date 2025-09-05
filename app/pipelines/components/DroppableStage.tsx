@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, memo, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -25,18 +25,20 @@ interface DroppableStageProps {
     fromStage: ClientStatus,
     toStage: ClientStatus
   ) => void;
+  onClientUpdate?: (updatedClient: Client) => void;
   currentUserRole: UserRole;
   isMainStage?: boolean;
   selectedClientId?: string | null;
 }
 
-export function DroppableStage({
+export const DroppableStage = memo(function DroppableStage({
   status,
   clients,
   onMoveClient,
   onViewDetails,
   onActionComplete,
   onTransitionAction,
+  onClientUpdate,
   currentUserRole,
   isMainStage = false,
   selectedClientId = null,
@@ -46,24 +48,47 @@ export function DroppableStage({
   const Icon = config.icon;
 
   // Calculate SLA violations for this stage (exclude terminal stages)
-  const slaViolations = clients.filter((client) => {
-    // Don't apply SLA to terminal stages
-    if (["placed", "on-hold", "backed-out"].includes(client.status)) {
-      return false;
-    }
+  // Memoized to prevent expensive recalculations on every render
+  const slaViolations = useMemo(() => {
+    // TODO: SLA calculations temporarily commented out for performance
+    console.log(
+      `⚡ DroppableStage[${status}]: SLA calculations temporarily disabled`
+    );
+    return 0;
 
-    const departmentTime = calculateDepartmentTime(client);
-    const currentStageData = departmentTime.find((dept) => dept.current);
-    if (!currentStageData) return false;
+    /* 
+    // COMMENTED OUT - SLA CALCULATION CODE
+    const startTime = performance.now();
 
-    const slaStatus = getSLAStatus(
-      client.status,
-      currentStageData.businessDays || currentStageData.days,
-      true
+    const violations = clients.filter((client) => {
+      // Don't apply SLA to terminal stages
+      if (["placed", "on-hold", "backed-out"].includes(client.status)) {
+        return false;
+      }
+
+      const departmentTime = calculateDepartmentTime(client);
+      const currentStageData = departmentTime.find((dept) => dept.current);
+      if (!currentStageData) return false;
+
+      const slaStatus = getSLAStatus(
+        client.status,
+        currentStageData.businessDays || currentStageData.days,
+        true
+      );
+
+      return slaStatus && slaStatus.status === "overdue";
+    }).length;
+
+    const calcTime = performance.now() - startTime;
+    console.log(
+      `⚡ DroppableStage[${status}]: SLA violations calculated for ${
+        clients.length
+      } clients in ${calcTime.toFixed(2)}ms`
     );
 
-    return slaStatus && slaStatus.status === "overdue";
-  }).length;
+    return violations;
+    */
+  }, [clients, status]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -196,6 +221,7 @@ export function DroppableStage({
                       onViewDetails={onViewDetails}
                       onActionComplete={onActionComplete}
                       onTransitionAction={onTransitionAction}
+                      onClientUpdate={onClientUpdate}
                       currentUserRole={currentUserRole}
                       isSelected={selectedClientId === client.id}
                       currentStage={status}
@@ -254,4 +280,4 @@ export function DroppableStage({
       </CardContent>
     </Card>
   );
-}
+});

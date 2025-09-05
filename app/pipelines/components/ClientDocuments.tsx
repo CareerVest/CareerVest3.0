@@ -90,7 +90,7 @@ export function ClientDocuments({
         <div className="space-y-3">
           {safeDocuments.map((document) => (
             <div
-              key={document.id}
+              key={document.documentID}
               className="border rounded-lg p-3 hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-start justify-between">

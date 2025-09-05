@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, memo, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -29,19 +29,12 @@ import {
   getRequiredActions,
   areAllActionsCompleted,
   isActionDisabled,
-  requiresFileUpload,
-  getFileUploadDescription,
-  canPerformAction,
-  getAvailableActionsForRole,
-  getActionPrerequisites,
 } from "./constants";
-import { ActionDialog } from "./ActionDialog";
-import { ResumeCompletedDialog } from "./ResumeCompletedDialog";
-import { PriorityDialog } from "./PriorityDialog";
-import { AssignRecruiterDialog } from "./AssignRecruiterDialog";
+// Legacy dialogs removed - using only UnifiedActionDialog
+import { UnifiedActionDialog } from "./UnifiedActionDialog";
 import {
-  assignRecruiterToClient,
-  updateClientPriority,
+  getAvailableActionsForClient,
+  normalizeDepartments,
 } from "../actions/pipelineActions";
 import { formatDateEST } from "../../utils/dateUtils";
 import {
@@ -54,7 +47,11 @@ import { calculateDepartmentTime } from "./utils";
 
 interface DraggableClientCardProps {
   client: Client;
-  onMoveClient: (clientId: string, newStatus: ClientStatus) => void;
+  onMoveClient: (
+    clientId: string,
+    newStatus: ClientStatus,
+    skipBackendCall?: boolean
+  ) => void;
   onViewDetails: (client: Client) => void;
   onActionComplete: (
     clientId: string,
@@ -66,50 +63,86 @@ interface DraggableClientCardProps {
     fromStage: ClientStatus,
     toStage: ClientStatus
   ) => void;
+  onClientUpdate?: (updatedClient: Client) => void;
   currentUserRole: UserRole;
   isDragging?: boolean;
   isSelected?: boolean;
   currentStage?: ClientStatus;
+  enableCardClick?: boolean; // Controls whether clicking the card opens details
 }
 
-export function DraggableClientCard({
+export const DraggableClientCard = memo(function DraggableClientCard({
   client,
   onMoveClient,
   onViewDetails,
   onActionComplete,
   onTransitionAction,
+  onClientUpdate,
   currentUserRole,
   isDragging = false,
   isSelected = false,
   currentStage,
+  enableCardClick = true,
 }: DraggableClientCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const [actionDialogOpen, setActionDialogOpen] = useState(false);
-  const [selectedAction, setSelectedAction] = useState<string>("");
-  const [resumeCompletedDialogOpen, setResumeCompletedDialogOpen] =
-    useState(false);
-  const [priorityDialogOpen, setPriorityDialogOpen] = useState(false);
-  const [assignRecruiterDialogOpen, setAssignRecruiterDialogOpen] =
-    useState(false);
-  const [selectedRecruiterAction, setSelectedRecruiterAction] =
-    useState<string>("");
   const [localPriority, setLocalPriority] = useState(client.priority);
+
+  // Unified action dialog state
+  const [unifiedActionDialogOpen, setUnifiedActionDialogOpen] = useState(false);
+  const [selectedUnifiedAction, setSelectedUnifiedAction] =
+    useState<string>("");
+  const [availableActions, setAvailableActions] = useState<string[]>([]);
+
+  // Legacy handlers removed - using unified action system
 
   // Sync localPriority when client prop changes
   useEffect(() => {
     setLocalPriority(client.priority);
   }, [client.priority]);
 
+  // TODO: Optimize - Move available actions loading to parent component to avoid N API calls
+  // For now, disable individual API calls to reduce backend load
+  useEffect(() => {
+    // Temporarily disable individual API calls to fix performance issue
+    // Each client card was making its own API call (3 clients = 3 API calls)
+    // This should be moved to parent component and batched
+    setAvailableActions([]); // Set empty for now
+  }, [client.id, client.status]);
+
+  // TODO: SLA calculations temporarily commented out for performance
   // Calculate SLA status for current stage
-  const departmentTime = calculateDepartmentTime(client);
-  const currentStageData = departmentTime.find((dept) => dept.current);
-  const slaStatus = currentStageData
-    ? getSLAStatus(
-        client.status, // Use client.status directly for consistency
-        currentStageData.businessDays || currentStageData.days,
-        true
-      )
-    : null;
+  // Memoized to prevent expensive recalculations on every render
+  const slaStatus = useMemo(() => {
+    // Temporarily return null to skip expensive SLA calculations
+    return null;
+
+    /* 
+    // COMMENTED OUT - SLA CALCULATION CODE
+    const startTime = performance.now();
+
+    const departmentTime = calculateDepartmentTime(client);
+    const currentStageData = departmentTime.find((dept) => dept.current);
+    const result = currentStageData
+      ? getSLAStatus(
+          client.status, // Use client.status directly for consistency
+          currentStageData.businessDays || currentStageData.days,
+          true
+        )
+      : null;
+
+    const calcTime = performance.now() - startTime;
+    if (calcTime > 1) {
+      // Only log if it takes more than 1ms
+      console.log(
+        `⚡ ClientCard[${
+          client.name
+        }]: SLA status calculated in ${calcTime.toFixed(2)}ms`
+      );
+    }
+
+    return result;
+    */
+  }, [client.status, client.id, client.createdAt, client.lastUpdated]);
 
   const handleDragStart = (e: React.DragEvent) => {
     // Check if client can be moved (all actions completed for non-admin users)
@@ -133,86 +166,42 @@ export function DraggableClientCard({
     e.dataTransfer.effectAllowed = "move";
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Only handle click if:
+    // 1. Card click is enabled
+    // 2. Not dragging
+    // 3. Click target is not an interactive element
+    // 4. No action dialog is open
+    if (!enableCardClick || isDragging || unifiedActionDialogOpen) {
+      return;
+    }
+
+    // Check if the click target or any parent is an interactive element
+    const target = e.target as HTMLElement;
+    const isInteractiveElement = target.closest(
+      'button, [role="button"], input, select, textarea, a, [data-no-card-click]'
+    );
+
+    if (isInteractiveElement) {
+      return;
+    }
+
+    onViewDetails(client);
+  };
+
   const handleActionClick = (action: string) => {
-    // Check if user can perform this action in this stage
-    const canPerform = canPerformAction(
-      action as ActionType,
-      currentUserRole,
-      client,
-      client.status
-    );
-
-    if (!canPerform) {
-      console.log(
-        `🚫 Action ${action} blocked for ${currentUserRole} in ${client.status} stage`
-      );
-      return; // Don't allow action if user doesn't have permission
-    }
-
-    // Check if this is a transition action
-    if (action.startsWith("Upload Required Docs") && onTransitionAction) {
-      // This is a transition action, handle it differently
-      const nextStage = client.status === "sales" ? "resume" : "marketing";
-      onTransitionAction(client, client.status, nextStage);
-      return;
-    }
-
-    // Check if this is the Resume Completed action
-    if (action === "Resume Completed") {
-      setResumeCompletedDialogOpen(true);
-      return;
-    }
-
-    // Check if this is the Rate Candidate action
-    if (action === "RateCandidate") {
-      setPriorityDialogOpen(true);
-      return;
-    }
-
-    // Check if this is the Assign Recruiter action
-    if (action === "AssignRecruiter") {
-      setSelectedRecruiterAction("AssignRecruiter");
-      setAssignRecruiterDialogOpen(true);
-      return;
-    }
-
-    // Check if this is the Change Recruiter action
-    if (action === "ChangeRecruiter") {
-      setSelectedRecruiterAction("ChangeRecruiter");
-      setAssignRecruiterDialogOpen(true);
-      return;
-    }
-
-    setSelectedAction(action);
-    setActionDialogOpen(true);
+    // Use unified action system for all actions
+    console.log(`🎯 Using unified action system for: ${action}`);
+    setSelectedUnifiedAction(action);
+    setUnifiedActionDialogOpen(true);
   };
 
-  const handleActionSubmit = async (data: { comment: string; file?: File }) => {
-    console.log(
-      "🔄 Submitting action:",
-      selectedAction,
-      "for client:",
-      client.id
-    );
-    await onActionComplete(client.id, selectedAction, data);
-    setActionDialogOpen(false);
-    setSelectedAction("");
-  };
+  // Legacy handler removed - using unified action system
 
-  const handleResumeCompletedSubmit = async (data: {
-    comment: string;
-    draftedResume: File;
-  }) => {
-    console.log("🔄 Submitting Resume Completed action for client:", client.id);
-    // Convert to the format expected by onActionComplete
-    const actionData = {
-      comment: data.comment,
-      file: data.draftedResume, // Use drafted resume as the main file
-    };
-    await onActionComplete(client.id, "Resume Completed", actionData);
-    setResumeCompletedDialogOpen(false);
-  };
+  // handleResumeCompletedSubmit removed - using unified action system
 
+  /*
+  // Legacy handlers - to be removed
   const handlePrioritySubmit = async (data: {
     priority: string;
     comment: string;
@@ -288,10 +277,12 @@ export function DraggableClientCard({
         // Update the client's assignedRecruiterID and assignedTo locally
         // This will trigger a re-render and hide the AssignRecruiter action
         client.assignedRecruiterID = data.recruiterId;
-        
+
         // Extract recruiter name from the success message
         // The message format is: "Recruiter {Name} assigned successfully"
-        const recruiterNameMatch = result.message.match(/Recruiter (.+?) assigned successfully/);
+        const recruiterNameMatch = result.message.match(
+          /Recruiter (.+?) assigned successfully/
+        );
         if (recruiterNameMatch && recruiterNameMatch[1]) {
           client.assignedTo = recruiterNameMatch[1];
         }
@@ -306,16 +297,9 @@ export function DraggableClientCard({
       // You might want to show an error message to the user here
     }
   };
+  */
 
   const getAssignedPersonDisplay = () => {
-    // Debug logging to see what data we have
-    console.log("🔍 Client assignment debug:", {
-      status: client.status,
-      assignedTo: client.assignedTo,
-      priority: localPriority,
-      clientId: client.id,
-    });
-
     // For sales stage, show sales person; for other stages, show recruiter
     if (client.status === "sales") {
       // In sales stage, we want to show the sales person
@@ -356,78 +340,13 @@ export function DraggableClientCard({
   // Note: AssignRecruiter is now handled in constants.ts getRequiredActions()
   // No need to add it here to avoid duplication
 
-  // Add ChangeRecruiter as an optional action ONLY for marketing clients WITH assigned recruiters
-  console.log("🔍 Client data for ChangeRecruiter check:", {
-    id: client.id,
-    name: client.name,
-    status: client.status,
-    assignedRecruiterID: client.assignedRecruiterID,
-    assignedRecruiterIDType: typeof client.assignedRecruiterID,
-    hasAccess: ["marketing-manager", "admin"].includes(currentUserRole),
-    isMarketingStage:
-      client.status === "marketing" || client.status === "remarketing",
-  });
-
   if (
     (client.status === "marketing" || client.status === "remarketing") &&
     ["marketing-manager", "admin"].includes(currentUserRole) &&
     client.assignedRecruiterID // Only show ChangeRecruiter if recruiter is already assigned
   ) {
-    console.log(
-      "✅ Adding ChangeRecruiter action for marketing client WITH assigned recruiter"
-    );
     optionalActions = [...optionalActions, "ChangeRecruiter"];
   }
-
-  console.log("🔍 Required actions before filtering:", requiredActions);
-  console.log("🔍 Optional actions:", optionalActions);
-
-  // Filter required actions based on stage access permissions
-  requiredActions = requiredActions.filter((action) => {
-    const canPerform = canPerformAction(
-      action as ActionType,
-      currentUserRole,
-      client,
-      client.status
-    );
-
-    if (!canPerform) {
-      console.log(
-        `🚫 Required action ${action} blocked for ${currentUserRole} in ${client.status} stage`
-      );
-    } else {
-      console.log(
-        `✅ Required action ${action} allowed for ${currentUserRole} in ${client.status} stage`
-      );
-    }
-
-    return canPerform;
-  });
-
-  // Filter optional actions based on stage access permissions
-  optionalActions = optionalActions.filter((action) => {
-    const canPerform = canPerformAction(
-      action as ActionType,
-      currentUserRole,
-      client,
-      client.status
-    );
-
-    if (!canPerform) {
-      console.log(
-        `🚫 Optional action ${action} blocked for ${currentUserRole} in ${client.status} stage`
-      );
-    } else {
-      console.log(
-        `✅ Optional action ${action} allowed for ${currentUserRole} in ${client.status} stage`
-      );
-    }
-
-    return canPerform;
-  });
-
-  console.log("🔍 Required actions after filtering:", requiredActions);
-  console.log("🔍 Optional actions after filtering:", optionalActions);
 
   // Progress calculation ONLY considers required actions (not optional ones)
   const completedActions = requiredActions.filter((action) => {
@@ -435,13 +354,45 @@ export function DraggableClientCard({
     if (action === "AssignRecruiter" && client.assignedRecruiterID) {
       return true; // Count as completed if recruiter is assigned
     }
-    return client.completedActions.includes(action);
+
+    // Check if action is completed in departments structure
+    const departments = normalizeDepartments(client.departments);
+
+    return departments.some(
+      (dept) =>
+        dept &&
+        dept.actions &&
+        Array.isArray(dept.actions) &&
+        dept.actions.some(
+          (act) =>
+            act && act.actionType === action && act.status === "completed"
+        )
+    );
   }).length;
   const totalActions = requiredActions.length;
   // Check if all required actions are completed (optional actions don't affect this)
   const allActionsCompleted =
     requiredActions.length === 0 ||
-    requiredActions.every((action) => client.completedActions.includes(action));
+    requiredActions.every((action) => {
+      // Special handling for AssignRecruiter: consider it completed if client has a recruiter
+      if (action === "AssignRecruiter" && client.assignedRecruiterID) {
+        return true; // Count as completed if recruiter is assigned
+      }
+
+      // Check if action is completed in departments structure
+      const departments = normalizeDepartments(client.departments);
+
+      return departments.some(
+        (dept) =>
+          dept &&
+          dept.actions &&
+          Array.isArray(dept.actions) &&
+          dept.actions.some(
+            (act) =>
+              act && act.actionType === action && act.status === "completed"
+          )
+      );
+    });
 
   const config = stageConfig[currentStage || client.status];
 
@@ -481,7 +432,8 @@ export function DraggableClientCard({
       onDragStart={handleDragStart}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={() => onViewDetails(client)}
+      onClick={handleCardClick}
+      style={{ cursor: enableCardClick ? "pointer" : "default" }}
     >
       {/* Drag Handle */}
       {canMoveClient(client, currentUserRole) && (
@@ -514,9 +466,9 @@ export function DraggableClientCard({
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <span className="text-sm font-medium text-gray-900 break-words leading-tight">
+              <p className="text-sm font-medium text-gray-900 break-words leading-tight">
                 {client.name}
-              </span>
+              </p>
             </div>
           </div>
 
@@ -553,7 +505,9 @@ export function DraggableClientCard({
               )}
             </div>
 
+            {/* TODO: SLA Status Indicator temporarily commented out */}
             {/* SLA Status Indicator - Only show for active pipeline stages */}
+            {/* 
             {slaStatus &&
               slaStatus.status !== "completed" &&
               !["placed", "on-hold", "backed-out"].includes(client.status) && (
@@ -570,11 +524,15 @@ export function DraggableClientCard({
                     : "On track"}
                 </div>
               )}
+            */}
           </div>
 
           <div className="mb-2">
             <p className="text-xs text-muted-foreground break-words leading-tight">
-              {client.status === "sales" ? "Sales Person" : "Recruiter"}:{" "}
+              {client.status === "sales" || client.status === "resume"
+                ? "Sales Person"
+                : "Recruiter"}
+              :{" "}
               <span className="font-medium text-gray-700">
                 {getAssignedPersonDisplay()}
               </span>
@@ -602,43 +560,79 @@ export function DraggableClientCard({
           )}
 
           {/* Stage Actions Preview */}
-          <div className="space-y-1 mb-2">
+          <div
+            className="space-y-1 mb-2"
+            data-actions="true"
+            data-ignore-card-click="true"
+          >
             <div className="text-xs text-muted-foreground mb-1 font-medium">
               Required Actions{" "}
               {!allActionsCompleted ? "(click to complete)" : "(all completed)"}
               :
             </div>
-            {requiredActions.map((action: string) => {
+            {requiredActions.map((action: string, index: number) => {
+              // Helper function to check if an action is completed
+              const isActionCompleted = (actionType: string): boolean => {
+                if (
+                  actionType === "AssignRecruiter" &&
+                  client.assignedRecruiterID
+                ) {
+                  return true; // Consider AssignRecruiter completed if recruiter assigned
+                }
+
+                // Add safety checks for departments data structure
+                const departments = normalizeDepartments(client.departments);
+
+                const result = departments.some((dept) => {
+                  if (!dept || !dept.actions) {
+                    return false;
+                  }
+
+                  // Handle Entity Framework $values format
+                  let actions = dept.actions;
+                  if (
+                    dept.actions &&
+                    typeof dept.actions === "object" &&
+                    (dept.actions as any).$values &&
+                    Array.isArray((dept.actions as any).$values)
+                  ) {
+                    actions = (dept.actions as any).$values;
+                  } else if (Array.isArray(dept.actions)) {
+                    actions = dept.actions;
+                  }
+
+                  return actions.some(
+                    (act) =>
+                      act &&
+                      act.actionType === actionType &&
+                      act.status === "completed"
+                  );
+                });
+
+                return result;
+              };
+
               // Special handling for AssignRecruiter: consider it completed if client has a recruiter
-              let isCompleted = client.completedActions.includes(action);
+              let isCompleted = isActionCompleted(action);
               if (action === "AssignRecruiter" && client.assignedRecruiterID) {
                 isCompleted = true; // Auto-complete if recruiter is assigned
               }
 
+              // Check if previous actions are completed (sequential enforcement)
+              const previousActionsCompleted = requiredActions
+                .slice(0, index)
+                .every((prevAction) => isActionCompleted(prevAction));
+
+              const isDisabled = isCompleted || !previousActionsCompleted;
+              const disabledReason = isCompleted
+                ? "Action already completed"
+                : !previousActionsCompleted
+                ? "Complete previous actions first"
+                : "";
+
               const actionDisplayName = action.includes("-")
                 ? action.split("-")[0]
                 : action;
-
-              // Check if user can perform this action based on role
-              const canPerform = canPerformAction(
-                action as ActionType,
-                currentUserRole,
-                client,
-                client.status
-              );
-
-              // Check if action is disabled due to prerequisites
-              const isDisabled = isActionDisabled(
-                client,
-                action,
-                client.status,
-                currentUserRole
-              );
-
-              // Get prerequisite information for disabled actions
-              const prerequisites = isDisabled
-                ? getActionPrerequisites(action, client.status, currentUserRole)
-                : [];
 
               return (
                 <Button
@@ -648,28 +642,27 @@ export function DraggableClientCard({
                   className={`flex items-center gap-2 text-xs h-6 p-1 w-full justify-start ${
                     isCompleted
                       ? "opacity-75 bg-green-50 hover:bg-green-100"
-                      : !canPerform || isDisabled
+                      : !previousActionsCompleted
                       ? "opacity-50 bg-gray-50 cursor-not-allowed"
                       : "hover:bg-blue-50 border border-dashed border-blue-200"
                   }`}
                   onClick={(e: React.MouseEvent) => {
+                    e.preventDefault();
                     e.stopPropagation();
-                    if (!isCompleted && canPerform && !isDisabled) {
+                    if (!isDisabled) {
                       handleActionClick(action);
                     }
                   }}
-                  disabled={isCompleted || !canPerform || isDisabled}
-                  title={
-                    isDisabled && prerequisites.length > 0
-                      ? `Complete these actions first: ${prerequisites.join(
-                          ", "
-                        )}`
-                      : ""
-                  }
+                  disabled={isDisabled}
+                  title={disabledReason}
                 >
                   <div
                     className={`w-3 h-3 rounded flex items-center justify-center ${
-                      isCompleted ? "bg-green-500" : "border border-gray-300"
+                      isCompleted
+                        ? "bg-green-500"
+                        : !previousActionsCompleted
+                        ? "border border-gray-200 bg-gray-100"
+                        : "border border-gray-300"
                     }`}
                   >
                     {isCompleted && <Check className="w-2 h-2 text-white" />}
@@ -678,8 +671,8 @@ export function DraggableClientCard({
                     className={`break-words leading-tight ${
                       isCompleted
                         ? "line-through text-green-700"
-                        : !canPerform || isDisabled
-                        ? "text-gray-500"
+                        : !previousActionsCompleted
+                        ? "text-gray-400"
                         : "text-blue-700"
                     }`}
                   >
@@ -696,31 +689,37 @@ export function DraggableClientCard({
 
           {/* Optional Actions Section */}
           {optionalActions.length > 0 && (
-            <div className="space-y-1 mb-2">
+            <div
+              className="space-y-1 mb-2"
+              data-actions="true"
+              data-ignore-card-click="true"
+            >
               <div className="text-xs text-muted-foreground mb-1 font-medium">
                 Optional Actions:
               </div>
               {optionalActions.map((action: string) => {
-                const isCompleted = client.completedActions.includes(action);
+                const isCompleted = (() => {
+                  // Add safety checks for departments data structure
+                  const departments = normalizeDepartments(client.departments);
+
+                  return departments.some(
+                    (dept) =>
+                      dept &&
+                      dept.actions &&
+                      Array.isArray(dept.actions) &&
+                      dept.actions.some(
+                        (act) =>
+                          act &&
+                          act.actionType === action &&
+                          act.status === "completed"
+                      )
+                  );
+                })();
                 const actionDisplayName = action.includes("-")
                   ? action.split("-")[0]
                   : action;
 
-                // Check if user can perform this action based on role
-                const canPerform = canPerformAction(
-                  action as ActionType,
-                  currentUserRole,
-                  client,
-                  client.status
-                );
-
-                // Check if action is disabled due to prerequisites
-                const isDisabled = isActionDisabled(
-                  client,
-                  action,
-                  client.status,
-                  currentUserRole
-                );
+                // Permission checks handled by unified backend system
 
                 return (
                   <Button
@@ -730,17 +729,16 @@ export function DraggableClientCard({
                     className={`flex items-center gap-2 text-xs h-6 p-1 w-full justify-start ${
                       isCompleted
                         ? "opacity-75 bg-blue-50 hover:bg-blue-100"
-                        : !canPerform || isDisabled
-                        ? "opacity-50 bg-gray-50 cursor-not-allowed"
                         : "hover:bg-purple-50 border border-dashed border-purple-200"
                     }`}
                     onClick={(e: React.MouseEvent) => {
+                      e.preventDefault();
                       e.stopPropagation();
-                      if (!isCompleted && canPerform && !isDisabled) {
+                      if (!isCompleted) {
                         handleActionClick(action);
                       }
                     }}
-                    disabled={isCompleted || !canPerform || isDisabled}
+                    disabled={isCompleted}
                   >
                     <div
                       className={`w-3 h-3 rounded flex items-center justify-center ${
@@ -753,8 +751,6 @@ export function DraggableClientCard({
                       className={`break-words leading-tight ${
                         isCompleted
                           ? "line-through text-blue-700"
-                          : !canPerform || isDisabled
-                          ? "text-gray-500"
                           : "text-purple-700"
                       }`}
                     >
@@ -780,114 +776,183 @@ export function DraggableClientCard({
           </div>
         </div>
 
-        {/* Actions Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            asChild
-            onClick={(e: React.MouseEvent) => e.stopPropagation()}
-          >
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+        {/* Fallback Actions Menu - Only show when all actions are completed */}
+        {allActionsCompleted && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              asChild
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
             >
-              <MoreHorizontal className="w-3 h-3" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            onClick={(e: React.MouseEvent) => e.stopPropagation()}
-          >
-            {canMoveClient(client, currentUserRole) &&
-              getAvailableStages(client.status, currentUserRole).map(
-                (stage) => {
-                  const config = stageConfig[stage];
-                  return (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                data-no-card-click="true"
+              >
+                <MoreHorizontal className="w-3 h-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            >
+              {canMoveClient(client, currentUserRole) &&
+                getAvailableStages(client.status, currentUserRole).map(
+                  (stage) => {
+                    const config = stageConfig[stage];
+                    return (
+                      <DropdownMenuItem
+                        key={stage}
+                        onClick={(e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          onMoveClient(client.id, stage);
+                        }}
+                      >
+                        <ArrowRight className="w-3 h-3 mr-2" />
+                        Move to {config.title}
+                      </DropdownMenuItem>
+                    );
+                  }
+                )}
+              {canMoveClient(client, currentUserRole) &&
+                getAvailableStages(client.status, currentUserRole).length >
+                  0 && <DropdownMenuSeparator />}
+
+              {/* Resume Confirmation Actions - Only show for Resume_Writer when all actions completed */}
+              {currentUserRole === "Resume_Writer" &&
+                client.status === "resume" &&
+                allActionsCompleted && (
+                  <>
                     <DropdownMenuItem
-                      key={stage}
                       onClick={(e: React.MouseEvent) => {
                         e.stopPropagation();
-                        onMoveClient(client.id, stage);
+                        handleActionClick("Resume Draft Completed");
                       }}
                     >
-                      <ArrowRight className="w-3 h-3 mr-2" />
-                      Move to {config.title}
+                      <Check className="w-3 h-3 mr-2" />
+                      Resume Draft Completed
                     </DropdownMenuItem>
-                  );
-                }
-              )}
-            {canMoveClient(client, currentUserRole) &&
-              getAvailableStages(client.status, currentUserRole).length > 0 && (
-                <DropdownMenuSeparator />
-              )}
-            <DropdownMenuItem
-              onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                onViewDetails(client);
-              }}
-            >
-              View Details
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+
+              {currentUserRole === "Resume_Writer" &&
+                client.status === "resume" &&
+                allActionsCompleted && (
+                  <>
+                    <DropdownMenuItem
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        handleActionClick("Documents Uploaded");
+                      }}
+                    >
+                      <Check className="w-3 h-3 mr-2" />
+                      Documents Uploaded
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+
+              {/* View Details removed - click anywhere on card to view details */}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
-      {/* Action Dialog */}
-      {actionDialogOpen && (
-        <ActionDialog
-          isOpen={actionDialogOpen}
+      {/* Unified Action Dialog */}
+      {unifiedActionDialogOpen && (
+        <UnifiedActionDialog
+          isOpen={unifiedActionDialogOpen}
           onClose={() => {
-            setActionDialogOpen(false);
-            setSelectedAction("");
+            setUnifiedActionDialogOpen(false);
+            setSelectedUnifiedAction("");
           }}
-          onSubmit={handleActionSubmit}
-          actionName={selectedAction
-            .replace("-", " ")
-            .replace(/\b\w/g, (l: string) => l.toUpperCase())}
-          clientName={client.name}
-          requiresFile={requiresFileUpload(selectedAction as ActionType)}
-          fileDescription={getFileUploadDescription(
-            selectedAction as ActionType
-          )}
-          requiresComments={
-            selectedAction === "Initial Call Done" ||
-            selectedAction === "Resume Completed"
-          }
-        />
-      )}
+          clientId={parseInt(client.id)}
+          actionType={selectedUnifiedAction}
+          currentStage={client.status}
+          onSuccess={async (result?: any) => {
+            // Handle the unified backend response
+            if (result && result.stageTransitioned && result.newStage) {
+              // Backend automatically transitioned the client - move in frontend too
+              console.log(
+                `🚀 Backend transitioned client ${client.id} to ${result.newStage}`
+              );
+              console.log("🔄 Stage transition result:", result);
 
-      {/* Resume Completed Dialog */}
-      {resumeCompletedDialogOpen && (
-        <ResumeCompletedDialog
-          isOpen={resumeCompletedDialogOpen}
-          onClose={() => setResumeCompletedDialogOpen(false)}
-          onSubmit={handleResumeCompletedSubmit}
-          clientName={client.name}
-        />
-      )}
+              // Use the backend's unified transition handling - skip backend call since it already happened
+              onMoveClient(client.id, result.newStage as any, true);
+            } else {
+              // Regular action completion without transition
+              // Update client data locally without another API call
+              if (onClientUpdate) {
+                // Create a deep copy of the client
+                const updatedClient = JSON.parse(JSON.stringify(client));
 
-      {/* Priority Dialog */}
-      {priorityDialogOpen && (
-        <PriorityDialog
-          isOpen={priorityDialogOpen}
-          onClose={() => setPriorityDialogOpen(false)}
-          onSubmit={handlePrioritySubmit}
-          clientName={client.name}
-          currentPriority={localPriority}
-        />
-      )}
+                // Update the priority if provided
+                if (result?.additionalData?.updatedPriority) {
+                  updatedClient.priority =
+                    result.additionalData.updatedPriority;
+                }
 
-      {/* Assign Recruiter Dialog */}
-      {assignRecruiterDialogOpen && (
-        <AssignRecruiterDialog
-          isOpen={assignRecruiterDialogOpen}
-          onClose={() => setAssignRecruiterDialogOpen(false)}
-          onSubmit={handleAssignRecruiterSubmit}
-          clientName={client.name}
-          currentRecruiterId={client.assignedRecruiterID}
-          isChangeRecruiter={selectedRecruiterAction === "ChangeRecruiter"}
+                // Find and update the specific action in departments
+                if (updatedClient.departments) {
+                  const departments = normalizeDepartments(
+                    updatedClient.departments
+                  );
+                  departments.forEach((dept: any) => {
+                    if (dept && dept.actions) {
+                      let actions = dept.actions;
+                      // Handle Entity Framework $values format
+                      if (
+                        dept.actions &&
+                        typeof dept.actions === "object" &&
+                        (dept.actions as any).$values
+                      ) {
+                        actions = (dept.actions as any).$values;
+                      } else if (Array.isArray(dept.actions)) {
+                        actions = dept.actions;
+                      }
+
+                      // Find and update the specific action
+                      const actionToUpdate = actions.find(
+                        (act: any) =>
+                          act && act.actionType === selectedUnifiedAction
+                      );
+
+                      if (actionToUpdate) {
+                        actionToUpdate.status = "completed";
+                        actionToUpdate.timestamp = new Date().toISOString();
+                        actionToUpdate.performedBy = "System"; // Or get from user context
+                        actionToUpdate.performedByRole = "system";
+                      }
+                    }
+                  });
+                }
+
+                // Update the client with modified data
+                onClientUpdate(updatedClient);
+              } else {
+                // Fallback to local action completion if no onClientUpdate prop
+                await onActionComplete(client.id, selectedUnifiedAction, {
+                  comment: "Action completed via unified system",
+                });
+              }
+
+              // Update local priority state for immediate UI feedback
+              if (
+                selectedUnifiedAction === "RateCandidate" &&
+                result?.additionalData?.updatedPriority
+              ) {
+                setLocalPriority(result.additionalData.updatedPriority);
+              }
+            }
+
+            // Reset dialog state
+            setUnifiedActionDialogOpen(false);
+            setSelectedUnifiedAction("");
+          }}
         />
       )}
     </Card>
   );
-}
+});

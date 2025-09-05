@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { fetchRecruiters } from "../actions/pipelineActions";
 import {
   Dialog,
@@ -61,10 +61,20 @@ export function AssignRecruiterDialog({
   const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
   const [isLoadingRecruiters, setIsLoadingRecruiters] = useState(false);
 
+  const hasLoadedRef = useRef(false);
+
   // Fetch recruiters when dialog opens
   useEffect(() => {
-    if (isOpen && recruiters.length === 0) {
+    if (isOpen && recruiters.length === 0 && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
       fetchRecruitersData();
+    }
+  }, [isOpen]);
+
+  // Reset hasLoadedRef when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      hasLoadedRef.current = false;
     }
   }, [isOpen]);
 
@@ -218,10 +228,6 @@ export function AssignRecruiterDialog({
                         recruiter?.role || recruiter?.Role || "Employee";
 
                       if (!recruiterId) {
-                        console.warn(
-                          "⚠️ Skipping recruiter with no ID:",
-                          recruiter
-                        );
                         return null;
                       }
 

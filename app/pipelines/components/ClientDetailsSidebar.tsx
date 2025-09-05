@@ -1,47 +1,29 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { Client, UserRole } from "../../types/pipelines/pipeline";
+import { Client } from "../../types/pipelines/pipeline";
 import { calculateDepartmentTime } from "./utils";
+import { getAssignedPerson } from "../actions/pipelineActions";
 import { formatDateEST } from "../../utils/dateUtils";
-import {
-  getSLAStatus,
-  getSLAStatusColor,
-  getSLAStatusIcon,
-  getSLAConfig,
-  STAGE_SLA_CONFIG,
-} from "./slaConfig";
+import { getSLAStatus, getSLAStatusColor, getSLAStatusIcon } from "./slaConfig";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import {
   User,
   X,
+  Activity,
+  RefreshCw,
+  Timer,
+  Target,
   CheckCircle2,
   Clock,
-  Check,
-  TrendingUp,
-  Calendar,
-  FileText,
-  Users,
-  Target,
-  AlertCircle,
-  ArrowRight,
-  Timer,
-  BarChart3,
-  Activity,
-  Zap,
-  AlertTriangle,
-  RefreshCw,
 } from "lucide-react";
-import { ClientDocuments } from "./ClientDocuments";
-import { ActionHistory } from "./ActionHistory";
+import { ClientDepartmentActions } from "./ClientDepartmentActions";
 
 interface ClientDetailsSidebarProps {
   client: Client | null;
   isOpen: boolean;
   onClose: () => void;
-  currentUserRole: UserRole;
   onRefresh?: () => void;
 }
 
@@ -49,7 +31,6 @@ export function ClientDetailsSidebar({
   client,
   isOpen,
   onClose,
-  currentUserRole,
   onRefresh,
 }: ClientDetailsSidebarProps) {
   const sidebarRef = React.useRef<HTMLDivElement>(null);
@@ -63,45 +44,6 @@ export function ClientDetailsSidebar({
 
   if (!client) return null;
 
-  const getStageActions = (status: string, userRole: string) => {
-    switch (status) {
-      case "sales":
-        return [
-          { key: "RateCandidate", label: "Rate Candidate" },
-          {
-            key: "Upload Required Docs - Sales",
-            label: "Upload Required Documents",
-          },
-        ];
-      case "resume":
-        return [
-          { key: `Acknowledged-${userRole}-Resume`, label: "Acknowledged" },
-          { key: "Initial Call Done", label: "Initial Call Done" },
-          { key: "Resume Completed", label: "Resume Completed" },
-          {
-            key: "Upload Required Docs - Resume",
-            label: "Upload Required Documents",
-          },
-        ];
-      case "marketing":
-        return [
-          { key: `Acknowledged-${userRole}-Marketing`, label: "Acknowledged" },
-          { key: "AssignRecruiter", label: "Assign Recruiter" },
-        ];
-      case "remarketing":
-        return [
-          {
-            key: `Acknowledged-${userRole}-Remarketing`,
-            label: "Acknowledged",
-          },
-          { key: "AssignRecruiter", label: "Assign Recruiter" },
-        ];
-      default:
-        return [];
-    }
-  };
-
-  const stageActions = getStageActions(client.status, currentUserRole);
   const departmentTime = calculateDepartmentTime(client);
 
   // Calculate performance metrics
@@ -111,15 +53,9 @@ export function ClientDetailsSidebar({
     0
   );
   const avgDaysPerStage = totalDays / Math.max(departmentTime.length, 1);
-  // Calculate action progress for current department only
-  const currentStageActions = getStageActions(client.status, currentUserRole);
-  const currentStageCompletedActions = currentStageActions.filter((action) =>
-    client.completedActions?.includes(action.key)
-  ).length;
-  const actionCompletionRate =
-    currentStageActions.length > 0
-      ? (currentStageCompletedActions / currentStageActions.length) * 100
-      : 0;
+
+  // Calculate efficiency score (lower is better)
+  const efficiencyScore = Math.max(0, 100 - avgDaysPerStage * 5);
 
   // Get current stage SLA status (exclude terminal stages)
   const currentStageData = departmentTime.find((dept) => dept.current);
@@ -132,14 +68,6 @@ export function ClientDetailsSidebar({
           true
         )
       : null;
-
-  // Identify bottlenecks (stages with longest time)
-  const bottleneckStage = departmentTime.reduce((max, current) =>
-    current.days > max.days ? current : max
-  );
-
-  // Calculate efficiency score (lower is better)
-  const efficiencyScore = Math.max(0, 100 - avgDaysPerStage * 5);
 
   if (!isOpen) return null;
 
@@ -294,6 +222,20 @@ export function ClientDetailsSidebar({
                         </Badge>
                       )}
                     </div>
+                    {/* Assigned Person Information */}
+                    {client.assignedTo && (
+                      <div className="mt-2">
+                        <p className="text-xs text-gray-600">
+                          <span className="font-medium">
+                            {client.status === "sales" ||
+                            client.status === "resume"
+                              ? "Sales Person"
+                              : "Recruiter"}
+                          </span>
+                          : {getAssignedPerson(client, client.status)}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -319,290 +261,59 @@ export function ClientDetailsSidebar({
                 </div>
               </div>
 
-              {/* Performance Overview Cards */}
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                        <Timer className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-blue-600 font-medium">
-                          Total Time
-                        </p>
-                        <p className="text-2xl font-bold text-blue-900">
-                          {totalBusinessDays} days
-                        </p>
-                        <p className="text-xs text-blue-600">
-                          ({totalDays} calendar)
+              {/* Compact Count Cards - Full Width */}
+              <div className="flex items-stretch gap-1 mb-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 flex-1 flex items-center justify-center gap-2">
+                  <Timer className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                  <div className="text-center min-w-0 flex-1">
+                    <p className="text-xs text-blue-600 font-medium leading-tight">Time</p>
+                    <p className="text-sm font-bold text-blue-900 leading-tight">
+                      {totalBusinessDays}d
                         </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
 
-                <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                        <Target className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-green-600 font-medium">
-                          Efficiency
-                        </p>
-                        <p className="text-2xl font-bold text-green-900">
+                <div className="bg-green-50 border border-green-200 rounded-md px-3 py-2 flex-1 flex items-center justify-center gap-2">
+                  <Target className="w-3 h-3 text-green-500 flex-shrink-0" />
+                  <div className="text-center min-w-0 flex-1">
+                    <p className="text-xs text-green-600 font-medium leading-tight">Efficiency</p>
+                    <p className="text-sm font-bold text-green-900 leading-tight">
                           {efficiencyScore.toFixed(0)}%
                         </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
 
-                {/* SLA Status Card */}
                 {currentStageSLA && (
-                  <Card
-                    className={`border-2 ${getSLAStatusColor(
-                      currentStageSLA.status
-                    )}`}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="text-2xl">
+                  <div className={`border-2 rounded-md px-3 py-2 flex-1 flex items-center justify-center gap-2 ${getSLAStatusColor(currentStageSLA.status)}`}>
+                    <div className="text-sm flex-shrink-0">
                           {getSLAStatusIcon(currentStageSLA.status)}
                         </div>
-                        <div>
-                          <p className="text-sm font-medium">SLA Status</p>
-                          <p className="text-lg font-bold">
+                    <div className="text-center min-w-0 flex-1">
+                      <p className="text-xs font-medium leading-tight">SLA</p>
+                      <p className="text-sm font-bold leading-tight">
                             {currentStageSLA.status === "overdue"
-                              ? `${currentStageSLA.daysOverdue} days overdue`
+                          ? `${currentStageSLA.daysOverdue}d`
                               : currentStageSLA.status === "warning"
-                              ? `${currentStageSLA.daysRemaining.toFixed(
-                                  1
-                                )} days left`
-                              : "On Track"}
+                          ? `${currentStageSLA.daysRemaining.toFixed(1)}d`
+                          : "OK"}
                           </p>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
                 )}
               </div>
 
-              {/* Client Journey Timeline */}
-              <Card className="mb-6">
+              {/* Combined Department Actions & History */}
+              <Card className="mb-4">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Activity className="w-5 h-5" />
-                    Client Journey Timeline
+                    Department Actions & History
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {departmentTime.map((dept, index) => {
-                      // Convert department name back to lowercase for SLA config lookup
-                      const stageName = dept.department
-                        .toLowerCase()
-                        .replace(" ", "-");
-                      const slaConfig = getSLAConfig(stageName);
-                      // Calculate SLA status for all departments
-                      // For current stage, show actual SLA status
-                      // For completed stages, show "completed" status
-                      const slaStatus = dept.current
-                        ? getSLAStatus(
-                            stageName,
-                            dept.businessDays || dept.days,
-                            true
-                          )
-                        : {
-                            status: "completed" as const,
-                            daysRemaining: 0,
-                            daysOverdue: 0,
-                            percentageComplete: 100,
-                          };
-
-                      return (
-                        <div key={index} className="relative">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                dept.current
-                                  ? "bg-blue-500 text-white"
-                                  : "bg-gray-200 text-gray-600"
-                              }`}
-                            >
-                              {dept.current ? (
-                                <Activity className="w-4 h-4" />
-                              ) : (
-                                <Check className="w-4 h-4" />
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <span className="font-medium text-gray-900 capitalize">
-                                    {dept.department}
-                                    {slaConfig && (
-                                      <span className="text-gray-500 font-normal">
-                                        {" "}
-                                        (SLA Deadline: {slaConfig.maxDays} days)
-                                      </span>
-                                    )}
-                                  </span>
-                                </div>
-                                <div className="text-right">
-                                  <span className="text-sm text-gray-500">
-                                    {dept.businessDays || dept.days} days
-                                  </span>
-                                  {slaStatus && (
-                                    <div
-                                      className={`text-xs px-2 py-1 rounded-full mt-1 ${getSLAStatusColor(
-                                        slaStatus.status
-                                      )}`}
-                                    >
-                                      {slaStatus.status === "overdue"
-                                        ? `${slaStatus.daysOverdue} overdue`
-                                        : slaStatus.status === "warning"
-                                        ? `${slaStatus.daysRemaining.toFixed(
-                                            1
-                                          )} left`
-                                        : slaStatus.status === "completed"
-                                        ? "Completed"
-                                        : "On track"}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="mt-1">
-                                <Progress
-                                  value={dept.current ? 50 : 100}
-                                  className="h-2"
-                                />
-                              </div>
-                            </div>
-                            {index < departmentTime.length - 1 && (
-                              <ArrowRight className="w-4 h-4 text-gray-400" />
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Bottleneck Analysis */}
-              {bottleneckStage &&
-                bottleneckStage.days > avgDaysPerStage * 1.5 && (
-                  <Card className="mb-6 border-orange-200 bg-orange-50">
-                    <CardHeader>
-                      <CardTitle className="text-lg flex items-center gap-2 text-orange-800">
-                        <AlertTriangle className="w-5 h-5" />
-                        Bottleneck Identified
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-3 p-3 bg-orange-100 rounded-lg">
-                        <AlertCircle className="w-5 h-5 text-orange-600" />
-                        <div>
-                          <p className="text-sm font-medium text-orange-800">
-                            {bottleneckStage.department} stage is taking longer
-                            than average
-                          </p>
-                          <p className="text-xs text-orange-600">
-                            {bottleneckStage.days} days vs{" "}
-                            {avgDaysPerStage.toFixed(1)} days average
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-              {/* Action Progress */}
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5" />
-                    Action Progress
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">
-                        Overall Completion
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        {currentStageCompletedActions}/
-                        {currentStageActions.length} actions
-                      </span>
-                    </div>
-                    <Progress value={actionCompletionRate} className="h-3" />
-                    <p className="text-xs text-gray-500 mt-1">
-                      {actionCompletionRate.toFixed(0)}% complete
-                    </p>
-                  </div>
-
-                  <div className="space-y-3">
-                    {stageActions.map((action) => (
-                      <div
-                        key={action.key}
-                        className="flex items-center justify-between p-3 border rounded-lg"
-                      >
-                        <span className="text-sm font-medium text-gray-700">
-                          {action.label}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          {client.completedActions?.includes(action.key) ? (
-                            <div className="flex items-center gap-2 text-green-600">
-                              <Check className="w-4 h-4" />
-                              <span className="text-xs font-medium">
-                                Completed
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2 text-gray-400">
-                              <Clock className="w-4 h-4" />
-                              <span className="text-xs">Pending</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Documents */}
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Documents & Requirements
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ClientDocuments
-                    documents={client.documents || []}
-                    clientName={client.name}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Action History */}
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    Action History & Interactions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ActionHistory
-                    actions={client.actionHistory || []}
-                    clientName={client.name}
+                  <ClientDepartmentActions
+                    client={client}
+                    departments={client.departments || []}
                   />
                 </CardContent>
               </Card>

@@ -50,7 +50,14 @@ export function ClientCard({
           <div className="space-y-1">
             {getRequiredActions(client.status, currentUserRole).map(
               (action: string) => {
-                const isCompleted = client.completedActions.includes(action);
+                // Calculate completion status from departments structure
+                const isCompleted =
+                  client.departments?.some((dept) =>
+                    dept.actions.some(
+                      (act) =>
+                        act.actionType === action && act.status === "completed"
+                    )
+                  ) ?? false;
                 const actionDisplayName = action.includes("-")
                   ? action.split("-")[0]
                   : action;

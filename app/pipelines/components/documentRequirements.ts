@@ -375,10 +375,18 @@ export const getTransitionRequirement = (
 
 export const isTransitionRequiringDocuments = (
   fromStage: ClientStatus,
-  toStage: ClientStatus
+  toStage: ClientStatus,
+  completedActions?: string[]
 ): boolean => {
   const requirement = getTransitionRequirement(fromStage, toStage);
-  return requirement !== null;
+  if (!requirement) return false;
+
+  // If completedActions is provided, check if the required action is already completed
+  if (completedActions && completedActions.includes(requirement.actionName)) {
+    return false; // Documents already uploaded via completed action
+  }
+
+  return true;
 };
 
 export const getRequiredDocumentsForTransition = (

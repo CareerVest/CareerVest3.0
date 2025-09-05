@@ -8,11 +8,60 @@ import {
   ActionHistory,
   ClientDocument,
   ClientAssignment,
+  Department,
 } from "../../types/pipelines/pipeline";
+
+// Helper function to normalize departments data (handle Entity Framework serialization)
+export const normalizeDepartments = (departments: any): Department[] => {
+  if (!departments) return [];
+
+  // Handle Entity Framework serialization format
+  if (
+    departments &&
+    typeof departments === "object" &&
+    departments.$values &&
+    Array.isArray(departments.$values)
+  ) {
+    return departments.$values;
+  }
+
+  // Handle regular array format
+  if (Array.isArray(departments)) {
+    return departments;
+  }
+
+  console.warn("Unexpected departments format:", departments);
+  return [];
+};
+
+// Helper function to determine which assigned person to show based on stage
+const getAssignedPerson = (candidate: any, status: string) => {
+  // For sales and resume stages, show sales person first
+  if (
+    status === "sales" ||
+    status === "resume" ||
+    candidate.clientStatus === "In Sales"
+  ) {
+    return (
+      candidate.assignedSalesPersonName ||
+      candidate.assignedRecruiterName ||
+      "Unassigned"
+    );
+  }
+  // For marketing and other stages, show recruiter first
+  return (
+    candidate.assignedRecruiterName ||
+    candidate.assignedSalesPersonName ||
+    "Unassigned"
+  );
+};
 
 // ============================================================================
 // PIPELINE CANDIDATE MANAGEMENT ACTIONS
 // ============================================================================
+
+// Export the helper function for use in components
+export { getAssignedPerson };
 
 /**
  * Get all available recruiters
@@ -157,65 +206,12 @@ export async function fetchRecruiters(): Promise<
 /**
  * Update client priority
  */
-export async function updateClientPriority(
-  clientId: string,
-  priority: string
-): Promise<{ success: boolean; message: string }> {
-  try {
-    console.log("🔄 Updating client priority:", { clientId, priority });
-
-    const response = await axiosInstance.put(
-      `/api/v1/pipelines/clients/${clientId}/priority`,
-      {
-        priority,
-      }
-    );
-
-    console.log("✅ Client priority updated successfully:", response.data);
-    return { success: true, message: "Client priority updated successfully" };
-  } catch (error: any) {
-    console.error("❌ Error updating client priority:", error);
-    return {
-      success: false,
-      message:
-        error.response?.data?.message || "Failed to update client priority",
-    };
-  }
-}
+// updateClientPriority removed - use executePipelineAction() instead
 
 /**
  * Assign a recruiter to a client
  */
-export async function assignRecruiterToClient(
-  clientId: string,
-  recruiterId: number,
-  comment?: string
-): Promise<{ success: boolean; message: string }> {
-  try {
-    console.log("🔄 Assigning recruiter to client:", {
-      clientId,
-      recruiterId,
-      comment,
-    });
-
-    const response = await axiosInstance.post(
-      `/api/v1/pipelines/clients/${clientId}/assign-recruiter`,
-      {
-        recruiterId,
-        comment,
-      }
-    );
-
-    console.log("✅ Recruiter assigned successfully:", response.data);
-    return { success: true, message: "Recruiter assigned successfully" };
-  } catch (error: any) {
-    console.error("❌ Error assigning recruiter:", error);
-    return {
-      success: false,
-      message: error.response?.data?.message || "Failed to assign recruiter",
-    };
-  }
-}
+// assignRecruiterToClient removed - use executePipelineAction() instead
 
 /**
  * Get all pipeline candidates with optional filtering
@@ -227,18 +223,15 @@ export async function fetchPipelineCandidates(filters?: {
   search?: string;
 }): Promise<Client[]> {
   try {
-    console.log("🔍 Fetching pipeline candidates with filters:", filters);
+    const startTime = performance.now();
+    console.log("📡 Making API call to /api/v1/pipelines/candidates");
 
     const response = await axiosInstance.get("/api/v1/pipelines/candidates", {
       params: filters,
     });
 
-    console.log("📡 API Response:", {
-      status: response.status,
-      statusText: response.statusText,
-      dataType: typeof response.data,
-      data: response.data,
-    });
+    const apiTime = performance.now() - startTime;
+    console.log(`📡 API call completed in ${apiTime.toFixed(2)}ms`);
 
     // Handle Entity Framework Core JSON serialization format
     let dataArray = response.data;
@@ -248,111 +241,115 @@ export async function fetchPipelineCandidates(filters?: {
         response.data.$values &&
         Array.isArray(response.data.$values)
       ) {
-        console.log(
-          "✅ Found data array in response.data.$values (EF Core format)"
-        );
         dataArray = response.data.$values;
       } else if (
         response.data &&
         response.data.data &&
         Array.isArray(response.data.data)
       ) {
-        console.log("✅ Found data array in response.data.data");
         dataArray = response.data.data;
       } else {
-        console.error("❌ API returned non-array data:", response.data);
         throw new Error("API response format is not as expected");
       }
     }
 
     // Transform backend data to frontend format
-    const candidates: Client[] = dataArray.map((candidate: any) => {
-      // Debug logging to see what backend is sending
-      console.log("🔍 Backend candidate data:", {
-        clientID: candidate.clientID,
-        currentStageDepartment: candidate.currentStageDepartment,
-        priority: candidate.priority,
-        assignedRecruiterName: candidate.assignedRecruiterName,
-        assignedSalesPersonName: candidate.assignedSalesPersonName,
+    const normalizeStatus = (
+      status: string | null | undefined
+    ): ClientStatus => {
+      const s = (status || "").toLowerCase().trim();
+      switch (s) {
+        case "sales":
+        case "in sales":
+        case "in-sales":
+          return "sales";
+        case "resume":
+        case "resume preparation":
+        case "resume-preparation":
+          return "resume";
+        case "marketing":
+          return "marketing";
+        case "placed":
+          return "placed";
+        case "completed":
+          return "completed";
+        case "backed out":
+        case "backed-out":
+          return "backed-out";
+        case "remarketing":
+          return "remarketing";
+        case "on hold":
+        case "on-hold":
+          return "on-hold";
+        default:
+          return "sales"; // safe default
+      }
+    };
+
+    // Helper function to optimize priority mapping
+    const normalizePriority = (priority: string | null | undefined) => {
+      if (!priority) return "standard";
+      const p = priority.toLowerCase();
+      if (p.includes("exceptional")) return "exceptional";
+      if (p.includes("real-time")) return "real-time";
+      if (p.includes("fresher")) return "fresher";
+      return "standard";
+    };
+
+    // Transform data in batches to prevent UI blocking
+    const transformStartTime = performance.now();
+    console.log(
+      `🔄 Starting data transformation for ${dataArray.length} candidates`
+    );
+
+    const candidates: Client[] = [];
+    const batchSize = 50; // Process 50 items at a time
+
+    for (let i = 0; i < dataArray.length; i += batchSize) {
+      const batch = dataArray.slice(i, i + batchSize);
+
+      const transformedBatch = batch.map((candidate: any) => {
+        const status = normalizeStatus(candidate.clientStatus);
+        return {
+          id: candidate.clientID.toString(),
+          name: candidate.clientName,
+          email: candidate.personalEmailAddress || "",
+          phone: candidate.personalPhoneNumber || "",
+          status,
+          priority: normalizePriority(candidate.priority),
+          assignedRecruiterID: candidate.assignedRecruiterID || null,
+          assignedTo: getAssignedPerson(candidate, status),
+          createdAt: candidate.enrollmentDate || new Date().toISOString(),
+          lastUpdated: new Date().toISOString(),
+          actions: {},
+          notes: candidate.notes || "",
+          departments: normalizeDepartments(candidate.departments),
+          currentStage: {
+            department: status,
+            startDate:
+              candidate.currentStageStartDate || new Date().toISOString(),
+            notes: candidate.currentStageNotes || "",
+          },
+          daysInCurrentStage: candidate.daysInCurrentStage || 0,
+        };
       });
 
-      return {
-        id: candidate.clientID.toString(),
-        name: candidate.clientName,
-        email: candidate.personalEmailAddress || "",
-        phone: candidate.personalPhoneNumber || "",
-        status: candidate.currentStageDepartment as ClientStatus,
-        priority: (() => {
-          // Map backend priority values to frontend priority values
-          const backendPriority = candidate.priority?.toLowerCase();
-          if (
-            backendPriority === "exceptional" ||
-            backendPriority === "⭐ exceptional"
-          ) {
-            return "exceptional";
-          } else if (
-            backendPriority === "real-time" ||
-            backendPriority === "⚡ real-time"
-          ) {
-            return "real-time";
-          } else if (
-            backendPriority === "fresher" ||
-            backendPriority === "🌱 fresher"
-          ) {
-            return "fresher";
-          } else if (
-            backendPriority === "standard" ||
-            backendPriority === "standard"
-          ) {
-            return "standard";
-          }
-          // Default fallback
-          return "standard";
-        })(),
-        assignedRecruiterID: candidate.assignedRecruiterID || null,
-        assignedTo: (() => {
-          // For sales stage, prioritize sales person; for other stages, prioritize recruiter
-          if (candidate.currentStageDepartment === "sales") {
-            return (
-              candidate.assignedSalesPersonName ||
-              candidate.assignedRecruiterName ||
-              "Unassigned"
-            );
-          } else {
-            return (
-              candidate.assignedRecruiterName ||
-              candidate.assignedSalesPersonName ||
-              "Unassigned"
-            );
-          }
-        })(),
-        createdAt: candidate.enrollmentDate || new Date().toISOString(),
-        lastUpdated: new Date().toISOString(),
-        actions: {},
-        notes: candidate.notes || "",
-        completedActions: candidate.completedActions
-          ? JSON.parse(candidate.completedActions)
-          : [],
-        currentStage: {
-          department: candidate.currentStageDepartment as ClientStatus,
-          startDate:
-            candidate.currentStageStartDate || new Date().toISOString(),
-          notes: candidate.currentStageNotes || "",
-        },
-        daysInCurrentStage: candidate.daysInCurrentStage || 0,
-        documents: candidate.documents || [],
-        assignments: candidate.assignments || [],
-        actionHistory: candidate.actionHistory || [],
-      };
-    });
+      candidates.push(...transformedBatch);
 
-    console.log("✅ Fetched pipeline candidates:", candidates.length);
+      // Yield control back to the browser after each batch to prevent blocking
+      if (i + batchSize < dataArray.length) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+    }
+
+    const transformTime = performance.now() - transformStartTime;
+    console.log(
+      `🔄 Data transformation completed in ${transformTime.toFixed(2)}ms`
+    );
+
     return candidates;
   } catch (error: any) {
-    console.error("❌ Error fetching pipeline candidates:", error);
-
     // Return dummy data for now to prevent frontend crashes
-    console.log("⚠️ API error, returning dummy data as fallback");
     return getDummyPipelineCandidates();
   }
 }
@@ -381,29 +378,21 @@ export async function getPipelineCandidate(id: string): Promise<Client | null> {
       name: candidate.clientName,
       email: candidate.personalEmailAddress || "",
       phone: candidate.personalPhoneNumber || "",
-      status: candidate.currentStageDepartment as ClientStatus,
+      status: candidate.clientStatus as ClientStatus,
       priority: candidate.priority || "medium",
       assignedRecruiterID: candidate.assignedRecruiterID || null,
-      assignedTo:
-        candidate.assignedRecruiterName ||
-        candidate.assignedSalesPersonName ||
-        "Unassigned",
+      assignedTo: getAssignedPerson(candidate, candidate.clientStatus),
       createdAt: candidate.enrollmentDate || new Date().toISOString(),
       lastUpdated: new Date().toISOString(),
       actions: {},
       notes: candidate.notes || "",
-      completedActions: candidate.completedActions
-        ? JSON.parse(candidate.completedActions)
-        : [],
+      departments: normalizeDepartments(candidate.departments),
       currentStage: {
-        department: candidate.currentStageDepartment as ClientStatus,
+        department: candidate.clientStatus as ClientStatus,
         startDate: candidate.currentStageStartDate || new Date().toISOString(),
         notes: candidate.currentStageNotes || "",
       },
       daysInCurrentStage: candidate.daysInCurrentStage || 0,
-      documents: candidate.documents || [],
-      assignments: candidate.assignments || [],
-      actionHistory: candidate.actionHistory || [],
     };
 
     console.log("✅ Fetched pipeline candidate:", transformedCandidate.name);
@@ -427,12 +416,9 @@ export async function createPipelineCandidate(
     | "id"
     | "createdAt"
     | "lastUpdated"
-    | "completedActions"
     | "currentStage"
     | "daysInCurrentStage"
-    | "documents"
-    | "assignments"
-    | "actionHistory"
+    | "departments"
   >
 ): Promise<boolean> {
   try {
@@ -446,15 +432,12 @@ export async function createPipelineCandidate(
       id: `candidate-${Date.now()}`,
       createdAt: new Date().toISOString().split("T")[0],
       lastUpdated: new Date().toISOString().split("T")[0],
-      completedActions: [],
       currentStage: {
         department: candidateData.status,
         startDate: new Date().toISOString().split("T")[0],
       },
       daysInCurrentStage: 0,
-      documents: [],
-      assignments: [],
-      actionHistory: [],
+      departments: [],
     };
 
     console.log("✅ Pipeline candidate created:", newCandidate.name);
@@ -519,163 +502,15 @@ export async function deletePipelineCandidate(id: string): Promise<boolean> {
 // PIPELINE MOVEMENT ACTIONS
 // ============================================================================
 
-/**
- * Move a pipeline candidate to a different stage
- */
-export async function movePipelineCandidate(
-  candidateId: string,
-  newStatus: ClientStatus,
-  userRole: UserRole,
-  notes?: string
-): Promise<boolean> {
-  try {
-    const response = await axiosInstance.put(
-      `/api/v1/pipelines/candidates/${candidateId}/move`,
-      {
-        toStage: newStatus,
-        notes,
-      }
-    );
-
-    console.log("✅ Pipeline candidate moved:", {
-      candidateId,
-      to: newStatus,
-      userRole,
-    });
-    return response.status === 200;
-  } catch (error: any) {
-    console.error("Error moving pipeline candidate:", error);
-    throw new Error(
-      `Failed to move pipeline candidate: ${
-        error.response?.data?.message || error.message
-      }`
-    );
-  }
-}
+// movePipelineCandidate removed - use executePipelineAction() instead
 
 // ============================================================================
 // PIPELINE ACTION MANAGEMENT ACTIONS
 // ============================================================================
 
-/**
- * Complete an action for a pipeline candidate
- */
-export async function completePipelineAction(
-  candidateId: string,
-  actionType: ActionType,
-  userRole: UserRole,
-  data: {
-    comment?: string;
-    file?: File;
-    additionalFiles?: File[];
-  }
-): Promise<boolean> {
-  try {
-    const formData = new FormData();
-    formData.append("ClientID", candidateId.toString()); // Ensure it's a string
-    formData.append("ActionType", actionType);
-    formData.append("Notes", data.comment || "");
+// completePipelineAction removed - use executePipelineAction() instead
 
-    // Debug logging
-    console.log("🔄 FormData being sent:", {
-      ClientID: candidateId,
-      ActionType: actionType,
-      Notes: data.comment || "",
-      hasFile: !!data.file,
-      hasAdditionalFiles:
-        data.additionalFiles && data.additionalFiles.length > 0,
-      userRole: userRole,
-    });
-
-    // Add main file if provided
-    if (data.file) {
-      formData.append("File", data.file);
-    }
-
-    // Add additional files if provided
-    if (data.additionalFiles && data.additionalFiles.length > 0) {
-      data.additionalFiles.forEach((file) => {
-        formData.append("AdditionalFiles", file);
-      });
-    }
-
-    const response = await axiosInstance.post(
-      "/api/v1/pipelines/actions",
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
-    );
-
-    console.log("✅ Pipeline action completed:", {
-      candidateId,
-      actionType,
-      userRole,
-      hasFile: !!data.file,
-      hasAdditionalFiles:
-        data.additionalFiles && data.additionalFiles.length > 0,
-      comment: data.comment,
-    });
-    return response.status === 200;
-  } catch (error: any) {
-    console.error("❌ Error completing pipeline action:", error);
-    throw new Error(
-      `Failed to complete pipeline action: ${
-        error.response?.data?.message || error.message
-      }`
-    );
-  }
-}
-
-/**
- * Complete a transition action with multiple file uploads
- */
-export async function completeTransitionAction(
-  candidateId: string,
-  actionType: string,
-  userRole: UserRole,
-  data: {
-    comment?: string;
-    files: Array<{ id: string; file: File; label: string }>;
-  }
-): Promise<boolean> {
-  try {
-    const formData = new FormData();
-    formData.append("clientID", candidateId);
-    formData.append("actionType", actionType);
-    formData.append("notes", data.comment || "");
-
-    // Append all files with their metadata
-    data.files.forEach((fileData, index) => {
-      formData.append(`Files`, fileData.file);
-      formData.append(`FileLabels`, fileData.label);
-      formData.append(`FileIds`, fileData.id);
-    });
-
-    const response = await axiosInstance.post(
-      "/api/v1/pipelines/transitions",
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
-    );
-
-    console.log("✅ Transition action completed:", {
-      candidateId,
-      actionType,
-      userRole,
-      fileCount: data.files.length,
-    });
-    return response.status === 200;
-  } catch (error: any) {
-    console.error("Error completing transition action:", error);
-    throw new Error(
-      `Failed to complete transition action: ${
-        error.response?.data?.message || error.message
-      }`
-    );
-  }
-}
+// completeTransitionAction removed - use executePipelineAction() instead
 
 /**
  * Get action history for a pipeline candidate
@@ -720,43 +555,7 @@ export async function getPipelineActionHistory(
 // PIPELINE ASSIGNMENT MANAGEMENT ACTIONS
 // ============================================================================
 
-/**
- * Assign a pipeline candidate to a user
- */
-export async function assignPipelineCandidate(
-  candidateId: string,
-  assignedTo: string,
-  assignedToRole: UserRole,
-  assignedBy: string,
-  assignedByRole: UserRole,
-  notes?: string
-): Promise<boolean> {
-  try {
-    const response = await axiosInstance.post(
-      `/api/v1/pipelines/candidates/${candidateId}/assignments`,
-      {
-        assignedTo,
-        assignedToRole,
-        notes,
-      }
-    );
-
-    console.log("✅ Pipeline candidate assigned:", {
-      candidateId,
-      assignedTo,
-      assignedToRole,
-      assignedBy,
-    });
-    return response.status === 200;
-  } catch (error: any) {
-    console.error("Error assigning pipeline candidate:", error);
-    throw new Error(
-      `Failed to assign pipeline candidate: ${
-        error.response?.data?.message || error.message
-      }`
-    );
-  }
-}
+// assignPipelineCandidate removed - use executePipelineAction() instead
 
 /**
  * Get assignment history for a pipeline candidate
@@ -800,56 +599,7 @@ export async function getPipelineAssignmentHistory(
 // PIPELINE DOCUMENT MANAGEMENT ACTIONS
 // ============================================================================
 
-/**
- * Upload a document for a pipeline candidate
- */
-export async function uploadPipelineDocument(
-  candidateId: string,
-  file: File,
-  uploadedBy: string,
-  notes?: string
-): Promise<ClientDocument> {
-  try {
-    const formData = new FormData();
-    formData.append("clientID", candidateId);
-    formData.append("name", file.name);
-    formData.append("file", file);
-    formData.append("notes", notes || "");
-
-    const response = await axiosInstance.post(
-      "/api/v1/pipelines/candidates/documents",
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
-    );
-
-    // Transform backend response to frontend format
-    const document: ClientDocument = {
-      id: response.data.documentID.toString(),
-      name: response.data.name,
-      type: response.data.type,
-      uploadedAt: response.data.uploadedAt,
-      uploadedBy: response.data.uploadedBy,
-      fileSize: response.data.fileSize,
-      notes: response.data.notes || "",
-    };
-
-    console.log("✅ Pipeline document uploaded:", {
-      candidateId,
-      fileName: file.name,
-      fileSize: file.size,
-    });
-    return document;
-  } catch (error: any) {
-    console.error("Error uploading pipeline document:", error);
-    throw new Error(
-      `Failed to upload pipeline document: ${
-        error.response?.data?.message || error.message
-      }`
-    );
-  }
-}
+// uploadPipelineDocument removed - use executePipelineAction() instead
 
 /**
  * Get documents for a pipeline candidate
@@ -894,7 +644,7 @@ export async function deletePipelineDocument(
 ): Promise<boolean> {
   try {
     const response = await axiosInstance.delete(
-      `/api/v1/pipelines/candidates/documents/${documentId}`
+      `/api/v1/pipelines/documents/${documentId}`
     );
 
     console.log("✅ Pipeline document deleted:", {
@@ -968,44 +718,64 @@ export async function getUserPipelineDashboard(
       name: candidate.clientName,
       email: candidate.personalEmailAddress || "",
       phone: candidate.personalPhoneNumber || "",
-      status: candidate.currentStageDepartment as ClientStatus,
+      status: candidate.clientStatus as ClientStatus,
       priority: candidate.priority || "medium",
-      assignedTo:
-        candidate.assignedRecruiterName ||
-        candidate.assignedSalesPersonName ||
-        "Unassigned",
+      assignedTo: getAssignedPerson(candidate, candidate.clientStatus),
       createdAt: candidate.enrollmentDate || new Date().toISOString(),
       lastUpdated: new Date().toISOString(),
       actions: {},
       notes: candidate.notes || "",
-      completedActions: candidate.completedActions
-        ? JSON.parse(candidate.completedActions)
-        : [],
+      departments: normalizeDepartments(candidate.departments),
       currentStage: {
-        department: candidate.currentStageDepartment as ClientStatus,
+        department: candidate.clientStatus as ClientStatus,
         startDate: candidate.currentStageStartDate || new Date().toISOString(),
         notes: candidate.currentStageNotes || "",
       },
       daysInCurrentStage: candidate.daysInCurrentStage || 0,
-      documents: candidate.documents || [],
-      assignments: candidate.assignments || [],
-      actionHistory: candidate.actionHistory || [],
     }));
 
     const assignedCandidates = candidates.filter(
       (candidate: Client) => candidate.assignedTo === userId
     );
 
+    // Calculate completed actions from departments
+    const getCompletedActionsCount = (departments?: Department[]) => {
+      if (!departments) return 0;
+      return departments.reduce((count, dept) => {
+        return (
+          count +
+          dept.actions.filter((action) => action.status === "completed").length
+        );
+      }, 0);
+    };
+
     const pendingActions = assignedCandidates
-      .filter((candidate: Client) => candidate.completedActions.length < 3)
+      .filter(
+        (candidate: Client) =>
+          getCompletedActionsCount(candidate.departments) < 3
+      )
       .map((candidate: Client) => ({
         candidateId: candidate.id,
         candidateName: candidate.name,
         action: "Acknowledged" as ActionType,
       }));
 
+    // Calculate recent activity from departments
     const recentActivity = assignedCandidates
-      .flatMap((candidate: Client) => candidate.actionHistory)
+      .flatMap((candidate: Client) => {
+        if (!candidate.departments) return [];
+        return candidate.departments.flatMap((dept) =>
+          dept.actions.map((action) => ({
+            id: `${candidate.id}-${dept.name}-${action.actionType}`,
+            clientId: candidate.id,
+            actionType: action.actionType as ActionType,
+            performedBy: action.performedBy,
+            performedByRole: action.performedByRole as UserRole,
+            timestamp: action.timestamp,
+            notes: action.notes,
+          }))
+        );
+      })
       .sort(
         (a: ActionHistory, b: ActionHistory) =>
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -1044,12 +814,9 @@ export async function searchPipelineCandidates(
   }
 ): Promise<Client[]> {
   try {
-    const response = await axiosInstance.get(
-      "/api/v1/pipelines/candidates/search",
-      {
-        params: { query, ...filters },
-      }
-    );
+    const response = await axiosInstance.get("/api/v1/pipelines/search", {
+      params: { query, ...filters },
+    });
 
     // Transform backend data to frontend format
     const candidates: Client[] = response.data.map((candidate: any) => ({
@@ -1057,28 +824,20 @@ export async function searchPipelineCandidates(
       name: candidate.clientName,
       email: candidate.personalEmailAddress || "",
       phone: candidate.personalPhoneNumber || "",
-      status: candidate.currentStageDepartment as ClientStatus,
+      status: candidate.clientStatus as ClientStatus,
       priority: candidate.priority || "medium",
-      assignedTo:
-        candidate.assignedRecruiterName ||
-        candidate.assignedSalesPersonName ||
-        "Unassigned",
+      assignedTo: getAssignedPerson(candidate, candidate.clientStatus),
       createdAt: candidate.enrollmentDate || new Date().toISOString(),
       lastUpdated: new Date().toISOString(),
       actions: {},
       notes: candidate.notes || "",
-      completedActions: candidate.completedActions
-        ? JSON.parse(candidate.completedActions)
-        : [],
+      departments: normalizeDepartments(candidate.departments),
       currentStage: {
-        department: candidate.currentStageDepartment as ClientStatus,
+        department: candidate.clientStatus as ClientStatus,
         startDate: candidate.currentStageStartDate || new Date().toISOString(),
         notes: candidate.currentStageNotes || "",
       },
       daysInCurrentStage: candidate.daysInCurrentStage || 0,
-      documents: candidate.documents || [],
-      assignments: candidate.assignments || [],
-      actionHistory: candidate.actionHistory || [],
     }));
 
     console.log("✅ Searched pipeline candidates:", candidates.length);
@@ -1093,36 +852,7 @@ export async function searchPipelineCandidates(
   }
 }
 
-/**
- * Bulk operations on pipeline candidates
- */
-export async function bulkUpdatePipelineCandidates(
-  candidateIds: string[],
-  updates: Partial<Client>
-): Promise<boolean> {
-  try {
-    // TODO: Replace with actual API call when backend is ready
-    // const response = await axiosInstance.put("/api/v1/pipelines/candidates/bulk", {
-    //   candidateIds,
-    //   updates
-    // });
-    // return response.status === 204;
-
-    // For now, just log the bulk update
-    console.log("✅ Bulk updated pipeline candidates:", {
-      candidateIds,
-      updates,
-    });
-    return true;
-  } catch (error: any) {
-    console.error("Error bulk updating pipeline candidates:", error);
-    throw new Error(
-      `Failed to bulk update pipeline candidates: ${
-        error.response?.data?.message || error.message
-      }`
-    );
-  }
-}
+// bulkUpdatePipelineCandidates removed - use executePipelineAction() for bulk operations
 
 /**
  * Export pipeline candidate data
@@ -1131,25 +861,29 @@ export async function exportPipelineData(
   candidateIds: string[],
   format: "csv" | "json" | "pdf" = "json"
 ): Promise<string> {
-  try {
-    const response = await axiosInstance.post(
-      "/api/v1/pipelines/candidates/export",
-      {
-        candidateIds,
-        format,
-      }
-    );
+  // TODO: Implement export functionality in backend
+  console.warn("⚠️ Export functionality not yet implemented in backend");
+  throw new Error("Export functionality not yet implemented");
 
-    console.log("✅ Exported pipeline data:", { candidateIds, format });
-    return response.data;
-  } catch (error: any) {
-    console.error("Error exporting pipeline data:", error);
-    throw new Error(
-      `Failed to export pipeline data: ${
-        error.response?.data?.message || error.message
-      }`
-    );
-  }
+  // try {
+  //   const response = await axiosInstance.post(
+  //     "/api/v1/pipelines/candidates/export",
+  //     {
+  //       candidateIds,
+  //       format,
+  //     }
+  //   );
+
+  //   console.log("✅ Exported pipeline data:", { candidateIds, format });
+  //   return response.data;
+  // } catch (error: any) {
+  //   console.error("Error exporting pipeline data:", error);
+  //   throw new Error(
+  //     `Failed to export pipeline data: ${
+  //       error.response?.data?.message || error.message
+  //     }`
+  //   );
+  // }
 }
 
 // ============================================================================
@@ -1161,18 +895,9 @@ export async function exportPipelineData(
  */
 export async function getPipelineCandidateById(id: string): Promise<Client> {
   try {
-    console.log("🔍 Fetching single pipeline candidate:", id);
-
     const response = await axiosInstance.get(
       `/api/v1/pipelines/candidates/${id}`
     );
-
-    console.log("📡 Single candidate API Response:", {
-      status: response.status,
-      statusText: response.statusText,
-      dataType: typeof response.data,
-      data: response.data,
-    });
 
     const candidate = response.data;
 
@@ -1182,7 +907,7 @@ export async function getPipelineCandidateById(id: string): Promise<Client> {
       name: candidate.clientName,
       email: candidate.personalEmailAddress || "",
       phone: candidate.personalPhoneNumber || "",
-      status: candidate.currentStageDepartment as ClientStatus,
+      status: candidate.clientStatus as ClientStatus,
       priority: (() => {
         const backendPriority = candidate.priority?.toLowerCase();
         if (
@@ -1206,39 +931,18 @@ export async function getPipelineCandidateById(id: string): Promise<Client> {
         return "standard";
       })(),
       assignedRecruiterID: candidate.assignedRecruiterID || null,
-      assignedTo: (() => {
-        if (candidate.currentStageDepartment === "sales") {
-          return (
-            candidate.assignedSalesPersonName ||
-            candidate.assignedRecruiterName ||
-            "Unassigned"
-          );
-        } else {
-          return (
-            candidate.assignedRecruiterName ||
-            candidate.assignedSalesPersonName ||
-            "Unassigned"
-          );
-        }
-      })(),
+      assignedTo: getAssignedPerson(candidate, candidate.clientStatus),
       createdAt: candidate.enrollmentDate || new Date().toISOString(),
       lastUpdated: new Date().toISOString(),
       actions: {},
       notes: candidate.notes || "",
-      completedActions: candidate.completedActions
-        ? JSON.parse(candidate.completedActions)
-        : [],
+      departments: normalizeDepartments(candidate.departments),
       currentStage: {
-        department: candidate.currentStageDepartment as ClientStatus,
+        department: candidate.clientStatus as ClientStatus,
         startDate: candidate.currentStageStartDate || new Date().toISOString(),
         notes: candidate.currentStageNotes || "",
       },
       daysInCurrentStage: candidate.daysInCurrentStage || 0,
-      documents: candidate.documents?.$values || candidate.documents || [],
-      assignments:
-        candidate.assignments?.$values || candidate.assignments || [],
-      actionHistory:
-        candidate.actionHistory?.$values || candidate.actionHistory || [],
       departmentHistory: (() => {
         // Convert stageTransitions to departmentHistory format
         const stageTransitions =
@@ -1267,27 +971,270 @@ export async function getPipelineCandidateById(id: string): Promise<Client> {
         } else {
           // If no transitions, use current stage
           departmentHistory.push({
-            department: candidate.currentStageDepartment,
+            department: candidate.clientStatus,
             startDate:
               candidate.currentStageStartDate || candidate.enrollmentDate,
             endDate: undefined,
           });
         }
-
-        console.log("🔍 Converting stageTransitions to departmentHistory:", {
-          stageTransitions:
-            candidate.stageTransitions?.$values || candidate.stageTransitions,
-          departmentHistory,
-        });
         return departmentHistory;
       })(),
     };
 
-    console.log("✅ Transformed single candidate:", transformedCandidate);
     return transformedCandidate;
   } catch (error: any) {
-    console.error("❌ Error fetching single pipeline candidate:", error);
     throw new Error(`Failed to fetch client data: ${error.message}`);
+  }
+}
+
+// ============================================================================
+// RESUME CONFIRMATION ACTIONS
+// ============================================================================
+
+/**
+ * Generate confirmation token for resume draft
+ */
+export async function generateResumeConfirmationToken(
+  clientId: number,
+  transitionedBy: string
+): Promise<string> {
+  try {
+    console.log(
+      "🔍 Generating resume confirmation token for client:",
+      clientId
+    );
+
+    const response = await axiosInstance.post(
+      `/api/resume-confirmation/generate-token`,
+      {
+        clientId,
+        transitionedBy,
+      }
+    );
+
+    console.log("✅ Resume confirmation token generated:", response.data);
+    return response.data.token;
+  } catch (error: any) {
+    console.error("❌ Error generating resume confirmation token:", error);
+    throw new Error(`Failed to generate confirmation token: ${error.message}`);
+  }
+}
+
+/**
+ * Get confirmation status for a client
+ */
+export async function getResumeConfirmationStatus(
+  clientId: number
+): Promise<string> {
+  try {
+    console.log("🔍 Getting resume confirmation status for client:", clientId);
+
+    const response = await axiosInstance.get(
+      `/api/resume-confirmation/status/${clientId}`
+    );
+
+    console.log("✅ Resume confirmation status:", response.data);
+    return response.data.status;
+  } catch (error: any) {
+    console.error("❌ Error getting resume confirmation status:", error);
+    throw new Error(`Failed to get confirmation status: ${error.message}`);
+  }
+}
+
+/**
+ * Update documents uploaded status
+ */
+export async function updateDocumentsUploadedStatus(
+  clientId: number,
+  transitionedBy: string,
+  notes?: string
+): Promise<boolean> {
+  try {
+    console.log("🔍 Updating documents uploaded status for client:", clientId);
+
+    const response = await axiosInstance.post(
+      `/api/resume-confirmation/documents-uploaded/${clientId}`,
+      {
+        transitionedBy,
+        notes,
+      }
+    );
+
+    console.log("✅ Documents uploaded status updated:", response.data);
+    return response.data.success;
+  } catch (error: any) {
+    console.error("❌ Error updating documents uploaded status:", error);
+    throw new Error(
+      `Failed to update documents uploaded status: ${error.message}`
+    );
+  }
+}
+
+/**
+ * Check if client is ready for marketing
+ */
+export async function isClientReadyForMarketing(
+  clientId: number
+): Promise<boolean> {
+  try {
+    console.log("🔍 Checking if client is ready for marketing:", clientId);
+
+    const response = await axiosInstance.get(
+      `/api/resume-confirmation/ready-for-marketing/${clientId}`
+    );
+
+    console.log("✅ Client ready for marketing status:", response.data);
+    return response.data.isReady;
+  } catch (error: any) {
+    console.error("❌ Error checking if client is ready for marketing:", error);
+    throw new Error(`Failed to check marketing readiness: ${error.message}`);
+  }
+}
+
+// ============================================================================
+// NEW: UNIFIED RULES-BASED ACTION SYSTEM
+// ============================================================================
+
+/**
+ * Execute any pipeline action through the unified backend system
+ */
+export async function executePipelineAction(data: {
+  clientID: number;
+  actionType: string;
+  notes?: string;
+  priority?: string;
+  assignedToID?: number;
+  mainFile?: File;
+  additionalFiles?: File[];
+  additionalFileLabels?: string[];
+  additionalData?: Record<string, any>;
+}): Promise<{
+  success: boolean;
+  message: string;
+  newStage?: string;
+  stageTransitioned: boolean;
+  actionCompleted?: string;
+  errors?: string[];
+  warnings?: string[];
+}> {
+  try {
+    const formData = new FormData();
+
+    // Add required fields
+    formData.append("ClientID", data.clientID.toString());
+    formData.append("ActionType", data.actionType);
+
+    // Add optional fields
+    if (data.notes) formData.append("Notes", data.notes);
+    if (data.priority) formData.append("Priority", data.priority);
+    if (data.assignedToID)
+      formData.append("AssignedToID", data.assignedToID.toString());
+
+    // Add files
+    if (data.mainFile) formData.append("MainFile", data.mainFile);
+    if (data.additionalFiles && data.additionalFiles.length > 0) {
+      data.additionalFiles.forEach((file) => {
+        formData.append("AdditionalFiles", file);
+      });
+    }
+    if (data.additionalFileLabels && data.additionalFileLabels.length > 0) {
+      data.additionalFileLabels.forEach((label) => {
+        formData.append("AdditionalFileLabels", label);
+      });
+    }
+
+    // Add additional data as JSON
+    if (data.additionalData) {
+      Object.entries(data.additionalData).forEach(([key, value]) => {
+        formData.append(`AdditionalData[${key}]`, JSON.stringify(value));
+      });
+    }
+
+    console.log("🔄 Executing unified pipeline action:", {
+      clientID: data.clientID,
+      actionType: data.actionType,
+      hasMainFile: !!data.mainFile,
+      additionalFilesCount: data.additionalFiles?.length || 0,
+      notes: data.notes?.substring(0, 50) + "...",
+    });
+
+    const response = await axiosInstance.post(
+      "/api/v1/pipelines/actions/execute",
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
+
+    console.log("✅ Unified pipeline action completed:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Error executing pipeline action:", error);
+    throw new Error(
+      `Failed to execute pipeline action: ${
+        error.response?.data?.message || error.message
+      }`
+    );
+  }
+}
+
+/**
+ * Get pipeline action rules from backend
+ */
+export async function getPipelineActionRules(): Promise<Record<string, any>> {
+  try {
+    const response = await axiosInstance.get("/api/v1/pipelines/actions/rules");
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Error fetching pipeline rules:", error);
+    throw new Error(
+      `Failed to fetch pipeline rules: ${
+        error.response?.data?.message || error.message
+      }`
+    );
+  }
+}
+
+/**
+ * Get available actions for a client based on backend rules
+ */
+export async function getAvailableActionsForClient(
+  clientId: number
+): Promise<string[]> {
+  try {
+    const response = await axiosInstance.get(
+      `/api/v1/pipelines/clients/${clientId}/available-actions`
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Error fetching available actions:", error);
+    throw new Error(
+      `Failed to fetch available actions: ${
+        error.response?.data?.message || error.message
+      }`
+    );
+  }
+}
+
+/**
+ * Get rules for a specific action and stage
+ */
+export async function getActionRules(
+  actionType: string,
+  currentStage: string
+): Promise<any> {
+  try {
+    const response = await axiosInstance.get(
+      `/api/v1/pipelines/actions/rules/${actionType}?currentStage=${currentStage}`
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Error fetching action rules:", error);
+    throw new Error(
+      `Failed to fetch action rules: ${
+        error.response?.data?.message || error.message
+      }`
+    );
   }
 }
 
@@ -1298,6 +1245,17 @@ export const usePipelineActions = () => {
   const { apiCall } = useApiWithLoading();
 
   return {
+    // NEW: Unified action system
+    executePipelineAction: (data: any) =>
+      apiCall(executePipelineAction(data), { showLoading: true }),
+    getPipelineActionRules: () =>
+      apiCall(getPipelineActionRules(), { showLoading: true }),
+    getAvailableActionsForClient: (clientId: number) =>
+      apiCall(getAvailableActionsForClient(clientId), { showLoading: true }),
+    getActionRules: (actionType: string, currentStage: string) =>
+      apiCall(getActionRules(actionType, currentStage), { showLoading: true }),
+
+    // Legacy API calls (to be gradually replaced)
     fetchPipelineCandidates: (filters?: any) =>
       apiCall(fetchPipelineCandidates(filters), { showLoading: true }),
     getPipelineCandidate: (id: string) =>
@@ -1310,56 +1268,13 @@ export const usePipelineActions = () => {
       apiCall(updatePipelineCandidate(id, updates), { showLoading: true }),
     deletePipelineCandidate: (id: string) =>
       apiCall(deletePipelineCandidate(id), { showLoading: true }),
-    movePipelineCandidate: (
-      candidateId: string,
-      newStatus: ClientStatus,
-      userRole: UserRole,
-      notes?: string
-    ) =>
-      apiCall(movePipelineCandidate(candidateId, newStatus, userRole, notes), {
-        showLoading: true,
-      }),
-    completePipelineAction: (
-      candidateId: string,
-      actionType: ActionType,
-      userRole: UserRole,
-      data: any
-    ) =>
-      apiCall(completePipelineAction(candidateId, actionType, userRole, data), {
-        showLoading: true,
-      }),
+    // Legacy action methods removed - use executePipelineAction instead
     getPipelineActionHistory: (candidateId: string) =>
       apiCall(getPipelineActionHistory(candidateId), { showLoading: true }),
-    assignPipelineCandidate: (
-      candidateId: string,
-      assignedTo: string,
-      assignedToRole: UserRole,
-      assignedBy: string,
-      assignedByRole: UserRole,
-      notes?: string
-    ) =>
-      apiCall(
-        assignPipelineCandidate(
-          candidateId,
-          assignedTo,
-          assignedToRole,
-          assignedBy,
-          assignedByRole,
-          notes
-        ),
-        { showLoading: true }
-      ),
+    // assignPipelineCandidate removed - use executePipelineAction instead
     getPipelineAssignmentHistory: (candidateId: string) =>
       apiCall(getPipelineAssignmentHistory(candidateId), { showLoading: true }),
-    uploadPipelineDocument: (
-      candidateId: string,
-      file: File,
-      uploadedBy: string,
-      notes?: string
-    ) =>
-      apiCall(uploadPipelineDocument(candidateId, file, uploadedBy, notes), {
-        showLoading: true,
-      }),
+    // uploadPipelineDocument removed - use executePipelineAction instead
     getPipelineDocuments: (candidateId: string) =>
       apiCall(getPipelineDocuments(candidateId), { showLoading: true }),
     deletePipelineDocument: (candidateId: string, documentId: string) =>
@@ -1374,14 +1289,32 @@ export const usePipelineActions = () => {
       }),
     searchPipelineCandidates: (query: string, filters?: any) =>
       apiCall(searchPipelineCandidates(query, filters), { showLoading: true }),
-    bulkUpdatePipelineCandidates: (candidateIds: string[], updates: any) =>
-      apiCall(bulkUpdatePipelineCandidates(candidateIds, updates), {
-        showLoading: true,
-      }),
+    // bulkUpdatePipelineCandidates removed - use executePipelineAction for bulk operations
     exportPipelineData: (
       candidateIds: string[],
       format?: "csv" | "json" | "pdf"
     ) =>
       apiCall(exportPipelineData(candidateIds, format), { showLoading: true }),
+
+    // Resume Confirmation Actions
+    generateResumeConfirmationToken: (
+      clientId: number,
+      transitionedBy: string
+    ) =>
+      apiCall(generateResumeConfirmationToken(clientId, transitionedBy), {
+        showLoading: true,
+      }),
+    getResumeConfirmationStatus: (clientId: number) =>
+      apiCall(getResumeConfirmationStatus(clientId), { showLoading: true }),
+    updateDocumentsUploadedStatus: (
+      clientId: number,
+      transitionedBy: string,
+      notes?: string
+    ) =>
+      apiCall(updateDocumentsUploadedStatus(clientId, transitionedBy, notes), {
+        showLoading: true,
+      }),
+    isClientReadyForMarketing: (clientId: number) =>
+      apiCall(isClientReadyForMarketing(clientId), { showLoading: true }),
   };
 };

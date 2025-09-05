@@ -4,12 +4,14 @@ import React, { useState } from "react";
 import { Pipeline } from "./components/Pipeline";
 import { Client, UserRole } from "../types/pipelines/pipeline";
 import { ClientDetailsSidebar } from "./components/ClientDetailsSidebar";
-import { getPipelineCandidateById } from "./actions/pipelineActions";
+import { usePipelineActions } from "./actions/pipelineActions";
 import { useAuth } from "../../contexts/authContext";
 
 export default function PipelinesPage() {
+  console.log("PipelinesPage rendered");
   const { roles } = useAuth();
-  const currentUserRole: UserRole = "Admin"; // Simulating Admin role
+  const { getPipelineCandidateById } = usePipelineActions();
+  const currentUserRole: UserRole = "Admin"; // Simulating Sales role
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isClientDetailsOpen, setIsClientDetailsOpen] = useState(false);
 
@@ -68,7 +70,6 @@ export default function PipelinesPage() {
         client={selectedClient}
         isOpen={isClientDetailsOpen}
         onClose={handleCloseSidebar}
-        currentUserRole={currentUserRole}
         onRefresh={() => selectedClient && handleClientSelect(selectedClient)}
       />
     </div>

@@ -14,6 +14,7 @@ import {
   FileRequirement,
   UserRole,
 } from "../../types/pipelines/pipeline";
+import { normalizeDepartments } from "../actions/pipelineActions";
 
 export const stageConfig = {
   sales: {
@@ -125,28 +126,53 @@ export const getRequiredActions = (
 ): string[] => {
   switch (department) {
     case "sales":
-      return ["RateCandidate", "Upload Required Docs - Sales"];
+      const salesUserRoleLower = userRole.toLowerCase();
+      if (salesUserRoleLower === "admin") {
+        // Admin can perform all sales actions
+        return ["RateCandidate", "Upload Required Docs - Sales"];
+      }
+      if (salesUserRoleLower === "sales_executive") {
+        // Sales executives can perform all sales actions
+        return ["RateCandidate", "Upload Required Docs - Sales"];
+      }
+      // Resume writers and other roles cannot see sales actions
+      return [];
     case "resume":
-      return [
-        `Acknowledged-${userRole}-Resume`,
-        "Initial Call Done",
-        "Resume Completed",
-        "Upload Required Docs - Resume",
-      ];
+      const resumeUserRoleLower = userRole.toLowerCase();
+      if (resumeUserRoleLower === "admin") {
+        // Admin can perform all resume actions
+        return [
+          "Acknowledged",
+          "Initial Call Done",
+          "Resume Completed",
+          "Upload Required Docs - Resume",
+        ];
+      }
+      if (resumeUserRoleLower === "resume_writer") {
+        // Resume writers can perform all resume actions
+        return [
+          "Acknowledged",
+          "Initial Call Done",
+          "Resume Completed",
+          "Upload Required Docs - Resume",
+        ];
+      }
+      // Sales executives and other roles cannot see resume actions
+      return [];
     case "marketing":
       const userRoleLower = userRole.toLowerCase();
       if (userRoleLower === "admin") {
         // Admin can perform all actions
-        return [`Acknowledged-Admin-Marketing`, "AssignRecruiter"];
+        return ["Acknowledged-Marketing", "AssignRecruiter"];
       }
       if (
         userRoleLower === "marketing_manager" ||
         userRoleLower === "marketing-manager"
       ) {
         // Actions must be completed in sequence:
-        // 1. Acknowledged-Marketing_Manager-Marketing (required first)
+        // 1. Acknowledged-Marketing (required first)
         // 2. AssignRecruiter (always required for action history)
-        return [`Acknowledged-Marketing_Manager-Marketing`, "AssignRecruiter"];
+        return ["Acknowledged-Marketing", "AssignRecruiter"];
       }
       // Senior recruiters and recruiters can view marketing stage but have limited actions
       if (
@@ -163,10 +189,7 @@ export const getRequiredActions = (
         // Actions must be completed in sequence:
         // 1. Acknowledged-Marketing_Manager-Remarketing (required first)
         // 2. AssignRecruiter (always required for action history)
-        return [
-          `Acknowledged-Marketing_Manager-Remarketing`,
-          "AssignRecruiter",
-        ];
+        return ["Acknowledged-Remarketing", "AssignRecruiter"];
       }
       // Senior recruiters and recruiters have no actions in remarketing
       return [];
@@ -182,9 +205,40 @@ export const areAllActionsCompleted = (
   userRole: string
 ): boolean => {
   const requiredActions = getRequiredActions(department, userRole);
-  return requiredActions.every((action) =>
-    client.completedActions.includes(action)
-  );
+  return requiredActions.every((action) => {
+    // Check if action is completed in departments structure
+    return (
+      client.departments?.some((dept) => {
+        // Handle Entity Framework serialization and ensure actions is an array
+        const actions = normalizeDepartmentActions(dept);
+        return actions.some(
+          (act) => act.actionType === action && act.status === "completed"
+        );
+      }) ?? false
+    );
+  });
+};
+
+// Helper function to normalize department actions (handle Entity Framework serialization)
+const normalizeDepartmentActions = (dept: any): any[] => {
+  if (!dept.actions) return [];
+
+  // Handle Entity Framework serialization for actions
+  if (
+    dept.actions &&
+    typeof dept.actions === "object" &&
+    dept.actions.$values &&
+    Array.isArray(dept.actions.$values)
+  ) {
+    return dept.actions.$values;
+  }
+
+  // Handle regular array format
+  if (Array.isArray(dept.actions)) {
+    return dept.actions;
+  }
+
+  return [];
 };
 
 // Determine if an action is disabled based on its prerequisites
@@ -194,24 +248,57 @@ export const isActionDisabled = (
   department: ClientStatus,
   role: string
 ): boolean => {
+  // Helper function to check if an action is completed in departments structure
+  const isActionCompleted = (actionType: string, dept?: string): boolean => {
+    const departments = normalizeDepartments(client.departments);
+
+    return departments.some((d) => {
+      if (!d || !d.name || (dept && d.name !== dept)) return false;
+
+      const actions = normalizeDepartmentActions(d);
+      return actions.some(
+        (act) =>
+          act && act.actionType === actionType && act.status === "completed"
+      );
+    });
+  };
+
+  // Helper function to check if any acknowledgment is completed for a department
+  const hasAcknowledgment = (dept: ClientStatus): boolean => {
+    const departments = normalizeDepartments(client.departments);
+
+    return departments.some((d) => {
+      if (!d || d.name !== dept) return false;
+
+      const actions = normalizeDepartmentActions(d);
+      return actions.some(
+        (act) =>
+          act &&
+          act.actionType.startsWith("Acknowledged") &&
+          act.status === "completed"
+      );
+    });
+  };
+
   const compositeAction =
     action === "Acknowledged" ? `${action}-${role}-${department}` : action;
-  if (client.completedActions.includes(compositeAction)) {
+
+  if (isActionCompleted(compositeAction)) {
     return true; // Action already completed
   }
 
   if (department === "resume") {
     if (action === "Initial Call Done") {
-      return !client.completedActions.includes(`Acknowledged-${role}-Resume`);
+      return !isActionCompleted("Acknowledged", "resume");
     }
     if (action === "Resume Completed") {
-      return !client.completedActions.includes("Initial Call Done");
+      return !isActionCompleted("Initial Call Done", "resume");
     }
   }
 
   if (department === "sales") {
     if (action === "Upload Required Docs - Sales") {
-      return !client.completedActions.includes("RateCandidate");
+      return !isActionCompleted("RateCandidate", "sales");
     }
   }
 
@@ -219,12 +306,12 @@ export const isActionDisabled = (
     if (action === "Upload Required Docs - Resume") {
       // Upload Required Docs - Resume requires all other resume actions to be completed first
       const requiredActions = [
-        `Acknowledged-${role}-Resume`,
+        "Acknowledged",
         "Initial Call Done",
         "Resume Completed",
       ];
       return !requiredActions.every((action) =>
-        client.completedActions.includes(action)
+        isActionCompleted(action, "resume")
       );
     }
   }
@@ -238,14 +325,7 @@ export const isActionDisabled = (
         return true; // Disable AssignRecruiter (mark as completed) if recruiter exists
       }
 
-      // Check for acknowledgment from any role that can acknowledge in marketing
-      const hasAcknowledgment = client.completedActions.some(
-        (completedAction) =>
-          completedAction.startsWith("Acknowledged-") &&
-          completedAction.endsWith("-Marketing")
-      );
-
-      return !hasAcknowledgment;
+      return !hasAcknowledgment("marketing");
     }
     if (action === "ChangeRecruiter") {
       // ChangeRecruiter requires acknowledgment to be completed first
@@ -254,36 +334,21 @@ export const isActionDisabled = (
         return true; // Disable ChangeRecruiter if no recruiter assigned
       }
 
-      // Check for acknowledgment from any role that can acknowledge in marketing
-      const hasAcknowledgment = client.completedActions.some(
-        (completedAction) =>
-          completedAction.startsWith("Acknowledged-") &&
-          completedAction.endsWith("-Marketing")
-      );
-
-      return !hasAcknowledgment;
+      return !hasAcknowledgment("marketing");
     }
     if (role === "Senior_Recruiter" && action === "Acknowledged") {
       // Senior Recruiter acknowledgment requires Marketing Manager acknowledgment first
-      const hasMarketingManagerAcknowledgment = client.completedActions.some(
-        (completedAction) =>
-          completedAction.startsWith("Acknowledged-") &&
-          (completedAction.includes("Marketing_Manager") ||
-            completedAction.includes("marketing-manager")) &&
-          completedAction.endsWith("-Marketing")
+      return !isActionCompleted(
+        "Acknowledged-Marketing_Manager-Marketing",
+        "marketing"
       );
-      return !hasMarketingManagerAcknowledgment;
     }
     if (role === "Recruiter" && action === "Acknowledged") {
       // Recruiter acknowledgment requires Senior Recruiter acknowledgment first
-      const hasSeniorRecruiterAcknowledgment = client.completedActions.some(
-        (completedAction) =>
-          completedAction.startsWith("Acknowledged-") &&
-          (completedAction.includes("Senior_Recruiter") ||
-            completedAction.includes("senior-recruiter")) &&
-          completedAction.endsWith("-Marketing")
+      return !isActionCompleted(
+        "Acknowledged-Senior_Recruiter-Marketing",
+        "marketing"
       );
-      return !hasSeniorRecruiterAcknowledgment;
     }
   }
 
@@ -292,8 +357,9 @@ export const isActionDisabled = (
     role === "Senior_Recruiter" &&
     action === "Acknowledged"
   ) {
-    return !client.completedActions.includes(
-      `Acknowledged-Marketing_Manager-Marketing`
+    return !isActionCompleted(
+      "Acknowledged-Marketing_Manager-Marketing",
+      "marketing"
     );
   }
 
@@ -302,8 +368,9 @@ export const isActionDisabled = (
     role === "Recruiter" &&
     action === "Acknowledged"
   ) {
-    return !client.completedActions.includes(
-      `Acknowledged-Senior_Recruiter-Marketing`
+    return !isActionCompleted(
+      "Acknowledged-Senior_Recruiter-Marketing",
+      "marketing"
     );
   }
 
@@ -315,9 +382,7 @@ export const isActionDisabled = (
       if (client.assignedRecruiterID) {
         return true; // Disable AssignRecruiter (mark as completed) if recruiter exists
       }
-      return !client.completedActions.includes(
-        `Acknowledged-Marketing_Manager-Remarketing`
-      );
+      return !hasAcknowledgment("remarketing");
     }
     if (action === "ChangeRecruiter") {
       // ChangeRecruiter requires Acknowledged-Marketing_Manager-Remarketing to be completed first
@@ -325,18 +390,18 @@ export const isActionDisabled = (
       if (!client.assignedRecruiterID) {
         return true; // Disable ChangeRecruiter if no recruiter assigned
       }
-      return !client.completedActions.includes(
-        `Acknowledged-Marketing_Manager-Remarketing`
-      );
+      return !hasAcknowledgment("remarketing");
     }
     if (role === "Senior_Recruiter" && action === "Acknowledged") {
-      return !client.completedActions.includes(
-        `Acknowledged-Marketing_Manager-Remarketing`
+      return !isActionCompleted(
+        "Acknowledged-Marketing_Manager-Remarketing",
+        "remarketing"
       );
     }
     if (role === "Recruiter" && action === "Acknowledged") {
-      return !client.completedActions.includes(
-        `Acknowledged-Marketing_Manager-Remarketing`
+      return !isActionCompleted(
+        "Acknowledged-Senior_Recruiter-Remarketing",
+        "remarketing"
       );
     }
   }
@@ -346,8 +411,9 @@ export const isActionDisabled = (
     role === "Senior_Recruiter" &&
     action === "Acknowledged"
   ) {
-    return !client.completedActions.includes(
-      `Acknowledged-Marketing_Manager-Remarketing`
+    return !isActionCompleted(
+      "Acknowledged-Marketing_Manager-Remarketing",
+      "remarketing"
     );
   }
 
@@ -356,8 +422,9 @@ export const isActionDisabled = (
     role === "Recruiter" &&
     action === "Acknowledged"
   ) {
-    return !client.completedActions.includes(
-      `Acknowledged-Senior_Recruiter-Remarketing`
+    return !isActionCompleted(
+      "Acknowledged-Senior_Recruiter-Remarketing",
+      "remarketing"
     );
   }
 
@@ -392,7 +459,7 @@ export const getActionPrerequisites = (
 
   if (department === "resume") {
     if (action === "Initial Call Done") {
-      prerequisites.push(`Acknowledged-${role}-Resume`);
+      prerequisites.push("Acknowledged");
     }
     if (action === "Resume Completed") {
       prerequisites.push("Initial Call Done");
@@ -407,7 +474,7 @@ export const getActionPrerequisites = (
 
   if (department === "resume") {
     if (action === "Upload Required Docs - Resume") {
-      prerequisites.push(`Acknowledged-${role}-Resume`);
+      prerequisites.push("Acknowledged");
       prerequisites.push("Initial Call Done");
       prerequisites.push("Resume Completed");
     }

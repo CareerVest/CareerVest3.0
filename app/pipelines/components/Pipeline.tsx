@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Plus, LayoutGrid, X, AlertTriangle } from "lucide-react";
+import { useApiWithLoading } from "@/lib/apiWithLoading";
 import {
   Client,
   ClientStatus,
@@ -28,9 +35,7 @@ import {
 } from "./documentRequirements";
 import {
   fetchPipelineCandidates,
-  movePipelineCandidate,
-  completePipelineAction,
-  completeTransitionAction,
+  executePipelineAction,
 } from "../actions/pipelineActions";
 import { getClient } from "../../clients/actions/clientActions";
 
@@ -47,8 +52,8 @@ export function Pipeline({
   isSidebarOpen = false,
   onClientUpdate,
 }: PipelineProps) {
+  const { apiCall } = useApiWithLoading();
   const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<ClientStatus | "all">("all");
@@ -65,50 +70,175 @@ export function Pipeline({
     toStage: null,
   });
 
+  const hasLoadedRef = useRef(false);
+
   // Fetch pipeline candidates on component mount
   useEffect(() => {
+    if (hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
+
     const loadCandidates = async () => {
       try {
-        setLoading(true);
         setError(null);
-        const candidates = await fetchPipelineCandidates();
+        const startTime = performance.now();
+        console.log("🔍 Loading pipeline candidates...");
+
+        const candidates = await apiCall(fetchPipelineCandidates(), {
+          showLoading: true,
+        });
+
+        const loadTime = performance.now() - startTime;
+        console.log(
+          `✅ Loaded ${candidates.length} candidates in ${loadTime.toFixed(
+            2
+          )}ms`
+        );
+
+        // Add timing for React state update and re-renders
+        const renderStartTime = performance.now();
         setClients(candidates);
-        console.log("✅ Loaded pipeline candidates:", candidates.length);
+
+        // Use setTimeout to measure time after state update and re-render
+        setTimeout(() => {
+          const renderTime = performance.now() - renderStartTime;
+          console.log(
+            `🎨 React rendering completed in ${renderTime.toFixed(2)}ms`
+          );
+        }, 0);
+
+        // Debug: Show status distribution for admin access issue investigation
+        const statusCounts = candidates.reduce(
+          (acc: Record<string, number>, client) => {
+            acc[client.status] = (acc[client.status] || 0) + 1;
+            return acc;
+          },
+          {}
+        );
+        console.log("🔍 Client status distribution:", statusCounts);
       } catch (err: any) {
         console.error("❌ Error loading pipeline candidates:", err);
         setError(err.message || "Failed to load pipeline candidates");
-      } finally {
-        setLoading(false);
       }
     };
 
     loadCandidates();
   }, []);
 
-  const getClientsForStatus = (status: ClientStatus) => {
-    let filteredClients = clients.filter((client) => client.status === status);
+  // Memoized searchable strings for each client to improve performance
+  // Defer creation until actually needed for search to improve initial load time
+  const clientsWithSearchText = useMemo(() => {
+    const startTime = performance.now();
 
-    // Apply search filter
-    if (searchQuery) {
+    // Only create search text if there's actually a search query
+    if (!searchQuery || searchQuery.trim().length < 2) {
+      console.log(
+        `⚡ clientsWithSearchText: Skipped (no search query) in ${(
+          performance.now() - startTime
+        ).toFixed(2)}ms`
+      );
+      return clients;
+    }
+
+    const result = clients.map((client) => ({
+      ...client,
+      searchText:
+        `${client.name} ${client.email} ${client.assignedTo} ${client.notes}`.toLowerCase(),
+    }));
+
+    console.log(
+      `⚡ clientsWithSearchText: Processed ${clients.length} clients in ${(
+        performance.now() - startTime
+      ).toFixed(2)}ms`
+    );
+    return result;
+  }, [clients, searchQuery]);
+
+  // Memoized filtered clients to avoid recalculating on every render
+  const filteredClients = useMemo(() => {
+    const startTime = performance.now();
+    let result = clientsWithSearchText;
+
+    // Apply status filter
+    if (filterStatus !== "all") {
+      result = result.filter((client) => client.status === filterStatus);
+    }
+
+    // Apply search filter with optimized single string search
+    // Only search if query is 2+ characters to improve performance
+    if (searchQuery && searchQuery.trim().length >= 2) {
       const query = searchQuery.toLowerCase();
-      filteredClients = filteredClients.filter(
-        (client) =>
-          client.name.toLowerCase().includes(query) ||
+      result = result.filter((client) => {
+        // Prioritize name matches for better UX (names are most commonly searched)
+        if (client.name.toLowerCase().includes(query)) {
+          return true;
+        }
+        // Use searchText if available, otherwise fallback to individual field searches
+        if ((client as any).searchText) {
+          return (client as any).searchText.includes(query);
+        }
+        // Fallback for when searchText is not available
+        return (
           client.email.toLowerCase().includes(query) ||
           client.assignedTo.toLowerCase().includes(query) ||
           client.notes.toLowerCase().includes(query)
-      );
+        );
+      });
     }
 
-    return filteredClients;
-  };
+    console.log(
+      `⚡ filteredClients: Processed ${result.length}/${
+        clientsWithSearchText.length
+      } clients in ${(performance.now() - startTime).toFixed(2)}ms`
+    );
+    return result;
+  }, [clientsWithSearchText, filterStatus, searchQuery]);
 
-  const moveClient = async (clientId: string, newStatus: ClientStatus) => {
+  const getClientsForStatus = useCallback(
+    (status: ClientStatus) => {
+      // Use memoized filtered clients instead of re-filtering
+      return filteredClients.filter((client) => client.status === status);
+    },
+    [filteredClients]
+  );
+
+  const moveClient = async (
+    clientId: string,
+    newStatus: ClientStatus,
+    skipBackendCall: boolean = false
+  ) => {
     const client = clients.find((c) => c.id === clientId);
     if (!client) return;
 
-    // Check if this transition requires documents
-    if (isTransitionRequiringDocuments(client.status, newStatus)) {
+    // If skipBackendCall is true, it means the backend already handled the transition
+    // and we just need to update the frontend state
+    if (skipBackendCall) {
+      console.log(
+        `🔄 Updating frontend state for client ${clientId} to ${newStatus} (backend already handled transition)`
+      );
+
+      // Update local state directly since backend already handled the transition
+      setClients((prev) =>
+        prev.map((client) =>
+          client.id === clientId
+            ? {
+                ...client,
+                status: newStatus,
+                lastUpdated: getCurrentDateEST(),
+              }
+            : client
+        )
+      );
+      return;
+    }
+
+    // Check if this transition requires documents (and they haven't been uploaded yet)
+    if (
+      isTransitionRequiringDocuments(
+        client.status,
+        newStatus,
+        client.completedActions
+      )
+    ) {
       // Check if user can perform this transition
       if (
         !canUserPerformTransition(client.status, newStatus, currentUserRole)
@@ -128,8 +258,17 @@ export function Pipeline({
     }
 
     try {
-      // Call the API to move the client
-      await movePipelineCandidate(clientId, newStatus, currentUserRole);
+      // Use unified action system for all stage transitions
+      const result = await apiCall(
+        executePipelineAction({
+          clientID: parseInt(clientId),
+          actionType: `Move to ${newStatus}`,
+          notes: `Client moved from ${client.status} to ${newStatus}`,
+        }),
+        { showLoading: true }
+      );
+
+      console.log("✅ Stage transition completed:", result);
 
       // Check if we need to reset actions (moving backwards)
       const needsActionReset = shouldResetActions(client.status, newStatus);
@@ -145,12 +284,8 @@ export function Pipeline({
                 ...client,
                 status: newStatus,
                 lastUpdated: getCurrentDateEST(),
-                // Reset completed actions if moving backwards
-                completedActions: needsActionReset
-                  ? client.completedActions.filter(
-                      (action) => !actionsToReset.includes(action)
-                    )
-                  : client.completedActions,
+                // Departments will be updated when the data is refetched from backend
+                // The backend ExecutePipelineAction handles all action state management
               }
             : client
         )
@@ -189,15 +324,16 @@ export function Pipeline({
     if (!transitionRequirement) return;
 
     try {
-      // Complete the transition action with multiple files - this now handles both document upload and stage movement
-      await completeTransitionAction(
-        multiFileDialog.client.id,
-        transitionRequirement.actionName,
-        currentUserRole,
-        {
-          comment: data.comments,
-          files: data.files,
-        }
+      // Complete the transition action with multiple files using unified system
+      await apiCall(
+        executePipelineAction({
+          clientID: parseInt(multiFileDialog.client.id),
+          actionType: transitionRequirement.actionName,
+          notes: data.comments,
+          additionalFiles: data.files.map((f) => f.file),
+          additionalFileLabels: data.files.map((f) => f.label),
+        }),
+        { showLoading: true }
       );
 
       // Check if we need to reset actions (moving backwards)
@@ -220,44 +356,14 @@ export function Pipeline({
                 ...client,
                 status: multiFileDialog.toStage!,
                 lastUpdated: getCurrentDateEST(),
-                completedActions: needsActionReset
-                  ? [transitionRequirement.actionName] // Only keep the transition action
-                  : [
-                      ...client.completedActions,
-                      transitionRequirement.actionName,
-                    ],
+                // Departments and actions are managed by backend ExecutePipelineAction
                 notes:
                   client.notes +
                   `\n${formatDateEST(new Date())} - ${
                     transitionRequirement.actionName
                   }: ${data.comments}`,
-                // Add documents to tracking
-                documents: [
-                  ...client.documents,
-                  ...data.files.map((fileUpload, index) => ({
-                    id: `${client.id}-${fileUpload.id}-${Date.now()}-${index}`,
-                    name: fileUpload.file.name,
-                    type: fileUpload.file.type || "application/octet-stream",
-                    uploadedAt: getCurrentDateEST(),
-                    uploadedBy: "Current User",
-                    fileSize: fileUpload.file.size,
-                    notes: fileUpload.label,
-                  })),
-                ],
-                // Add action to history
-                actionHistory: [
-                  ...client.actionHistory,
-                  {
-                    id: `${client.id}-${Date.now()}`,
-                    clientId: client.id,
-                    actionType: transitionRequirement.actionName as ActionType,
-                    performedBy: "Current User",
-                    performedByRole: currentUserRole,
-                    timestamp: getCurrentDateEST(),
-                    comment: data.comments,
-                    attachments: data.files.map((f) => f.file.name),
-                  },
-                ],
+                // Documents and action history are managed by backend departments structure
+                // No need to track locally as ExecutePipelineAction handles everything
               }
             : client
         )
@@ -297,21 +403,16 @@ export function Pipeline({
     data: { comment: string; file?: File; additionalFiles?: File[] }
   ) => {
     try {
-      console.log("🔄 Completing action:", action, "for client:", clientId);
+      console.log(
+        "🔄 Finalizing action locally:",
+        action,
+        "for client:",
+        clientId
+      );
       console.log("🔄 Action data:", data);
       console.log("🔄 User role:", currentUserRole);
 
-      // Call the API to complete the action
-      const result = await completePipelineAction(
-        clientId,
-        action as ActionType,
-        currentUserRole,
-        data
-      );
-
-      console.log("🔄 API call result:", result);
-
-      // Update local state
+      // Only update local state here. The backend action was executed in UnifiedActionDialog.
       console.log("🔄 Adding action to completedActions:", action);
       console.log(
         "🔄 Before update - client completedActions:",
@@ -323,7 +424,7 @@ export function Pipeline({
           client.id === clientId
             ? {
                 ...client,
-                completedActions: [...client.completedActions, action],
+                // Action completion is managed by backend departments structure
                 lastUpdated: getCurrentDateEST(),
                 // Update priority if this is a RateCandidate action
                 priority:
@@ -356,55 +457,8 @@ export function Pipeline({
                       ? ` (+${data.additionalFiles.length} additional files)`
                       : ""
                   }`,
-                // Add document to tracking if file was uploaded
-                documents: [
-                  ...client.documents,
-                  ...(data.file
-                    ? [
-                        {
-                          id: `${clientId}-${Date.now()}`,
-                          name: data.file.name,
-                          type: data.file.type || "application/octet-stream",
-                          uploadedAt: getCurrentDateEST(),
-                          uploadedBy: "Current User", // In real app, get from auth context
-                          fileSize: data.file.size,
-                          notes: data.comment,
-                        },
-                      ]
-                    : []),
-                  ...(data.additionalFiles
-                    ? data.additionalFiles.map((file, index) => ({
-                        id: `${clientId}-additional-${Date.now()}-${index}`,
-                        name: file.name,
-                        type: file.type || "application/octet-stream",
-                        uploadedAt: getCurrentDateEST(),
-                        uploadedBy: "Current User", // In real app, get from auth context
-                        fileSize: file.size,
-                        notes: `${data.comment} - Additional Document ${
-                          index + 1
-                        }`,
-                      }))
-                    : []),
-                ],
-                // Add action to history
-                actionHistory: [
-                  ...client.actionHistory,
-                  {
-                    id: `${clientId}-${Date.now()}`,
-                    clientId: clientId,
-                    actionType: action as ActionType,
-                    performedBy: "Current User", // In real app, get from auth context
-                    performedByRole: currentUserRole,
-                    timestamp: getCurrentDateEST(),
-                    comment: data.comment,
-                    attachments: [
-                      ...(data.file ? [data.file.name] : []),
-                      ...(data.additionalFiles
-                        ? data.additionalFiles.map((f) => f.name)
-                        : []),
-                    ],
-                  },
-                ],
+                // Documents are managed by backend departments structure
+                // Action history is managed by backend departments structure
               }
             : client
         );
@@ -420,7 +474,12 @@ export function Pipeline({
         return updatedClients;
       });
 
-      console.log("✅ Completed action", action, "for client", clientId);
+      console.log(
+        "✅ Local state updated for action",
+        action,
+        "for client",
+        clientId
+      );
       console.log(
         "🔄 Updated client completedActions:",
         clients.find((c) => c.id === clientId)?.completedActions
@@ -473,28 +532,38 @@ export function Pipeline({
     }
   };
 
-  const handleClearSearch = () => {
+  const handleClearSearch = useCallback(() => {
     setSearchQuery("");
-  };
+  }, []);
 
-  const getTotalClients = () => clients.length;
-  const getActiveClients = () =>
-    clients.filter((c) => !["backed-out", "completed"].includes(c.status))
-      .length;
+  // Memoized client counts to avoid recalculating
+  const clientCounts = useMemo(() => {
+    const startTime = performance.now();
 
-  // Show loading state
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">
-            Loading pipeline candidates...
-          </p>
-        </div>
-      </div>
+    const result = {
+      total: clients.length,
+      active: clients.filter(
+        (c) => !["backed-out", "placed"].includes(c.status)
+      ).length,
+      filtered: filteredClients.length, // Add filtered count for better UX
+    };
+
+    console.log(
+      `⚡ clientCounts: Calculated in ${(performance.now() - startTime).toFixed(
+        2
+      )}ms`
     );
-  }
+    return result;
+  }, [clients, filteredClients.length]);
+
+  const getTotalClients = useCallback(
+    () => clientCounts.total,
+    [clientCounts.total]
+  );
+  const getActiveClients = useCallback(
+    () => clientCounts.active,
+    [clientCounts.active]
+  );
 
   // Show error state
   if (error) {
@@ -519,7 +588,7 @@ export function Pipeline({
   return (
     <div className="space-y-4">
       {/* Search and Filter */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
@@ -539,20 +608,17 @@ export function Pipeline({
             </Button>
           )}
         </div>
+        {/* Search Results Counter */}
+        {searchQuery && searchQuery.trim().length >= 2 && (
+          <div className="text-sm text-muted-foreground whitespace-nowrap">
+            {clientCounts.filtered} results
+          </div>
+        )}
       </div>
 
       {/* Department Counts */}
       <DepartmentCounts
-        clients={clients.filter((client) => {
-          if (!searchQuery) return true;
-          const query = searchQuery.toLowerCase();
-          return (
-            client.name.toLowerCase().includes(query) ||
-            client.email.toLowerCase().includes(query) ||
-            client.assignedTo.toLowerCase().includes(query) ||
-            client.notes.toLowerCase().includes(query)
-          );
-        })}
+        clients={filteredClients}
         onClientSelect={handleViewDetails}
         currentUserRole={currentUserRole}
         onMoveClient={moveClient}
@@ -579,6 +645,7 @@ export function Pipeline({
                   toStage: toStage,
                 });
               }}
+              onClientUpdate={onClientUpdate}
               currentUserRole={currentUserRole}
               isMainStage={true}
               selectedClientId={selectedClientId}

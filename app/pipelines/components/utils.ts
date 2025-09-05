@@ -250,15 +250,15 @@ export const getActionsToReset = (
       return ["RateCandidate", "Upload Required Docs - Sales"];
     case "resume":
       return [
-        "Acknowledged-Resume_Writer-Resume",
+        "Acknowledged",
         "Initial Call Done",
         "Resume Completed",
         "Upload Required Docs - Resume",
       ];
     case "marketing":
-      return ["Acknowledged-Marketing_Manager-Marketing"];
+      return ["Acknowledged-Marketing"];
     case "remarketing":
-      return ["Acknowledged-Marketing_Manager-Remarketing", "AssignRecruiter"];
+      return ["Acknowledged-Remarketing", "AssignRecruiter"];
     default:
       return [];
   }
