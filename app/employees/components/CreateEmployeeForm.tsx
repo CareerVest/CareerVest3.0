@@ -282,16 +282,16 @@ export default function CreateEmployeeForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="client-form space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {permissions.employees[userRole]?.basicInfo?.view && (
           <Card>
             <CardHeader>
               <CardTitle>Basic Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="card-form-content">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div className="field-container">
                   <Label htmlFor="FirstName">First Name *</Label>
                   <Input
                     id="FirstName"
@@ -309,7 +309,7 @@ export default function CreateEmployeeForm() {
                   )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="field-container">
                   <Label htmlFor="LastName">Last Name *</Label>
                   <Input
                     id="LastName"
@@ -328,7 +328,7 @@ export default function CreateEmployeeForm() {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="field-container">
                 <Label htmlFor="PersonalEmailAddress">
                   Personal Email Address *
                 </Label>
@@ -351,7 +351,7 @@ export default function CreateEmployeeForm() {
                 )}
               </div>
 
-              <div className="space-y-2">
+              <div className="field-container">
                 <Label htmlFor="CompanyEmailAddress">
                   Company Email Address *
                 </Label>
@@ -373,7 +373,7 @@ export default function CreateEmployeeForm() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div className="field-container">
                   <Label htmlFor="PersonalPhoneNumber">Phone Number *</Label>
                   <Input
                     id="PersonalPhoneNumber"
@@ -393,7 +393,7 @@ export default function CreateEmployeeForm() {
                   )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="field-container">
                   <Label htmlFor="PersonalPhoneCountryCode">
                     Country Code *
                   </Label>
@@ -416,7 +416,7 @@ export default function CreateEmployeeForm() {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="field-container">
                 <Label htmlFor="JoinedDate">Joined Date *</Label>
                 <Input
                   id="JoinedDate"
@@ -441,7 +441,7 @@ export default function CreateEmployeeForm() {
                 )}
               </div>
 
-              <div className="space-y-2">
+              <div className="field-container">
                 <Label htmlFor="EmployeeReferenceID">
                   Employee Reference ID *
                 </Label>
@@ -468,8 +468,8 @@ export default function CreateEmployeeForm() {
           <CardHeader>
             <CardTitle>Role & Status</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
+          <CardContent className="card-form-content">
+            <div className="field-container">
               <Label htmlFor="Role">Role *</Label>
               <Select
                 value={formData.Role || ""}
@@ -493,7 +493,7 @@ export default function CreateEmployeeForm() {
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="field-container">
               <Label htmlFor="Status">Status *</Label>
               <Select
                 value={formData.Status || ""}
@@ -516,7 +516,7 @@ export default function CreateEmployeeForm() {
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="field-container">
               <Label htmlFor="SupervisorID">Supervisor</Label>
               <Select
                 value={formData.SupervisorID?.toString() || "none"}
@@ -541,7 +541,7 @@ export default function CreateEmployeeForm() {
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div className="field-container">
               <Label htmlFor="CompanyComments">Company Comments</Label>
               <Textarea
                 id="CompanyComments"

@@ -521,26 +521,61 @@ export default function ClientView({ params }: { params: { id: string } }) {
 
                 {/* Subscription Payment Schedule */}
                 {subscriptionPayments.length > 0 && (
-                  <div className="border-t pt-3">
-                    <label className="text-sm font-medium text-gray-500 mb-2 block">
-                      Payment Schedule
-                    </label>
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
-                      {subscriptionPayments.map((payment) => (
+                  <div className="border-t pt-4">
+                    <div className="mb-3">
+                      <label className="text-sm font-semibold text-gray-700 mb-1 block">
+                        Payment Schedule
+                      </label>
+                      <p className="text-xs text-gray-500">
+                        {subscriptionPayments.length} payment{subscriptionPayments.length > 1 ? 's' : ''} • 
+                        {subscriptionPayments.filter(p => p.isPaid).length} paid, {subscriptionPayments.filter(p => !p.isPaid).length} pending
+                      </p>
+                    </div>
+                    <div className="space-y-4 max-h-40 overflow-y-auto px-3 py-3">
+                      {subscriptionPayments.map((payment, index) => (
                         <div
                           key={payment.paymentScheduleID}
-                          className="flex justify-between items-center text-xs bg-gray-50 p-2 rounded"
+                          className="relative bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-all duration-200 mt-3 mb-3"
                         >
-                          <span>{formatDate(payment.paymentDate)}</span>
-                          <span className="font-medium">
-                            {formatCurrency(payment.amount)}
-                          </span>
-                          <Badge
-                            variant={payment.isPaid ? "success" : "secondary"}
-                            className="text-xs"
-                          >
-                            {payment.isPaid ? "Paid" : "Pending"}
-                          </Badge>
+                          {/* Payment Number Badge */}
+                          <div className="absolute -top-3 -left-3 w-7 h-7 bg-[#682A53] text-white rounded-full flex items-center justify-center text-xs font-semibold shadow-md z-10">
+                            {index + 1}
+                          </div>
+                          
+                          {/* Payment Status Badge */}
+                          <div className="absolute -top-3 -right-3 z-10">
+                            <Badge
+                              variant={payment.isPaid ? "default" : "secondary"}
+                              className={`text-xs shadow-md ${
+                                payment.isPaid 
+                                  ? "bg-green-500 hover:bg-green-600 text-white" 
+                                  : "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                              }`}
+                            >
+                              {payment.isPaid ? "Paid" : "Pending"}
+                            </Badge>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 mt-2">
+                            <div>
+                              <label className="text-xs font-medium text-gray-500 flex items-center mb-1">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
+                                Payment Date
+                              </label>
+                              <span className="text-sm font-medium text-gray-900">
+                                {formatDate(payment.paymentDate)}
+                              </span>
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium text-gray-500 flex items-center mb-1">
+                                <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+                                Amount
+                              </label>
+                              <span className="text-sm font-semibold text-gray-900">
+                                {formatCurrency(payment.amount)}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -638,26 +673,61 @@ export default function ClientView({ params }: { params: { id: string } }) {
 
                   {/* Post-Placement Payment Schedule */}
                   {postPlacementPayments.length > 0 && (
-                    <div className="border-t pt-3">
-                      <label className="text-sm font-medium text-gray-500 mb-2 block">
-                        Payment Schedule
-                      </label>
-                      <div className="space-y-2 max-h-32 overflow-y-auto">
-                        {postPlacementPayments.map((payment) => (
+                    <div className="border-t pt-4">
+                      <div className="mb-3">
+                        <label className="text-sm font-semibold text-gray-700 mb-1 block">
+                          Payment Schedule
+                        </label>
+                        <p className="text-xs text-gray-500">
+                          {postPlacementPayments.length} payment{postPlacementPayments.length > 1 ? 's' : ''} • 
+                          {postPlacementPayments.filter(p => p.isPaid).length} paid, {postPlacementPayments.filter(p => !p.isPaid).length} pending
+                        </p>
+                      </div>
+                      <div className="space-y-4 max-h-40 overflow-y-auto px-3 py-3">
+                        {postPlacementPayments.map((payment, index) => (
                           <div
                             key={payment.paymentScheduleID}
-                            className="flex justify-between items-center text-xs bg-gray-50 p-2 rounded"
+                            className="relative bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-all duration-200 mt-3 mb-3"
                           >
-                            <span>{formatDate(payment.paymentDate)}</span>
-                            <span className="font-medium">
-                              {formatCurrency(payment.amount)}
-                            </span>
-                            <Badge
-                              variant={payment.isPaid ? "success" : "secondary"}
-                              className="text-xs"
-                            >
-                              {payment.isPaid ? "Paid" : "Pending"}
-                            </Badge>
+                            {/* Payment Number Badge */}
+                            <div className="absolute -top-3 -left-3 w-7 h-7 bg-[#682A53] text-white rounded-full flex items-center justify-center text-xs font-semibold shadow-md z-10">
+                              {index + 1}
+                            </div>
+                            
+                            {/* Payment Status Badge */}
+                            <div className="absolute -top-3 -right-3 z-10">
+                              <Badge
+                                variant={payment.isPaid ? "default" : "secondary"}
+                                className={`text-xs shadow-md ${
+                                  payment.isPaid 
+                                    ? "bg-green-500 hover:bg-green-600 text-white" 
+                                    : "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                                }`}
+                              >
+                                {payment.isPaid ? "Paid" : "Pending"}
+                              </Badge>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 mt-2">
+                              <div>
+                                <label className="text-xs font-medium text-gray-500 flex items-center mb-1">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
+                                  Payment Date
+                                </label>
+                                <span className="text-sm font-medium text-gray-900">
+                                  {formatDate(payment.paymentDate)}
+                                </span>
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium text-gray-500 flex items-center mb-1">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+                                  Amount
+                                </label>
+                                <span className="text-sm font-semibold text-gray-900">
+                                  {formatCurrency(payment.amount)}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>

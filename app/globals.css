@@ -59,3 +59,152 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  /* CareerVest Form Field Spacing */
+  .form-field {
+    @apply flex flex-col space-y-2;
+  }
+  
+  /* Better spacing between labels and inputs throughout the app */
+  label + input,
+  label + .relative > input,
+  label + div > input,
+  label + div > .relative > input,
+  label + textarea,
+  label + select,
+  /* ShadCN Select components */
+  label + [data-radix-popper-content-wrapper],
+  label + [data-radix-select-trigger],
+  label + button[role="combobox"],
+  /* ShadCN component wrappers */
+  label + div > button[role="combobox"],
+  label + div > [data-radix-select-trigger],
+  label + div[class*="SelectTrigger"],
+  label + div[class*="select-trigger"] {
+    @apply mt-2;
+  }
+  
+  /* Enhanced spacing for specific form patterns used in CareerVest */
+  .field-container {
+    @apply space-y-2;
+  }
+  
+  /* Payment schedule card spacing improvements */
+  .payment-card {
+    @apply space-y-3;
+  }
+  
+  /* Better form section spacing */
+  .form-section {
+    @apply space-y-6;
+  }
+  
+  /* Card content spacing improvements */
+  .card-form-content {
+    @apply space-y-6;
+  }
+  
+  /* Override default spacing for better form UX */
+  .form-container > div {
+    @apply space-y-2;
+  }
+  
+  /* Specific improvements for CareerVest forms */
+  .client-form label {
+    @apply font-medium text-gray-700;
+  }
+  
+  .client-form label + input,
+  .client-form label + textarea,
+  .client-form label + select {
+    @apply mt-2 transition-all duration-200;
+  }
+  
+  /* Enhanced focus states for better UX */
+  .client-form input:focus,
+  .client-form textarea:focus,
+  .client-form select:focus,
+  .client-form button[role="combobox"]:focus {
+    @apply ring-2 ring-primary/20 border-primary;
+  }
+  
+  /* Specific ShadCN Select component spacing */
+  /* Target the actual Select trigger buttons */
+  label + div > button[data-state],
+  label + div > button[data-placeholder],
+  label + div > button[aria-expanded],
+  label + div > button[aria-haspopup="listbox"],
+  /* Target by common ShadCN classes */
+  label + div[class*="select"],
+  label + div[class*="Select"] {
+    @apply mt-2;
+  }
+  
+  /* More specific targeting for Select components */
+  [data-radix-select-trigger] {
+    @apply mt-2;
+  }
+  
+  /* Target SelectTrigger components specifically */
+  label + div > [class*="SelectTrigger"],
+  label + div > [data-radix-select-trigger],
+  label + div[class*="select"] > button,
+  label + div[class*="Select"] > button {
+    @apply mt-2;
+  }
+  
+  /* Target by component structure - ShadCN Select pattern */
+  label + div > button[data-state],
+  label + div > button[data-placeholder],
+  label + div > button[aria-expanded],
+  label + div > button[aria-haspopup="listbox"],
+  label + div > button[role="combobox"] {
+    @apply mt-2;
+  }
+  
+  /* Fallback for any button following a label (common in ShadCN) */
+  label + div > button:not([type="submit"]):not([type="button"]):not(.no-spacing) {
+    @apply mt-2;
+  }
+  
+  /* Global improvements for all forms throughout the app */
+  /* This ensures spacing works everywhere without needing class modifications */
+  form label + input:not(.no-spacing),
+  form label + textarea:not(.no-spacing),
+  form label + select:not(.no-spacing),
+  form label + div > input:not(.no-spacing),
+  form label + div > textarea:not(.no-spacing),
+  form label + div > .relative > input:not(.no-spacing),
+  /* ShadCN/Radix Select components in forms */
+  form label + div > button[role="combobox"]:not(.no-spacing),
+  form label + button[role="combobox"]:not(.no-spacing),
+  form label + [data-radix-select-trigger]:not(.no-spacing),
+  form label + div > [data-radix-select-trigger]:not(.no-spacing),
+  /* Universal Select component targeting */
+  form label + div > button[data-state]:not(.no-spacing),
+  form label + div > button[aria-expanded]:not(.no-spacing),
+  form label + div > button[aria-haspopup="listbox"]:not(.no-spacing) {
+    @apply mt-2;
+  }
+  
+  /* Additional universal selectors for any missed ShadCN components */
+  label + * > button[role="combobox"],
+  label + * > button[data-state],
+  label + * > button[aria-expanded],
+  label + * > [data-radix-select-trigger],
+  label + * [class*="select-trigger" i],
+  label + * [class*="SelectTrigger" i] {
+    @apply mt-2;
+  }
+  
+  /* Better visual separation for form sections */
+  .card-content > div {
+    @apply space-y-3;
+  }
+  
+  /* Improved CardContent spacing for forms */
+  [class*="CardContent"] > div:not(.grid):not(.flex) {
+    @apply space-y-3;
+  }
+}

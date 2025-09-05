@@ -19,13 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "../../../components/ui/dialog";
+// Dialog imports removed - now using direct editing
 import { Badge } from "../../../components/ui/badge";
 import {
   Table,
@@ -100,8 +94,7 @@ export default function EditClientForm({
     useState(false);
   const [showAllPostPlacementPayments, setShowAllPostPlacementPayments] =
     useState(false);
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [showPostPlacementModal, setShowPostPlacementModal] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const initialClientData: ClientDetail = {
     ...client,
@@ -151,6 +144,49 @@ export default function EditClientForm({
     setSubscriptionPaymentSchedule(subscriptionPayments);
     setPostPlacementPaymentSchedule(postPlacementPayments);
   }, [client.paymentSchedules]);
+
+  // Auto-populate payment start dates from first payment in schedule
+  useEffect(() => {
+    if (subscriptionPaymentSchedule.length > 0) {
+      const firstPaymentDate = subscriptionPaymentSchedule
+        .filter(p => p.paymentDate)
+        .sort((a, b) => new Date(a.paymentDate!).getTime() - new Date(b.paymentDate!).getTime())[0]?.paymentDate;
+      
+      if (firstPaymentDate && !clientData.subscriptionPlan?.subscriptionPlanPaymentStartDate) {
+        // Format the date properly - handle both Date objects and strings
+        const formattedDate = firstPaymentDate instanceof Date 
+          ? formatDateForInput(firstPaymentDate)
+          : (typeof firstPaymentDate === 'string' && firstPaymentDate.includes('T') 
+              ? formatDateForInput(new Date(firstPaymentDate))
+              : firstPaymentDate);
+        handleInputChange(
+          "subscriptionPlan.subscriptionPlanPaymentStartDate",
+          formattedDate
+        );
+      }
+    }
+  }, [subscriptionPaymentSchedule, clientData.subscriptionPlan?.subscriptionPlanPaymentStartDate]);
+
+  useEffect(() => {
+    if (postPlacementPaymentSchedule.length > 0) {
+      const firstPaymentDate = postPlacementPaymentSchedule
+        .filter(p => p.paymentDate)
+        .sort((a, b) => new Date(a.paymentDate!).getTime() - new Date(b.paymentDate!).getTime())[0]?.paymentDate;
+      
+      if (firstPaymentDate && !clientData.postPlacementPlan?.postPlacementPlanPaymentStartDate) {
+        // Format the date properly - handle both Date objects and strings
+        const formattedDate = firstPaymentDate instanceof Date 
+          ? formatDateForInput(firstPaymentDate)
+          : (typeof firstPaymentDate === 'string' && firstPaymentDate.includes('T') 
+              ? formatDateForInput(new Date(firstPaymentDate))
+              : firstPaymentDate);
+        handleInputChange(
+          "postPlacementPlan.postPlacementPlanPaymentStartDate",
+          formattedDate
+        );
+      }
+    }
+  }, [postPlacementPaymentSchedule, clientData.postPlacementPlan?.postPlacementPlanPaymentStartDate]);
 
   const handleInputChange = (field: string, value: any) => {
     if (field.includes(".")) {
@@ -257,6 +293,16 @@ export default function EditClientForm({
     value: string | number,
     type: "subscription" | "postPlacement"
   ) => {
+    // Clear errors when user starts typing
+    const errorKey = `${type}Payment_${index}_${field === "paymentDate" ? "date" : "amount"}`;
+    if (errors[errorKey]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[errorKey];
+        return newErrors;
+      });
+    }
+
     const updater = (prevSchedule: PaymentSchedule[]) =>
       prevSchedule.map((payment, i) =>
         i === index
@@ -279,8 +325,74 @@ export default function EditClientForm({
     }
   };
 
+  const validateFinancialData = () => {
+    const newErrors: Record<string, string> = {};
+
+    // Subscription validation
+    if (subscriptionPaymentSchedule.length > 0) {
+      subscriptionPaymentSchedule.forEach((payment, index) => {
+        if (!payment.paymentDate) {
+          newErrors[`subscriptionPayment_${index}_date`] = "Payment date is required";
+        }
+        if (!payment.amount || payment.amount <= 0) {
+          newErrors[`subscriptionPayment_${index}_amount`] = "Payment amount must be greater than 0";
+        }
+        if (payment.amount && payment.amount > 1000000) {
+          newErrors[`subscriptionPayment_${index}_amount`] = "Payment amount cannot exceed $1,000,000";
+        }
+      });
+
+      // Check for duplicate payment dates in subscription
+      const subscriptionDates = subscriptionPaymentSchedule.map(p => p.paymentDate).filter(Boolean);
+      const duplicateSubscriptionDates = subscriptionDates.filter((date, index) => subscriptionDates.indexOf(date) !== index);
+      if (duplicateSubscriptionDates.length > 0) {
+        newErrors.subscriptionDuplicateDates = "Subscription payment schedule cannot have duplicate dates";
+      }
+    }
+
+    // Post-placement validation
+    if (postPlacementPaymentSchedule.length > 0) {
+      postPlacementPaymentSchedule.forEach((payment, index) => {
+        if (!payment.paymentDate) {
+          newErrors[`postPlacementPayment_${index}_date`] = "Payment date is required";
+        }
+        if (!payment.amount || payment.amount <= 0) {
+          newErrors[`postPlacementPayment_${index}_amount`] = "Payment amount must be greater than 0";
+        }
+        if (payment.amount && payment.amount > 1000000) {
+          newErrors[`postPlacementPayment_${index}_amount`] = "Payment amount cannot exceed $1,000,000";
+        }
+      });
+
+      // Check for duplicate payment dates in post-placement
+      const postPlacementDates = postPlacementPaymentSchedule.map(p => p.paymentDate).filter(Boolean);
+      const duplicatePostPlacementDates = postPlacementDates.filter((date, index) => postPlacementDates.indexOf(date) !== index);
+      if (duplicatePostPlacementDates.length > 0) {
+        newErrors.postPlacementDuplicateDates = "Post-placement payment schedule cannot have duplicate dates";
+      }
+    }
+
+    // Plan name validation
+    if (subscriptionPaymentSchedule.length > 0 && !clientData.subscriptionPlan?.planName?.trim()) {
+      newErrors.subscriptionPlanName = "Subscription plan name is required when payments are scheduled";
+    }
+
+    if (postPlacementPaymentSchedule.length > 0 && !clientData.postPlacementPlan?.planName?.trim()) {
+      newErrors.postPlacementPlanName = "Post-placement plan name is required when payments are scheduled";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate financial data
+    if (!validateFinancialData()) {
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
 
@@ -463,7 +575,7 @@ export default function EditClientForm({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="client-form">
         {/* Horizontal Dashboard Layout */}
         <div className="space-y-6">
           {/* Cards Grid */}
@@ -814,321 +926,290 @@ export default function EditClientForm({
             {/* Card 3: Subscription */}
             <Card>
               <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-[#682A53] rounded-full flex items-center justify-center">
-                      <CreditCard className="h-4 w-4 text-white" />
-                    </div>
-                    <CardTitle className="text-base">Subscription</CardTitle>
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-[#682A53] rounded-full flex items-center justify-center">
+                    <CreditCard className="h-4 w-4 text-white" />
                   </div>
-                  <Dialog
-                    open={showSubscriptionModal}
-                    onOpenChange={setShowSubscriptionModal}
-                  >
-                    <DialogTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-6xl max-h-[90vh]">
-                      <DialogHeader>
-                        <DialogTitle>Edit Subscription Information</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-6">
-                        {/* Plan Details */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <Label htmlFor="modal-subscriptionPlanName">
-                              Plan Name
-                            </Label>
-                            <Input
-                              id="modal-subscriptionPlanName"
-                              value={
-                                clientData.subscriptionPlan?.planName || ""
-                              }
-                              onChange={(e) =>
-                                handleInputChange(
-                                  "subscriptionPlan.planName",
-                                  e.target.value
-                                )
-                              }
-                              disabled={!canEdit}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="modal-subscriptionPlanPaymentStartDate">
-                              Payment Start Date
-                            </Label>
-                            <Input
-                              id="modal-subscriptionPlanPaymentStartDate"
-                              type="date"
-                              value={formatDateForInput(
-                                clientData.subscriptionPlan
-                                  ?.subscriptionPlanPaymentStartDate || null
-                              )}
-                              onChange={(e) =>
-                                handleInputChange(
-                                  "subscriptionPlan.subscriptionPlanPaymentStartDate",
-                                  e.target.value
-                                )
-                              }
-                              disabled={!canEdit}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="modal-totalSubscriptionAmount">
-                              Total Amount
-                            </Label>
-                            <Input
-                              id="modal-totalSubscriptionAmount"
-                              type="number"
-                              value={subscriptionPaymentSchedule.reduce(
-                                (sum, payment) => sum + (payment.amount || 0),
-                                0
-                              )}
-                              disabled={true}
-                              className="bg-gray-50"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Service Agreement */}
-                        <div>
-                          <Label htmlFor="modal-serviceAgreement">
-                            Service Agreement
-                          </Label>
-                          <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                              <Input
-                                id="modal-serviceAgreement"
-                                type="file"
-                                accept=".pdf,.doc,.docx"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    setServiceAgreementFile(file);
-                                    setServiceAgreementFileName(file.name);
-                                  }
-                                }}
-                                disabled={!canEdit}
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  document
-                                    .getElementById("modal-serviceAgreement")
-                                    ?.click()
-                                }
-                                disabled={!canEdit}
-                              >
-                                <Upload className="h-4 w-4 mr-2" />
-                                Browse
-                              </Button>
-                            </div>
-                            {serviceAgreementFileName && (
-                              <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded border">
-                                <FileText className="h-4 w-4 text-gray-500" />
-                                <span className="text-sm text-gray-700">
-                                  {serviceAgreementFileName}
-                                </span>
-                              </div>
-                            )}
-                            {client.serviceAgreementUrl && (
-                              <div className="flex items-center space-x-2">
-                                <ExternalLink className="h-4 w-4 text-blue-500" />
-                                <a
-                                  href={client.serviceAgreementUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-blue-500 hover:underline"
-                                >
-                                  View Current Service Agreement
-                                </a>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Payment Schedule */}
-                        <div className="border-t pt-4">
-                          <div className="flex items-center justify-between mb-4">
-                            <Label className="text-lg font-semibold">
-                              Payment Schedule
-                            </Label>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => addPaymentRow("subscription")}
-                              disabled={!canEdit}
-                            >
-                              <Plus className="h-4 w-4 mr-1" />
-                              Add Payment
-                            </Button>
-                          </div>
-                          <div className="border rounded-lg overflow-hidden">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="w-1/3">Date</TableHead>
-                                  <TableHead className="w-1/3">
-                                    Amount
-                                  </TableHead>
-                                  <TableHead className="w-1/3">
-                                    Actions
-                                  </TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {subscriptionPaymentSchedule.map(
-                                  (payment, index) => (
-                                    <TableRow key={index}>
-                                      <TableCell>
-                                        <Input
-                                          type="date"
-                                          value={formatDateForInput(
-                                            payment.paymentDate
-                                          )}
-                                          onChange={(e) =>
-                                            updatePaymentSchedule(
-                                              index,
-                                              "paymentDate",
-                                              e.target.value,
-                                              "subscription"
-                                            )
-                                          }
-                                          disabled={!canEdit}
-                                        />
-                                      </TableCell>
-                                      <TableCell>
-                                        <Input
-                                          type="number"
-                                          placeholder="Enter amount"
-                                          value={payment.amount || ""}
-                                          onChange={(e) =>
-                                            updatePaymentSchedule(
-                                              index,
-                                              "amount",
-                                              e.target.value,
-                                              "subscription"
-                                            )
-                                          }
-                                          disabled={!canEdit}
-                                        />
-                                      </TableCell>
-                                      <TableCell>
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() =>
-                                            removePaymentRow(
-                                              index,
-                                              "subscription"
-                                            )
-                                          }
-                                          disabled={!canEdit}
-                                        >
-                                          <Trash2 className="h-4 w-4 mr-2" />
-                                          Remove
-                                        </Button>
-                                      </TableCell>
-                                    </TableRow>
-                                  )
-                                )}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                  <CardTitle className="text-base">Subscription</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="space-y-4">
-                  <div>
-                    <Label>Plan Name</Label>
-                    <p className="text-sm font-medium text-gray-900">
-                      {clientData.subscriptionPlan?.planName || "N/A"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <Label>Payment Start Date</Label>
-                    <p className="text-sm font-medium text-gray-900">
-                      {formatDate(
-                        clientData.subscriptionPlan
-                          ?.subscriptionPlanPaymentStartDate || null
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <Label>Total Amount</Label>
-                    <p className="text-sm font-medium text-gray-900">
-                      {formatCurrency(
-                        subscriptionPaymentSchedule.reduce(
-                          (sum, payment) => sum + (payment.amount || 0),
-                          0
-                        )
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <Label>Service Agreement</Label>
-                    {client.serviceAgreementUrl ? (
-                      <div className="flex items-center space-x-2">
-                        <ExternalLink className="h-4 w-4 text-blue-500" />
-                        <a
-                          href={client.serviceAgreementUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-500 hover:underline"
-                        >
-                          View Service Agreement
-                        </a>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500">
-                        No agreement uploaded
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Payment Schedule Display */}
-                  <div className="border-t pt-4">
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
-                      {subscriptionPaymentSchedule
-                        .slice(0, 3)
-                        .map((payment, index) => (
-                          <div
-                            key={index}
-                            className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm"
-                          >
-                            <span className="text-gray-600">
-                              {formatDate(payment.paymentDate)}
-                            </span>
-                            <span className="font-medium">
-                              {formatCurrency(payment.amount || 0)}
-                            </span>
-                          </div>
-                        ))}
-                      {subscriptionPaymentSchedule.length > 3 && (
-                        <div className="text-center text-sm text-gray-500">
-                          +{subscriptionPaymentSchedule.length - 3} more
-                          payments
-                        </div>
+                <div className="space-y-6">
+                  {/* Plan Details */}
+                  <div className="space-y-4">
+                    {/* Plan Name - Full width */}
+                    <div>
+                      <Label htmlFor="subscriptionPlanName" className="text-sm font-medium text-gray-700">
+                        Plan Name *
+                      </Label>
+                      <Input
+                        id="subscriptionPlanName"
+                        value={clientData.subscriptionPlan?.planName || ""}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "subscriptionPlan.planName",
+                            e.target.value
+                          )
+                        }
+                        disabled={!canEdit}
+                        className="mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                        placeholder="Enter subscription plan name"
+                      />
+                      {errors.subscriptionPlanName && (
+                        <p className="text-sm text-red-500 mt-1">
+                          {errors.subscriptionPlanName}
+                        </p>
                       )}
                     </div>
+
+                    {/* Payment Start Date and Total Amount - Side by side */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="subscriptionPlanPaymentStartDate" className="text-sm font-medium text-gray-700">
+                          Payment Start Date
+                          <span className="text-xs text-gray-500 ml-1">(auto-filled from first payment)</span>
+                        </Label>
+                        <Input
+                          id="subscriptionPlanPaymentStartDate"
+                          type="date"
+                          value={formatDateForInput(
+                            clientData.subscriptionPlan
+                              ?.subscriptionPlanPaymentStartDate || null
+                          )}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "subscriptionPlan.subscriptionPlanPaymentStartDate",
+                              e.target.value
+                            )
+                          }
+                          disabled={!canEdit}
+                          className="mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20 bg-gray-50"
+                          readOnly
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="totalSubscriptionAmount" className="text-sm font-medium text-gray-700">
+                          Total Amount
+                        </Label>
+                        <div className="relative mt-1">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium text-sm">
+                            $
+                          </span>
+                          <Input
+                            id="totalSubscriptionAmount"
+                            type="number"
+                            value={subscriptionPaymentSchedule.reduce(
+                              (sum, payment) => sum + (payment.amount || 0),
+                              0
+                            )}
+                            disabled={true}
+                            className="h-11 pl-8 bg-gray-50 border-gray-200"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Service Agreement */}
+                  <div>
+                    <Label htmlFor="serviceAgreement" className="text-sm font-medium text-gray-700">
+                      Service Agreement
+                    </Label>
+                    <div className="space-y-3 mt-2">
+                      {canEdit && (
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            id="serviceAgreement"
+                            type="file"
+                            accept=".pdf,.doc,.docx"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setServiceAgreementFile(file);
+                                setServiceAgreementFileName(file.name);
+                              }
+                            }}
+                            className="flex-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              document.getElementById("serviceAgreement")?.click()
+                            }
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Browse
+                          </Button>
+                        </div>
+                      )}
+                      {serviceAgreementFileName && (
+                        <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <FileText className="h-4 w-4 text-blue-500" />
+                          <span className="text-sm font-medium text-blue-700">
+                            New: {serviceAgreementFileName}
+                          </span>
+                        </div>
+                      )}
+                      {client.serviceAgreementUrl && (
+                        <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg border">
+                          <ExternalLink className="h-4 w-4 text-blue-500" />
+                          <a
+                            href={client.serviceAgreementUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-500 hover:underline font-medium"
+                          >
+                            View Current Service Agreement
+                          </a>
+                        </div>
+                      )}
+                      {!client.serviceAgreementUrl && !serviceAgreementFileName && (
+                        <p className="text-sm text-gray-500 italic p-3 bg-gray-50 rounded-lg">
+                          No service agreement uploaded
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Payment Schedule */}
+                  <div className="border-t pt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <Label className="text-lg font-semibold text-gray-900">Payment Schedule</Label>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {subscriptionPaymentSchedule.length === 0 
+                            ? "No payments added yet" 
+                            : `${subscriptionPaymentSchedule.length} payment${subscriptionPaymentSchedule.length > 1 ? 's' : ''} scheduled`
+                          }
+                        </p>
+                      </div>
+                      {canEdit && (
+                        <Button
+                          type="button"
+                          variant="default"
+                          size="sm"
+                          onClick={() => addPaymentRow("subscription")}
+                          className="bg-[#682A53] hover:bg-[#682A53]/90 text-white shadow-sm"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Payment
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {subscriptionPaymentSchedule.length === 0 ? (
+                      <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
+                        <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-sm font-medium text-gray-900 mb-2">No payment schedule yet</h3>
+                        <p className="text-sm text-gray-500 mb-4">Add payments to create a schedule for this subscription plan.</p>
+                        {canEdit && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addPaymentRow("subscription")}
+                            className="border-[#682A53] text-[#682A53] hover:bg-[#682A53] hover:text-white"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add First Payment
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-4 max-h-80 overflow-y-auto px-3 py-3">
+                        {subscriptionPaymentSchedule.map((payment, index) => (
+                          <div
+                            key={index}
+                            className="group relative bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 hover:border-[#682A53]/20 mt-3 mb-3"
+                          >
+                            {/* Payment Number Badge */}
+                            <div className="absolute -top-3 -left-3 w-7 h-7 bg-[#682A53] text-white rounded-full flex items-center justify-center text-xs font-semibold shadow-md z-10">
+                              {index + 1}
+                            </div>
+                            
+                            {/* Delete Button */}
+                            {canEdit && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removePaymentRow(index, "subscription")}
+                                className="absolute -top-3 -right-3 w-7 h-7 p-0 bg-red-500 text-white hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md z-10"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium text-gray-700 flex items-center">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                                  Payment Date
+                                </Label>
+                                <Input
+                                  type="date"
+                                  value={formatDateForInput(payment.paymentDate)}
+                                  onChange={(e) =>
+                                    updatePaymentSchedule(
+                                      index,
+                                      "paymentDate",
+                                      e.target.value,
+                                      "subscription"
+                                    )
+                                  }
+                                  disabled={!canEdit}
+                                  className="h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                                />
+                                {errors[`subscriptionPayment_${index}_date`] && (
+                                  <p className="text-xs text-red-500 mt-1">
+                                    {errors[`subscriptionPayment_${index}_date`]}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium text-gray-700 flex items-center">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                                  Amount
+                                </Label>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium text-sm">
+                                    $
+                                  </span>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="0.01"
+                                    placeholder="0.00"
+                                    value={payment.amount || ""}
+                                    onChange={(e) => {
+                                      const value = parseFloat(e.target.value);
+                                      if (value < 0.01 && e.target.value !== "") {
+                                        return; // Prevent negative values and values less than 0.01
+                                      }
+                                      updatePaymentSchedule(
+                                        index,
+                                        "amount",
+                                        e.target.value,
+                                        "subscription"
+                                      )
+                                    }}
+                                    disabled={!canEdit}
+                                    className="h-11 pl-8 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                                  />
+                                  {errors[`subscriptionPayment_${index}_amount`] && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                      {errors[`subscriptionPayment_${index}_amount`]}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -1138,327 +1219,287 @@ export default function EditClientForm({
             {clientData.clientStatus === "Placed" && (
               <Card>
                 <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-[#682A53] rounded-full flex items-center justify-center">
-                        <FileText className="h-4 w-4 text-white" />
-                      </div>
-                      <CardTitle className="text-base">
-                        Post-Placement
-                      </CardTitle>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-[#682A53] rounded-full flex items-center justify-center">
+                      <FileText className="h-4 w-4 text-white" />
                     </div>
-                    <Dialog
-                      open={showPostPlacementModal}
-                      onOpenChange={setShowPostPlacementModal}
-                    >
-                      <DialogTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-6xl max-h-[90vh]">
-                        <DialogHeader>
-                          <DialogTitle>
-                            Edit Post-Placement Information
-                          </DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-6">
-                          {/* Plan Details */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                              <Label htmlFor="modal-postPlacementPlanName">
-                                Plan Name
-                              </Label>
-                              <Input
-                                id="modal-postPlacementPlanName"
-                                value={
-                                  clientData.postPlacementPlan?.planName || ""
-                                }
-                                onChange={(e) =>
-                                  handleInputChange(
-                                    "postPlacementPlan.planName",
-                                    e.target.value
-                                  )
-                                }
-                                disabled={!canEdit}
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="modal-postPlacementPlanPaymentStartDate">
-                                Payment Start Date
-                              </Label>
-                              <Input
-                                id="modal-postPlacementPlanPaymentStartDate"
-                                type="date"
-                                value={formatDateForInput(
-                                  clientData.postPlacementPlan
-                                    ?.postPlacementPlanPaymentStartDate || null
-                                )}
-                                onChange={(e) =>
-                                  handleInputChange(
-                                    "postPlacementPlan.postPlacementPlanPaymentStartDate",
-                                    e.target.value
-                                  )
-                                }
-                                disabled={!canEdit}
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="modal-totalPostPlacementAmount">
-                                Total Amount
-                              </Label>
-                              <Input
-                                id="modal-totalPostPlacementAmount"
-                                type="number"
-                                value={postPlacementPaymentSchedule.reduce(
-                                  (sum, payment) => sum + (payment.amount || 0),
-                                  0
-                                )}
-                                disabled={true}
-                                className="bg-gray-50"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Promissory Note */}
-                          <div>
-                            <Label htmlFor="modal-promissoryNote">
-                              Promissory Note
-                            </Label>
-                            <div className="space-y-2">
-                              <div className="flex items-center space-x-2">
-                                <Input
-                                  id="modal-promissoryNote"
-                                  type="file"
-                                  accept=".pdf,.doc,.docx"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      setPromissoryNoteFile(file);
-                                      setPromissoryNoteFileName(file.name);
-                                    }
-                                  }}
-                                  disabled={!canEdit}
-                                />
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    document
-                                      .getElementById("modal-promissoryNote")
-                                      ?.click()
-                                  }
-                                  disabled={!canEdit}
-                                >
-                                  <Upload className="h-4 w-4 mr-2" />
-                                  Browse
-                                </Button>
-                              </div>
-                              {promissoryNoteFileName && (
-                                <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded border">
-                                  <FileText className="h-4 w-4 text-gray-500" />
-                                  <span className="text-sm text-gray-700">
-                                    {promissoryNoteFileName}
-                                  </span>
-                                </div>
-                              )}
-                              {client.promissoryNoteUrl && (
-                                <div className="flex items-center space-x-2">
-                                  <ExternalLink className="h-4 w-4 text-blue-500" />
-                                  <a
-                                    href={client.promissoryNoteUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm text-blue-500 hover:underline"
-                                  >
-                                    View Current Promissory Note
-                                  </a>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Payment Schedule */}
-                          <div className="border-t pt-4">
-                            <div className="flex items-center justify-between mb-4">
-                              <Label className="text-lg font-semibold">
-                                Payment Schedule
-                              </Label>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => addPaymentRow("postPlacement")}
-                                disabled={!canEdit}
-                              >
-                                <Plus className="h-4 w-4 mr-1" />
-                                Add Payment
-                              </Button>
-                            </div>
-                            <div className="border rounded-lg overflow-hidden">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="w-1/3">
-                                      Date
-                                    </TableHead>
-                                    <TableHead className="w-1/3">
-                                      Amount
-                                    </TableHead>
-                                    <TableHead className="w-1/3">
-                                      Actions
-                                    </TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {postPlacementPaymentSchedule.map(
-                                    (payment, index) => (
-                                      <TableRow key={index}>
-                                        <TableCell>
-                                          <Input
-                                            type="date"
-                                            value={formatDateForInput(
-                                              payment.paymentDate
-                                            )}
-                                            onChange={(e) =>
-                                              updatePaymentSchedule(
-                                                index,
-                                                "paymentDate",
-                                                e.target.value,
-                                                "postPlacement"
-                                              )
-                                            }
-                                            disabled={!canEdit}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input
-                                            type="number"
-                                            placeholder="Enter amount"
-                                            value={payment.amount || ""}
-                                            onChange={(e) =>
-                                              updatePaymentSchedule(
-                                                index,
-                                                "amount",
-                                                e.target.value,
-                                                "postPlacement"
-                                              )
-                                            }
-                                            disabled={!canEdit}
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() =>
-                                              removePaymentRow(
-                                                index,
-                                                "postPlacement"
-                                              )
-                                            }
-                                            disabled={!canEdit}
-                                          >
-                                            <Trash2 className="h-4 w-4 mr-2" />
-                                            Remove
-                                          </Button>
-                                        </TableCell>
-                                      </TableRow>
-                                    )
-                                  )}
-                                </TableBody>
-                              </Table>
-                            </div>
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
+                    <CardTitle className="text-base">
+                      Post-Placement
+                    </CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="space-y-4">
-                    <div>
-                      <Label>Plan Name</Label>
-                      <p className="text-sm font-medium text-gray-900">
-                        {clientData.postPlacementPlan?.planName || "N/A"}
-                      </p>
-                    </div>
+                  <div className="space-y-6">
+                    {/* Plan Details */}
+                    <div className="space-y-4">
+                      {/* Plan Name - Full width */}
+                      <div>
+                        <Label htmlFor="postPlacementPlanName" className="text-sm font-medium text-gray-700">
+                          Plan Name
+                        </Label>
+                        <Input
+                          id="postPlacementPlanName"
+                          value={clientData.postPlacementPlan?.planName || ""}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "postPlacementPlan.planName",
+                              e.target.value
+                            )
+                          }
+                          disabled={!canEdit}
+                          className="mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                          placeholder="Enter post-placement plan name"
+                        />
+                      </div>
 
-                    <div>
-                      <Label>Payment Start Date</Label>
-                      <p className="text-sm font-medium text-gray-900">
-                        {formatDate(
-                          clientData.postPlacementPlan
-                            ?.postPlacementPlanPaymentStartDate || null
-                        )}
-                      </p>
-                    </div>
-
-                    <div>
-                      <Label>Total Amount</Label>
-                      <p className="text-sm font-medium text-gray-900">
-                        {formatCurrency(
-                          postPlacementPaymentSchedule.reduce(
-                            (sum, payment) => sum + (payment.amount || 0),
-                            0
-                          )
-                        )}
-                      </p>
-                    </div>
-
-                    <div>
-                      <Label>Promissory Note</Label>
-                      {client.promissoryNoteUrl ? (
-                        <div className="flex items-center space-x-2">
-                          <ExternalLink className="h-4 w-4 text-blue-500" />
-                          <a
-                            href={client.promissoryNoteUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-500 hover:underline"
-                          >
-                            View Promissory Note
-                          </a>
+                      {/* Payment Start Date and Total Amount - Side by side */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="postPlacementPlanPaymentStartDate" className="text-sm font-medium text-gray-700">
+                            Payment Start Date
+                            <span className="text-xs text-gray-500 ml-1">(auto-filled from first payment)</span>
+                          </Label>
+                          <Input
+                            id="postPlacementPlanPaymentStartDate"
+                            type="date"
+                            value={formatDateForInput(
+                              clientData.postPlacementPlan
+                                ?.postPlacementPlanPaymentStartDate || null
+                            )}
+                            onChange={(e) =>
+                              handleInputChange(
+                                "postPlacementPlan.postPlacementPlanPaymentStartDate",
+                                e.target.value
+                              )
+                            }
+                            disabled={!canEdit}
+                            className="mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20 bg-gray-50"
+                            readOnly
+                          />
                         </div>
-                      ) : (
-                        <p className="text-sm text-gray-500">
-                          No promissory note uploaded
-                        </p>
-                      )}
+                        <div>
+                          <Label htmlFor="totalPostPlacementAmount" className="text-sm font-medium text-gray-700">
+                            Total Amount
+                          </Label>
+                          <div className="relative mt-1">
+                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium text-sm">
+                              $
+                            </span>
+                            <Input
+                              id="totalPostPlacementAmount"
+                              type="number"
+                              value={postPlacementPaymentSchedule.reduce(
+                                (sum, payment) => sum + (payment.amount || 0),
+                                0
+                              )}
+                              disabled={true}
+                              className="h-11 pl-8 bg-gray-50 border-gray-200"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Payment Schedule Display */}
-                    <div className="border-t pt-4">
-                      <div className="space-y-2 max-h-32 overflow-y-auto">
-                        {postPlacementPaymentSchedule
-                          .slice(0, 3)
-                          .map((payment, index) => (
-                            <div
-                              key={index}
-                              className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm"
+                    {/* Promissory Note */}
+                    <div>
+                      <Label htmlFor="promissoryNote" className="text-sm font-medium text-gray-700">
+                        Promissory Note
+                      </Label>
+                      <div className="space-y-3 mt-2">
+                        {canEdit && (
+                          <div className="flex items-center space-x-2">
+                            <Input
+                              id="promissoryNote"
+                              type="file"
+                              accept=".pdf,.doc,.docx"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setPromissoryNoteFile(file);
+                                  setPromissoryNoteFileName(file.name);
+                                }
+                              }}
+                              className="flex-1"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                document.getElementById("promissoryNote")?.click()
+                              }
                             >
-                              <span className="text-gray-600">
-                                {formatDate(payment.paymentDate)}
-                              </span>
-                              <span className="font-medium">
-                                {formatCurrency(payment.amount || 0)}
-                              </span>
-                            </div>
-                          ))}
-                        {postPlacementPaymentSchedule.length > 3 && (
-                          <div className="text-center text-sm text-gray-500">
-                            +{postPlacementPaymentSchedule.length - 3} more
-                            payments
+                              <Upload className="h-4 w-4 mr-2" />
+                              Browse
+                            </Button>
                           </div>
                         )}
+                        {promissoryNoteFileName && (
+                          <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <FileText className="h-4 w-4 text-blue-500" />
+                            <span className="text-sm font-medium text-blue-700">
+                              New: {promissoryNoteFileName}
+                            </span>
+                          </div>
+                        )}
+                        {client.promissoryNoteUrl && (
+                          <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg border">
+                            <ExternalLink className="h-4 w-4 text-blue-500" />
+                            <a
+                              href={client.promissoryNoteUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-500 hover:underline font-medium"
+                            >
+                              View Current Promissory Note
+                            </a>
+                          </div>
+                        )}
+                        {!client.promissoryNoteUrl && !promissoryNoteFileName && (
+                          <p className="text-sm text-gray-500 italic p-3 bg-gray-50 rounded-lg">
+                            No promissory note uploaded
+                          </p>
+                        )}
                       </div>
+                    </div>
+
+                    {/* Payment Schedule */}
+                    <div className="border-t pt-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <Label className="text-lg font-semibold text-gray-900">Payment Schedule</Label>
+                          <p className="text-sm text-gray-500 mt-1">
+                            {postPlacementPaymentSchedule.length === 0 
+                              ? "No payments added yet" 
+                              : `${postPlacementPaymentSchedule.length} payment${postPlacementPaymentSchedule.length > 1 ? 's' : ''} scheduled`
+                            }
+                          </p>
+                        </div>
+                        {canEdit && (
+                          <Button
+                            type="button"
+                            variant="default"
+                            size="sm"
+                            onClick={() => addPaymentRow("postPlacement")}
+                            className="bg-[#682A53] hover:bg-[#682A53]/90 text-white shadow-sm"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Payment
+                          </Button>
+                        )}
+                      </div>
+                      
+                      {postPlacementPaymentSchedule.length === 0 ? (
+                        <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
+                          <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-sm font-medium text-gray-900 mb-2">No payment schedule yet</h3>
+                          <p className="text-sm text-gray-500 mb-4">Add payments to create a schedule for this post-placement plan.</p>
+                          {canEdit && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => addPaymentRow("postPlacement")}
+                              className="border-[#682A53] text-[#682A53] hover:bg-[#682A53] hover:text-white"
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add First Payment
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-4 max-h-80 overflow-y-auto px-3 py-3">
+                          {postPlacementPaymentSchedule.map((payment, index) => (
+                            <div
+                              key={index}
+                              className="group relative bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 hover:border-[#682A53]/20 mt-3 mb-3"
+                            >
+                              {/* Payment Number Badge */}
+                              <div className="absolute -top-3 -left-3 w-7 h-7 bg-[#682A53] text-white rounded-full flex items-center justify-center text-xs font-semibold shadow-md z-10">
+                                {index + 1}
+                              </div>
+                              
+                              {/* Delete Button */}
+                              {canEdit && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removePaymentRow(index, "postPlacement")}
+                                  className="absolute -top-3 -right-3 w-7 h-7 p-0 bg-red-500 text-white hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md z-10"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label className="text-sm font-medium text-gray-700 flex items-center">
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                                    Payment Date
+                                  </Label>
+                                  <Input
+                                    type="date"
+                                    value={formatDateForInput(payment.paymentDate)}
+                                    onChange={(e) =>
+                                      updatePaymentSchedule(
+                                        index,
+                                        "paymentDate",
+                                        e.target.value,
+                                        "postPlacement"
+                                      )
+                                    }
+                                    disabled={!canEdit}
+                                    className="h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                                  />
+                                  {errors[`postPlacementPayment_${index}_date`] && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                      {errors[`postPlacementPayment_${index}_date`]}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-sm font-medium text-gray-700 flex items-center">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                                    Amount
+                                  </Label>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium text-sm">
+                                      $
+                                    </span>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      min="0.01"
+                                      placeholder="0.00"
+                                      value={payment.amount || ""}
+                                      onChange={(e) => {
+                                        const value = parseFloat(e.target.value);
+                                        if (value < 0.01 && e.target.value !== "") {
+                                          return; // Prevent negative values and values less than 0.01
+                                        }
+                                        updatePaymentSchedule(
+                                          index,
+                                          "amount",
+                                          e.target.value,
+                                          "postPlacement"
+                                        )
+                                      }}
+                                      disabled={!canEdit}
+                                      className="h-11 pl-8 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                                    />
+                                    {errors[`postPlacementPayment_${index}_amount`] && (
+                                      <p className="text-xs text-red-500 mt-1">
+                                        {errors[`postPlacementPayment_${index}_amount`]}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>

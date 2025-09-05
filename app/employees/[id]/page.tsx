@@ -196,38 +196,38 @@ export default function EmployeeDetailPage() {
           <CardHeader>
             <CardTitle>Basic Information</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-500">
+          <CardContent className="card-form-content">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="field-container">
+                <label className="text-sm font-medium text-gray-700">
                   First Name
                 </label>
-                <p className="text-sm">{employee.FirstName}</p>
+                <p className="text-sm font-medium">{employee.FirstName}</p>
               </div>
-              <div>
-                <label className="text-sm font-medium text-gray-500">
+              <div className="field-container">
+                <label className="text-sm font-medium text-gray-700">
                   Last Name
                 </label>
-                <p className="text-sm">{employee.LastName}</p>
+                <p className="text-sm font-medium">{employee.LastName}</p>
               </div>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                Personal Email
+            <div className="field-container">
+              <label className="text-sm font-medium text-gray-700">
+                Personal Email Address
               </label>
               <p className="text-sm">{employee.PersonalEmailAddress}</p>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
-                Company Email
+            <div className="field-container">
+              <label className="text-sm font-medium text-gray-700">
+                Company Email Address
               </label>
               <p className="text-sm">{employee.CompanyEmailAddress || "N/A"}</p>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+            <div className="field-container">
+              <label className="text-sm font-medium text-gray-700">
                 Phone Number
               </label>
               <p className="text-sm">
@@ -241,8 +241,8 @@ export default function EmployeeDetailPage() {
               </p>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+            <div className="field-container">
+              <label className="text-sm font-medium text-gray-700">
                 Employee Reference ID
               </label>
               <p className="text-sm">{employee.EmployeeReferenceID || "N/A"}</p>
@@ -254,14 +254,14 @@ export default function EmployeeDetailPage() {
           <CardHeader>
             <CardTitle>Employment Details</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-500">Role</label>
-              <p className="text-sm">{employee.Role}</p>
+          <CardContent className="card-form-content">
+            <div className="field-container">
+              <label className="text-sm font-medium text-gray-700">Role</label>
+              <p className="text-sm font-medium">{employee.Role}</p>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+            <div className="field-container">
+              <label className="text-sm font-medium text-gray-700">
                 Status
               </label>
               <div className="mt-1">
@@ -271,29 +271,29 @@ export default function EmployeeDetailPage() {
               </div>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+            <div className="field-container">
+              <label className="text-sm font-medium text-gray-700">
                 Joined Date
               </label>
               <p className="text-sm">{formatDate(employee.JoinedDate)}</p>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+            <div className="field-container">
+              <label className="text-sm font-medium text-gray-700">
                 Terminated Date
               </label>
               <p className="text-sm">{formatDate(employee.TerminatedDate)}</p>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+            <div className="field-container">
+              <label className="text-sm font-medium text-gray-700">
                 Supervisor
               </label>
               <p className="text-sm">{employee.SupervisorName || "N/A"}</p>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-500">
+            <div className="field-container">
+              <label className="text-sm font-medium text-gray-700">
                 Company Comments
               </label>
               <p className="text-sm whitespace-pre-wrap">

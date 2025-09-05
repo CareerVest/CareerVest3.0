@@ -262,6 +262,37 @@ export default function CreateClientForm() {
     clientData.postPlacementPlan,
   ]);
 
+  // Auto-populate payment start dates from first payment in schedule
+  useEffect(() => {
+    if (subscriptionPaymentSchedule.length > 0) {
+      const firstPaymentDate = subscriptionPaymentSchedule
+        .filter(p => p.paymentDate)
+        .sort((a, b) => new Date(a.paymentDate!).getTime() - new Date(b.paymentDate!).getTime())[0]?.paymentDate;
+      
+      if (firstPaymentDate && !clientData.subscriptionPlan?.subscriptionPlanPaymentStartDate) {
+        handleInputChange(
+          "subscriptionPlan.subscriptionPlanPaymentStartDate",
+          firstPaymentDate
+        );
+      }
+    }
+  }, [subscriptionPaymentSchedule, clientData.subscriptionPlan?.subscriptionPlanPaymentStartDate]);
+
+  useEffect(() => {
+    if (postPlacementPaymentSchedule.length > 0) {
+      const firstPaymentDate = postPlacementPaymentSchedule
+        .filter(p => p.paymentDate)
+        .sort((a, b) => new Date(a.paymentDate!).getTime() - new Date(b.paymentDate!).getTime())[0]?.paymentDate;
+      
+      if (firstPaymentDate && !clientData.postPlacementPlan?.postPlacementPlanPaymentStartDate) {
+        handleInputChange(
+          "postPlacementPlan.postPlacementPlanPaymentStartDate",
+          firstPaymentDate
+        );
+      }
+    }
+  }, [postPlacementPaymentSchedule, clientData.postPlacementPlan?.postPlacementPlanPaymentStartDate]);
+
   const handleInputChange = (field: string, value: any) => {
     if (field.includes(".")) {
       const parts = field.split(".");
@@ -968,7 +999,8 @@ export default function CreateClientForm() {
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-4">
+                  {/* Plan Name - Full width */}
                   <div>
                     <Label htmlFor="subscriptionPlan.planName">
                       Subscription Plan Name *
@@ -1295,65 +1327,118 @@ export default function CreateClientForm() {
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-semibold mb-3">
-                    Payment Schedule
-                  </h3>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {postPlacementPaymentSchedule.map((payment, index) => (
-                      <div
-                        key={index}
-                        className="grid grid-cols-3 gap-2 p-2 bg-gray-50 rounded"
-                      >
-                        <Input
-                          type="date"
-                          value={formatDateForInput(payment.paymentDate)}
-                          onChange={(e) =>
-                            updatePaymentSchedule(
-                              "postPlacement",
-                              index,
-                              "paymentDate",
-                              e.target.value
-                            )
-                          }
-                          className="text-xs h-8"
-                        />
-                        <Input
-                          type="number"
-                          placeholder="Amount"
-                          value={payment.amount === 0 ? "" : payment.amount}
-                          onChange={(e) =>
-                            updatePaymentSchedule(
-                              "postPlacement",
-                              index,
-                              "amount",
-                              e.target.value
-                            )
-                          }
-                          className="text-xs h-8"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            removePaymentRow(index, "postPlacement")
-                          }
-                          className="h-8 px-2"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <Label className="text-lg font-semibold text-gray-900">Payment Schedule</Label>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {postPlacementPaymentSchedule.length === 0 
+                          ? "No payments added yet" 
+                          : `${postPlacementPaymentSchedule.length} payment${postPlacementPaymentSchedule.length > 1 ? 's' : ''} scheduled`
+                        }
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      onClick={() => addPaymentRow("postPlacement")}
+                      className="bg-[#682A53] hover:bg-[#682A53]/90 text-white shadow-sm"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Payment
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => addPaymentRow("postPlacement")}
-                    className="mt-2"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Payment
-                  </Button>
+                  
+                  {postPlacementPaymentSchedule.length === 0 ? (
+                    <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
+                      <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-sm font-medium text-gray-900 mb-2">No payment schedule yet</h3>
+                      <p className="text-sm text-gray-500 mb-4">Add payments to create a schedule for this post-placement plan.</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addPaymentRow("postPlacement")}
+                        className="border-[#682A53] text-[#682A53] hover:bg-[#682A53] hover:text-white"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add First Payment
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 max-h-80 overflow-y-auto px-3 py-3">
+                      {postPlacementPaymentSchedule.map((payment, index) => (
+                        <div
+                          key={index}
+                          className="group relative bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 hover:border-[#682A53]/20 mt-3 mb-3"
+                        >
+                          {/* Payment Number Badge */}
+                          <div className="absolute -top-3 -left-3 w-7 h-7 bg-[#682A53] text-white rounded-full flex items-center justify-center text-xs font-semibold shadow-md z-10">
+                            {index + 1}
+                          </div>
+                          
+                          {/* Delete Button */}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removePaymentRow(index, "postPlacement")}
+                            className="absolute -top-3 -right-3 w-7 h-7 p-0 bg-red-500 text-white hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md z-10"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium text-gray-700 flex items-center">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                                Payment Date
+                              </Label>
+                              <Input
+                                type="date"
+                                value={formatDateForInput(payment.paymentDate)}
+                                onChange={(e) =>
+                                  updatePaymentSchedule(
+                                    "postPlacement",
+                                    index,
+                                    "paymentDate",
+                                    e.target.value
+                                  )
+                                }
+                                className="h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium text-gray-700 flex items-center">
+                                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                                Amount
+                              </Label>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium text-sm">
+                                  $
+                                </span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  value={payment.amount === 0 ? "" : payment.amount}
+                                  onChange={(e) =>
+                                    updatePaymentSchedule(
+                                      "postPlacement",
+                                      index,
+                                      "amount",
+                                      e.target.value
+                                    )
+                                  }
+                                  className="h-11 pl-8 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1382,7 +1467,7 @@ export default function CreateClientForm() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="client-form">
         {/* Horizontal Dashboard Layout */}
         <div className="space-y-6">
           {/* Cards Grid */}
@@ -1862,66 +1947,119 @@ export default function CreateClientForm() {
                   </div>
 
                   {/* Payment Schedule */}
-                  <div className="border-t pt-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <Label>Payment Schedule</Label>
+                  <div className="border-t pt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <Label className="text-lg font-semibold text-gray-900">Payment Schedule</Label>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {subscriptionPaymentSchedule.length === 0 
+                            ? "No payments added yet" 
+                            : `${subscriptionPaymentSchedule.length} payment${subscriptionPaymentSchedule.length > 1 ? 's' : ''} scheduled`
+                          }
+                        </p>
+                      </div>
                       <Button
                         type="button"
-                        variant="outline"
+                        variant="default"
                         size="sm"
                         onClick={() => addPaymentRow("subscription")}
+                        className="bg-[#682A53] hover:bg-[#682A53]/90 text-white shadow-sm"
                       >
-                        <Plus className="h-4 w-4 mr-1" />
+                        <Plus className="h-4 w-4 mr-2" />
                         Add Payment
                       </Button>
                     </div>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {subscriptionPaymentSchedule.map((payment, index) => (
-                        <div
-                          key={index}
-                          className="grid grid-cols-3 gap-2 p-2 bg-gray-50 rounded"
+                    
+                    {subscriptionPaymentSchedule.length === 0 ? (
+                      <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
+                        <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-sm font-medium text-gray-900 mb-2">No payment schedule yet</h3>
+                        <p className="text-sm text-gray-500 mb-4">Add payments to create a schedule for this subscription plan.</p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => addPaymentRow("subscription")}
+                          className="border-[#682A53] text-[#682A53] hover:bg-[#682A53] hover:text-white"
                         >
-                          <Input
-                            type="date"
-                            value={formatDateForInput(payment.paymentDate)}
-                            onChange={(e) =>
-                              updatePaymentSchedule(
-                                "subscription",
-                                index,
-                                "paymentDate",
-                                e.target.value
-                              )
-                            }
-                            className="text-xs h-8"
-                          />
-                          <Input
-                            type="number"
-                            placeholder="Amount"
-                            value={payment.amount || ""}
-                            onChange={(e) =>
-                              updatePaymentSchedule(
-                                "subscription",
-                                index,
-                                "amount",
-                                e.target.value
-                              )
-                            }
-                            className="text-xs h-8"
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              removePaymentRow(index, "subscription")
-                            }
-                            className="h-8 px-2"
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add First Payment
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4 max-h-80 overflow-y-auto px-3 py-3">
+                        {subscriptionPaymentSchedule.map((payment, index) => (
+                          <div
+                            key={index}
+                            className="group relative bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 hover:border-[#682A53]/20 mt-3 mb-3"
                           >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
+                            {/* Payment Number Badge */}
+                            <div className="absolute -top-3 -left-3 w-7 h-7 bg-[#682A53] text-white rounded-full flex items-center justify-center text-xs font-semibold shadow-md z-10">
+                              {index + 1}
+                            </div>
+                            
+                            {/* Delete Button */}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removePaymentRow(index, "subscription")}
+                              className="absolute -top-3 -right-3 w-7 h-7 p-0 bg-red-500 text-white hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md z-10"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium text-gray-700 flex items-center">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                                  Payment Date
+                                </Label>
+                                <Input
+                                  type="date"
+                                  value={formatDateForInput(payment.paymentDate)}
+                                  onChange={(e) =>
+                                    updatePaymentSchedule(
+                                      "subscription",
+                                      index,
+                                      "paymentDate",
+                                      e.target.value
+                                    )
+                                  }
+                                  className="h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium text-gray-700 flex items-center">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                                  Amount
+                                </Label>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium text-sm">
+                                    $
+                                  </span>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    value={payment.amount || ""}
+                                    onChange={(e) =>
+                                      updatePaymentSchedule(
+                                        "subscription",
+                                        index,
+                                        "amount",
+                                        e.target.value
+                                      )
+                                    }
+                                    className="h-11 pl-8 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>
