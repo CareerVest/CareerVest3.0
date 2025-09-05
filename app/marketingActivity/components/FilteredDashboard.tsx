@@ -414,18 +414,24 @@ export default function FilteredDashboard({
       />
 
       <div className="flex-grow w-full max-w-full px-0 sm:px-0">
-        <FilteredKanbanBoard
-          receivedClients={filteredClients}
-          scheduledClients={[]}
-          receivedInterviews={[]}
-          scheduledInterviews={[]}
-          applicationClients={applicationClients}
-          filters={filters}
-          setFilters={setFilters}
-          onInterviewClick={handleInterviewClick}
-          applicationCounts={applicationClients}
-          activeInterviewId={activeInterviewId}
-        />
+        <div
+          id="scrollableDiv"
+          className="w-full h-full overflow-y-auto"
+          style={{ maxHeight: "calc(100vh - 200px)" }}
+        >
+          <FilteredKanbanBoard
+            receivedClients={filteredClients}
+            scheduledClients={[]}
+            receivedInterviews={[]}
+            scheduledInterviews={[]}
+            applicationClients={applicationClients}
+            filters={filters}
+            setFilters={setFilters}
+            onInterviewClick={handleInterviewClick}
+            applicationCounts={applicationClients}
+            activeInterviewId={activeInterviewId}
+          />
+        </div>
 
         <Dialog
           open={isApplicationCountsOpen}

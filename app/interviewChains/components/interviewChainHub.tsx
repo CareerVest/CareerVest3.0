@@ -4,8 +4,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent } from "../../../components/ui/card";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
-import { Input } from "../../../components/ui/input";
-import { Label } from "../../../components/ui/label";
 import {
   Select,
   SelectContent,
@@ -359,19 +357,19 @@ export default function InterviewChainHub({
         resetAllFilters={resetAllFilters}
       />
 
-      {/* Dashboard Overview - Moved below search */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Dashboard Overview - Rectangular count boxes */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card
           className={`bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 cursor-pointer transition-all duration-200 hover:scale-105 hover:from-blue-200 hover:to-blue-300 ${
             statusFilter === "All" ? "ring-2 ring-blue-400 ring-offset-2" : ""
           }`}
           onClick={() => handleStatusFilterChange("All")}
         >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium opacity-90">Total Chains</p>
-                <p className="text-2xl font-bold">{totalChains}</p>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-center">
+              <div className="text-center">
+                <p className="text-xs sm:text-sm font-medium opacity-90">Total Chains</p>
+                <p className="text-xl sm:text-2xl font-bold">{totalChains}</p>
               </div>
             </div>
           </CardContent>
@@ -385,11 +383,11 @@ export default function InterviewChainHub({
           }`}
           onClick={() => handleStatusFilterChange("Active")}
         >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium opacity-90">Active</p>
-                <p className="text-2xl font-bold">{activeChains}</p>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-center">
+              <div className="text-center">
+                <p className="text-xs sm:text-sm font-medium opacity-90">Active</p>
+                <p className="text-xl sm:text-2xl font-bold">{activeChains}</p>
               </div>
             </div>
           </CardContent>
@@ -403,11 +401,11 @@ export default function InterviewChainHub({
           }`}
           onClick={() => handleStatusFilterChange("Successful")}
         >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium opacity-90">Successful</p>
-                <p className="text-2xl font-bold">{allSuccessfulChains}</p>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-center">
+              <div className="text-center">
+                <p className="text-xs sm:text-sm font-medium opacity-90">Successful</p>
+                <p className="text-xl sm:text-2xl font-bold">{allSuccessfulChains}</p>
               </div>
             </div>
           </CardContent>
@@ -421,11 +419,11 @@ export default function InterviewChainHub({
           }`}
           onClick={() => handleStatusFilterChange("Unsuccessful")}
         >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium opacity-90">Unsuccessful</p>
-                <p className="text-2xl font-bold">{unsuccessfulChains}</p>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-center">
+              <div className="text-center">
+                <p className="text-xs sm:text-sm font-medium opacity-90">Unsuccessful</p>
+                <p className="text-xl sm:text-2xl font-bold">{unsuccessfulChains}</p>
               </div>
             </div>
           </CardContent>

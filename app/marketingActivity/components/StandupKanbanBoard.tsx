@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -62,9 +62,6 @@ export function StandupKanbanBoard({
   todayStats,
   activeInterviewId,
 }: StandupKanbanBoardProps) {
-  const [receivedPage, setReceivedPage] = useState(1);
-  const [scheduledPage, setScheduledPage] = useState(1);
-  const pageSize = 12;
 
   const filterInterviews = (
     interviews: (MarketingInterview & {
@@ -144,35 +141,19 @@ export function StandupKanbanBoard({
     return filtered;
   }, [scheduledInterviews, filters]);
 
-  const sortedReceivedInterviews = filteredReceivedInterviews;
-  const sortedScheduledInterviews = filteredScheduledInterviews;
-
-  const paginatedReceivedInterviews = sortedReceivedInterviews.slice(
-    0,
-    receivedPage * pageSize
-  );
-  const paginatedScheduledInterviews = sortedScheduledInterviews.slice(
-    0,
-    scheduledPage * pageSize
-  );
-
-  const loadMoreReceived = () => {
-    setReceivedPage((prev) => prev + 1);
-  };
-
-  const loadMoreScheduled = () => {
-    setScheduledPage((prev) => prev + 1);
-  };
+  // Show all interviews in standup mode - no pagination
+  const displayReceivedInterviews = filteredReceivedInterviews;
+  const displayScheduledInterviews = filteredScheduledInterviews;
 
   return (
-    <div className="p-2 sm:p-4 bg-transparent w-full max-w-full box-border">
+    <div className="p-3 sm:p-6 bg-transparent w-full max-w-full box-border">
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {/* Received Interviews Column */}
         <Card className="bg-white shadow-md border border-gray-200">
           <CardHeader className="pb-2 sm:pb-4">
             <div className="flex items-center justify-between mb-2 sm:mb-4">
               <h3 className="text-base sm:text-lg font-semibold text-[#682A53]">
-                Received Interviews (Entered Today)
+                Received Interviews
               </h3>
               <Badge className="bg-[#FDC500] text-[#682A53] text-xs sm:text-sm font-medium px-2 sm:px-4 py-1 rounded-full">
                 {todayStats?.received.total || 0}
@@ -245,8 +226,8 @@ export function StandupKanbanBoard({
                 No received interviews found.
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
-                {paginatedReceivedInterviews.map((interview) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                {displayReceivedInterviews.map((interview) => (
                   <InterviewCard
                     key={interview.interviewChainID}
                     interview={interview}
@@ -258,17 +239,6 @@ export function StandupKanbanBoard({
               </div>
             )}
 
-            {paginatedReceivedInterviews.length <
-              sortedReceivedInterviews.length && (
-              <div className="text-center mt-3 sm:mt-4">
-                <button
-                  onClick={loadMoreReceived}
-                  className="px-3 sm:px-4 py-1 sm:py-2 bg-[#FDC500] text-[#682A53] rounded-lg hover:bg-[#682A53] hover:text-white text-sm sm:text-base"
-                >
-                  Load More
-                </button>
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -277,7 +247,7 @@ export function StandupKanbanBoard({
           <CardHeader className="pb-2 sm:pb-4">
             <div className="flex items-center justify-between mb-2 sm:mb-4">
               <h3 className="text-base sm:text-lg font-semibold text-[#682A53]">
-                Scheduled Interviews (For Today)
+                Scheduled Interviews
               </h3>
               <Badge className="bg-[#FDC500] text-[#682A53] text-xs sm:text-sm font-medium px-2 sm:px-4 py-1 rounded-full">
                 {todayStats?.scheduled.total || 0}
@@ -350,8 +320,8 @@ export function StandupKanbanBoard({
                 No scheduled interviews found.
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
-                {paginatedScheduledInterviews.map((interview) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                {displayScheduledInterviews.map((interview) => (
                   <InterviewCard
                     key={interview.interviewChainID}
                     interview={interview}
@@ -363,17 +333,6 @@ export function StandupKanbanBoard({
               </div>
             )}
 
-            {paginatedScheduledInterviews.length <
-              sortedScheduledInterviews.length && (
-              <div className="text-center mt-3 sm:mt-4">
-                <button
-                  onClick={loadMoreScheduled}
-                  className="px-3 sm:px-4 py-1 sm:py-2 bg-[#FDC500] text-[#682A53] rounded-lg hover:bg-[#682A53] hover:text-white text-sm sm:text-base"
-                >
-                  Load More
-                </button>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>

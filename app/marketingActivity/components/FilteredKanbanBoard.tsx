@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Button } from "../../../components/ui/button";
 import { InterviewCard } from "./InterviewCard";
+import InfiniteScroll from "react-infinite-scroll-component";
 import type {
   MarketingInterview,
   FilterState,
@@ -47,6 +48,7 @@ export function FilteredKanbanBoard({
   const pageSize = 12;
 
   const allInterviews = useMemo(() => {
+    // Use receivedClients as the primary data source (like the old working code)
     return receivedClients.flatMap((client) =>
       client.interviews.map((interview) => ({
         ...interview,
@@ -143,8 +145,23 @@ export function FilteredKanbanBoard({
     filteredPage * pageSize
   );
 
-  const loadMoreNonStandup = () => {
+  // Debug logging
+  console.log("FilteredKanbanBoard render:", {
+    filteredPage,
+    pageSize,
+    paginatedCount: paginatedInterviews.length,
+    totalCount: sortedInterviews.length,
+    hasMore: paginatedInterviews.length < sortedInterviews.length,
+  });
+
+  const loadMoreNonStandup = useCallback(() => {
     setFilteredPage((prev) => prev + 1);
+  }, []);
+
+  // Load more function for infinite scroll
+  const fetchMoreData = () => {
+    if (paginatedInterviews.length >= sortedInterviews.length) return;
+    loadMoreNonStandup();
   };
 
   const handleSortBy = (sortType: "date" | "client") => {
@@ -153,7 +170,7 @@ export function FilteredKanbanBoard({
   };
 
   return (
-    <div className="p-2 sm:p-4 bg-transparent w-full min-h-screen">
+    <div className="p-3 sm:p-6 bg-transparent w-full min-h-screen">
       {/* Sort Options */}
       <div className="flex justify-start mb-3 sm:mb-4 gap-2 flex-wrap">
         <div className="flex border border-[#682A53] rounded-lg overflow-hidden">
@@ -186,8 +203,21 @@ export function FilteredKanbanBoard({
           No interviews found for the current filters.
         </div>
       ) : (
-        <div className="space-y-3 sm:space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">
+        <InfiniteScroll
+          dataLength={paginatedInterviews.length}
+          next={fetchMoreData}
+          hasMore={paginatedInterviews.length < sortedInterviews.length}
+          loader={
+            <div className="text-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#682A53] mx-auto"></div>
+              <p className="text-sm text-gray-600 mt-2">
+                Loading more interviews...
+              </p>
+            </div>
+          }
+          scrollableTarget="scrollableDiv"
+        >
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 sm:gap-4">
             {paginatedInterviews.map((interview) => (
               <InterviewCard
                 key={interview.interviewChainID}
@@ -198,18 +228,7 @@ export function FilteredKanbanBoard({
               />
             ))}
           </div>
-
-          {paginatedInterviews.length < sortedInterviews.length && (
-            <div className="text-center mt-4 sm:mt-6">
-              <Button
-                onClick={loadMoreNonStandup}
-                className="px-4 sm:px-6 py-1 sm:py-2 bg-[#FDC500] text-[#682A53] rounded-lg hover:bg-[#682A53] hover:text-white text-sm sm:text-base"
-              >
-                Load More
-              </Button>
-            </div>
-          )}
-        </div>
+        </InfiniteScroll>
       )}
     </div>
   );

@@ -70,11 +70,11 @@ export function StandupFilterBar({
   }, [onFiltersChange]);
 
   return (
-    <div className="mb-4">
+    <div className="client-form mb-4">
       <Card className="mb-4 border border-gray-200 bg-transparent">
-        <CardContent className="p-3 sm:p-4">
+        <CardContent className="card-form-content p-3 sm:p-4">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <div className="flex-[3]">
+            <div className="flex-[4]">
               <Input
                 type="text"
                 placeholder="Search interviews..."
@@ -84,12 +84,12 @@ export function StandupFilterBar({
                 aria-label="Search interviews"
               />
             </div>
-            <div className="flex-[1] min-w-[140px]">
+            <div className="w-auto min-w-[120px] max-w-[140px]">
               <Input
                 type="date"
                 value={filters.selectedDate?.format("YYYY-MM-DD") || ""}
                 onChange={handleDateChange}
-                className="w-full"
+                className="w-full text-xs sm:text-sm px-2"
                 aria-label="Select date"
               />
             </div>

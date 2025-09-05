@@ -77,7 +77,7 @@ export default function MarketingActivityPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 w-full max-w-full min-h-screen box-border flex flex-col">
+    <div className="client-form p-4 sm:p-6 w-full max-w-full min-h-screen box-border flex flex-col">
       {/* Header Section - Responsive */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 w-full max-w-full px-0 sm:px-4 gap-4 sm:gap-0">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 w-full sm:w-auto">

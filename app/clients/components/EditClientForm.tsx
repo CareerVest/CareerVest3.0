@@ -149,44 +149,84 @@ export default function EditClientForm({
   useEffect(() => {
     if (subscriptionPaymentSchedule.length > 0) {
       const firstPaymentDate = subscriptionPaymentSchedule
-        .filter(p => p.paymentDate)
-        .sort((a, b) => new Date(a.paymentDate!).getTime() - new Date(b.paymentDate!).getTime())[0]?.paymentDate;
-      
-      if (firstPaymentDate && !clientData.subscriptionPlan?.subscriptionPlanPaymentStartDate) {
+        .filter(
+          (p): p is PaymentSchedule & { paymentDate: Date | string } =>
+            p.paymentDate !== null && p.paymentDate !== undefined
+        )
+        .sort(
+          (a, b) =>
+            new Date(a.paymentDate).getTime() -
+            new Date(b.paymentDate).getTime()
+        )[0]?.paymentDate;
+
+      if (
+        firstPaymentDate &&
+        !clientData.subscriptionPlan?.subscriptionPlanPaymentStartDate
+      ) {
         // Format the date properly - handle both Date objects and strings
-        const formattedDate = firstPaymentDate instanceof Date 
-          ? formatDateForInput(firstPaymentDate)
-          : (typeof firstPaymentDate === 'string' && firstPaymentDate.includes('T') 
-              ? formatDateForInput(new Date(firstPaymentDate))
-              : firstPaymentDate);
+        let formattedDate: string;
+        if (firstPaymentDate instanceof Date) {
+          formattedDate = formatDateForInput(firstPaymentDate);
+        } else {
+          // Handle string case with explicit type assertion
+          const dateString = firstPaymentDate as string;
+          if (dateString.includes("T")) {
+            formattedDate = formatDateForInput(new Date(dateString));
+          } else {
+            formattedDate = dateString;
+          }
+        }
         handleInputChange(
           "subscriptionPlan.subscriptionPlanPaymentStartDate",
           formattedDate
         );
       }
     }
-  }, [subscriptionPaymentSchedule, clientData.subscriptionPlan?.subscriptionPlanPaymentStartDate]);
+  }, [
+    subscriptionPaymentSchedule,
+    clientData.subscriptionPlan?.subscriptionPlanPaymentStartDate,
+  ]);
 
   useEffect(() => {
     if (postPlacementPaymentSchedule.length > 0) {
       const firstPaymentDate = postPlacementPaymentSchedule
-        .filter(p => p.paymentDate)
-        .sort((a, b) => new Date(a.paymentDate!).getTime() - new Date(b.paymentDate!).getTime())[0]?.paymentDate;
-      
-      if (firstPaymentDate && !clientData.postPlacementPlan?.postPlacementPlanPaymentStartDate) {
+        .filter(
+          (p): p is PaymentSchedule & { paymentDate: Date | string } =>
+            p.paymentDate !== null && p.paymentDate !== undefined
+        )
+        .sort(
+          (a, b) =>
+            new Date(a.paymentDate).getTime() -
+            new Date(b.paymentDate).getTime()
+        )[0]?.paymentDate;
+
+      if (
+        firstPaymentDate &&
+        !clientData.postPlacementPlan?.postPlacementPlanPaymentStartDate
+      ) {
         // Format the date properly - handle both Date objects and strings
-        const formattedDate = firstPaymentDate instanceof Date 
-          ? formatDateForInput(firstPaymentDate)
-          : (typeof firstPaymentDate === 'string' && firstPaymentDate.includes('T') 
-              ? formatDateForInput(new Date(firstPaymentDate))
-              : firstPaymentDate);
+        let formattedDate: string;
+        if (firstPaymentDate instanceof Date) {
+          formattedDate = formatDateForInput(firstPaymentDate);
+        } else {
+          // Handle string case with explicit type assertion
+          const dateString = firstPaymentDate as string;
+          if (dateString.includes("T")) {
+            formattedDate = formatDateForInput(new Date(dateString));
+          } else {
+            formattedDate = dateString;
+          }
+        }
         handleInputChange(
           "postPlacementPlan.postPlacementPlanPaymentStartDate",
           formattedDate
         );
       }
     }
-  }, [postPlacementPaymentSchedule, clientData.postPlacementPlan?.postPlacementPlanPaymentStartDate]);
+  }, [
+    postPlacementPaymentSchedule,
+    clientData.postPlacementPlan?.postPlacementPlanPaymentStartDate,
+  ]);
 
   const handleInputChange = (field: string, value: any) => {
     if (field.includes(".")) {
@@ -294,9 +334,11 @@ export default function EditClientForm({
     type: "subscription" | "postPlacement"
   ) => {
     // Clear errors when user starts typing
-    const errorKey = `${type}Payment_${index}_${field === "paymentDate" ? "date" : "amount"}`;
+    const errorKey = `${type}Payment_${index}_${
+      field === "paymentDate" ? "date" : "amount"
+    }`;
     if (errors[errorKey]) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[errorKey];
         return newErrors;
@@ -332,21 +374,29 @@ export default function EditClientForm({
     if (subscriptionPaymentSchedule.length > 0) {
       subscriptionPaymentSchedule.forEach((payment, index) => {
         if (!payment.paymentDate) {
-          newErrors[`subscriptionPayment_${index}_date`] = "Payment date is required";
+          newErrors[`subscriptionPayment_${index}_date`] =
+            "Payment date is required";
         }
         if (!payment.amount || payment.amount <= 0) {
-          newErrors[`subscriptionPayment_${index}_amount`] = "Payment amount must be greater than 0";
+          newErrors[`subscriptionPayment_${index}_amount`] =
+            "Payment amount must be greater than 0";
         }
         if (payment.amount && payment.amount > 1000000) {
-          newErrors[`subscriptionPayment_${index}_amount`] = "Payment amount cannot exceed $1,000,000";
+          newErrors[`subscriptionPayment_${index}_amount`] =
+            "Payment amount cannot exceed $1,000,000";
         }
       });
 
       // Check for duplicate payment dates in subscription
-      const subscriptionDates = subscriptionPaymentSchedule.map(p => p.paymentDate).filter(Boolean);
-      const duplicateSubscriptionDates = subscriptionDates.filter((date, index) => subscriptionDates.indexOf(date) !== index);
+      const subscriptionDates = subscriptionPaymentSchedule
+        .map((p) => p.paymentDate)
+        .filter(Boolean);
+      const duplicateSubscriptionDates = subscriptionDates.filter(
+        (date, index) => subscriptionDates.indexOf(date) !== index
+      );
       if (duplicateSubscriptionDates.length > 0) {
-        newErrors.subscriptionDuplicateDates = "Subscription payment schedule cannot have duplicate dates";
+        newErrors.subscriptionDuplicateDates =
+          "Subscription payment schedule cannot have duplicate dates";
       }
     }
 
@@ -354,31 +404,47 @@ export default function EditClientForm({
     if (postPlacementPaymentSchedule.length > 0) {
       postPlacementPaymentSchedule.forEach((payment, index) => {
         if (!payment.paymentDate) {
-          newErrors[`postPlacementPayment_${index}_date`] = "Payment date is required";
+          newErrors[`postPlacementPayment_${index}_date`] =
+            "Payment date is required";
         }
         if (!payment.amount || payment.amount <= 0) {
-          newErrors[`postPlacementPayment_${index}_amount`] = "Payment amount must be greater than 0";
+          newErrors[`postPlacementPayment_${index}_amount`] =
+            "Payment amount must be greater than 0";
         }
         if (payment.amount && payment.amount > 1000000) {
-          newErrors[`postPlacementPayment_${index}_amount`] = "Payment amount cannot exceed $1,000,000";
+          newErrors[`postPlacementPayment_${index}_amount`] =
+            "Payment amount cannot exceed $1,000,000";
         }
       });
 
       // Check for duplicate payment dates in post-placement
-      const postPlacementDates = postPlacementPaymentSchedule.map(p => p.paymentDate).filter(Boolean);
-      const duplicatePostPlacementDates = postPlacementDates.filter((date, index) => postPlacementDates.indexOf(date) !== index);
+      const postPlacementDates = postPlacementPaymentSchedule
+        .map((p) => p.paymentDate)
+        .filter(Boolean);
+      const duplicatePostPlacementDates = postPlacementDates.filter(
+        (date, index) => postPlacementDates.indexOf(date) !== index
+      );
       if (duplicatePostPlacementDates.length > 0) {
-        newErrors.postPlacementDuplicateDates = "Post-placement payment schedule cannot have duplicate dates";
+        newErrors.postPlacementDuplicateDates =
+          "Post-placement payment schedule cannot have duplicate dates";
       }
     }
 
     // Plan name validation
-    if (subscriptionPaymentSchedule.length > 0 && !clientData.subscriptionPlan?.planName?.trim()) {
-      newErrors.subscriptionPlanName = "Subscription plan name is required when payments are scheduled";
+    if (
+      subscriptionPaymentSchedule.length > 0 &&
+      !clientData.subscriptionPlan?.planName?.trim()
+    ) {
+      newErrors.subscriptionPlanName =
+        "Subscription plan name is required when payments are scheduled";
     }
 
-    if (postPlacementPaymentSchedule.length > 0 && !clientData.postPlacementPlan?.planName?.trim()) {
-      newErrors.postPlacementPlanName = "Post-placement plan name is required when payments are scheduled";
+    if (
+      postPlacementPaymentSchedule.length > 0 &&
+      !clientData.postPlacementPlan?.planName?.trim()
+    ) {
+      newErrors.postPlacementPlanName =
+        "Post-placement plan name is required when payments are scheduled";
     }
 
     setErrors(newErrors);
@@ -939,7 +1005,10 @@ export default function EditClientForm({
                   <div className="space-y-4">
                     {/* Plan Name - Full width */}
                     <div>
-                      <Label htmlFor="subscriptionPlanName" className="text-sm font-medium text-gray-700">
+                      <Label
+                        htmlFor="subscriptionPlanName"
+                        className="text-sm font-medium text-gray-700"
+                      >
                         Plan Name *
                       </Label>
                       <Input
@@ -965,9 +1034,14 @@ export default function EditClientForm({
                     {/* Payment Start Date and Total Amount - Side by side */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="subscriptionPlanPaymentStartDate" className="text-sm font-medium text-gray-700">
+                        <Label
+                          htmlFor="subscriptionPlanPaymentStartDate"
+                          className="text-sm font-medium text-gray-700"
+                        >
                           Payment Start Date
-                          <span className="text-xs text-gray-500 ml-1">(auto-filled from first payment)</span>
+                          <span className="text-xs text-gray-500 ml-1">
+                            (auto-filled from first payment)
+                          </span>
                         </Label>
                         <Input
                           id="subscriptionPlanPaymentStartDate"
@@ -988,7 +1062,10 @@ export default function EditClientForm({
                         />
                       </div>
                       <div>
-                        <Label htmlFor="totalSubscriptionAmount" className="text-sm font-medium text-gray-700">
+                        <Label
+                          htmlFor="totalSubscriptionAmount"
+                          className="text-sm font-medium text-gray-700"
+                        >
                           Total Amount
                         </Label>
                         <div className="relative mt-1">
@@ -1012,7 +1089,10 @@ export default function EditClientForm({
 
                   {/* Service Agreement */}
                   <div>
-                    <Label htmlFor="serviceAgreement" className="text-sm font-medium text-gray-700">
+                    <Label
+                      htmlFor="serviceAgreement"
+                      className="text-sm font-medium text-gray-700"
+                    >
                       Service Agreement
                     </Label>
                     <div className="space-y-3 mt-2">
@@ -1036,7 +1116,9 @@ export default function EditClientForm({
                             variant="outline"
                             size="sm"
                             onClick={() =>
-                              document.getElementById("serviceAgreement")?.click()
+                              document
+                                .getElementById("serviceAgreement")
+                                ?.click()
                             }
                           >
                             <Upload className="h-4 w-4 mr-2" />
@@ -1065,11 +1147,12 @@ export default function EditClientForm({
                           </a>
                         </div>
                       )}
-                      {!client.serviceAgreementUrl && !serviceAgreementFileName && (
-                        <p className="text-sm text-gray-500 italic p-3 bg-gray-50 rounded-lg">
-                          No service agreement uploaded
-                        </p>
-                      )}
+                      {!client.serviceAgreementUrl &&
+                        !serviceAgreementFileName && (
+                          <p className="text-sm text-gray-500 italic p-3 bg-gray-50 rounded-lg">
+                            No service agreement uploaded
+                          </p>
+                        )}
                     </div>
                   </div>
 
@@ -1077,12 +1160,17 @@ export default function EditClientForm({
                   <div className="border-t pt-6">
                     <div className="flex items-center justify-between mb-4">
                       <div>
-                        <Label className="text-lg font-semibold text-gray-900">Payment Schedule</Label>
+                        <Label className="text-lg font-semibold text-gray-900">
+                          Payment Schedule
+                        </Label>
                         <p className="text-sm text-gray-500 mt-1">
-                          {subscriptionPaymentSchedule.length === 0 
-                            ? "No payments added yet" 
-                            : `${subscriptionPaymentSchedule.length} payment${subscriptionPaymentSchedule.length > 1 ? 's' : ''} scheduled`
-                          }
+                          {subscriptionPaymentSchedule.length === 0
+                            ? "No payments added yet"
+                            : `${subscriptionPaymentSchedule.length} payment${
+                                subscriptionPaymentSchedule.length > 1
+                                  ? "s"
+                                  : ""
+                              } scheduled`}
                         </p>
                       </div>
                       {canEdit && (
@@ -1098,12 +1186,17 @@ export default function EditClientForm({
                         </Button>
                       )}
                     </div>
-                    
+
                     {subscriptionPaymentSchedule.length === 0 ? (
                       <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
                         <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-sm font-medium text-gray-900 mb-2">No payment schedule yet</h3>
-                        <p className="text-sm text-gray-500 mb-4">Add payments to create a schedule for this subscription plan.</p>
+                        <h3 className="text-sm font-medium text-gray-900 mb-2">
+                          No payment schedule yet
+                        </h3>
+                        <p className="text-sm text-gray-500 mb-4">
+                          Add payments to create a schedule for this
+                          subscription plan.
+                        </p>
                         {canEdit && (
                           <Button
                             type="button"
@@ -1128,14 +1221,16 @@ export default function EditClientForm({
                             <div className="absolute -top-3 -left-3 w-7 h-7 bg-[#682A53] text-white rounded-full flex items-center justify-center text-xs font-semibold shadow-md z-10">
                               {index + 1}
                             </div>
-                            
+
                             {/* Delete Button */}
                             {canEdit && (
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => removePaymentRow(index, "subscription")}
+                                onClick={() =>
+                                  removePaymentRow(index, "subscription")
+                                }
                                 className="absolute -top-3 -right-3 w-7 h-7 p-0 bg-red-500 text-white hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md z-10"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -1150,7 +1245,9 @@ export default function EditClientForm({
                                 </Label>
                                 <Input
                                   type="date"
-                                  value={formatDateForInput(payment.paymentDate)}
+                                  value={formatDateForInput(
+                                    payment.paymentDate
+                                  )}
                                   onChange={(e) =>
                                     updatePaymentSchedule(
                                       index,
@@ -1162,9 +1259,15 @@ export default function EditClientForm({
                                   disabled={!canEdit}
                                   className="h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
                                 />
-                                {errors[`subscriptionPayment_${index}_date`] && (
+                                {errors[
+                                  `subscriptionPayment_${index}_date`
+                                ] && (
                                   <p className="text-xs text-red-500 mt-1">
-                                    {errors[`subscriptionPayment_${index}_date`]}
+                                    {
+                                      errors[
+                                        `subscriptionPayment_${index}_date`
+                                      ]
+                                    }
                                   </p>
                                 )}
                               </div>
@@ -1185,7 +1288,10 @@ export default function EditClientForm({
                                     value={payment.amount || ""}
                                     onChange={(e) => {
                                       const value = parseFloat(e.target.value);
-                                      if (value < 0.01 && e.target.value !== "") {
+                                      if (
+                                        value < 0.01 &&
+                                        e.target.value !== ""
+                                      ) {
                                         return; // Prevent negative values and values less than 0.01
                                       }
                                       updatePaymentSchedule(
@@ -1193,14 +1299,20 @@ export default function EditClientForm({
                                         "amount",
                                         e.target.value,
                                         "subscription"
-                                      )
+                                      );
                                     }}
                                     disabled={!canEdit}
                                     className="h-11 pl-8 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
                                   />
-                                  {errors[`subscriptionPayment_${index}_amount`] && (
+                                  {errors[
+                                    `subscriptionPayment_${index}_amount`
+                                  ] && (
                                     <p className="text-xs text-red-500 mt-1">
-                                      {errors[`subscriptionPayment_${index}_amount`]}
+                                      {
+                                        errors[
+                                          `subscriptionPayment_${index}_amount`
+                                        ]
+                                      }
                                     </p>
                                   )}
                                 </div>
@@ -1223,9 +1335,7 @@ export default function EditClientForm({
                     <div className="w-8 h-8 bg-[#682A53] rounded-full flex items-center justify-center">
                       <FileText className="h-4 w-4 text-white" />
                     </div>
-                    <CardTitle className="text-base">
-                      Post-Placement
-                    </CardTitle>
+                    <CardTitle className="text-base">Post-Placement</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
@@ -1234,7 +1344,10 @@ export default function EditClientForm({
                     <div className="space-y-4">
                       {/* Plan Name - Full width */}
                       <div>
-                        <Label htmlFor="postPlacementPlanName" className="text-sm font-medium text-gray-700">
+                        <Label
+                          htmlFor="postPlacementPlanName"
+                          className="text-sm font-medium text-gray-700"
+                        >
                           Plan Name
                         </Label>
                         <Input
@@ -1255,9 +1368,14 @@ export default function EditClientForm({
                       {/* Payment Start Date and Total Amount - Side by side */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="postPlacementPlanPaymentStartDate" className="text-sm font-medium text-gray-700">
+                          <Label
+                            htmlFor="postPlacementPlanPaymentStartDate"
+                            className="text-sm font-medium text-gray-700"
+                          >
                             Payment Start Date
-                            <span className="text-xs text-gray-500 ml-1">(auto-filled from first payment)</span>
+                            <span className="text-xs text-gray-500 ml-1">
+                              (auto-filled from first payment)
+                            </span>
                           </Label>
                           <Input
                             id="postPlacementPlanPaymentStartDate"
@@ -1278,7 +1396,10 @@ export default function EditClientForm({
                           />
                         </div>
                         <div>
-                          <Label htmlFor="totalPostPlacementAmount" className="text-sm font-medium text-gray-700">
+                          <Label
+                            htmlFor="totalPostPlacementAmount"
+                            className="text-sm font-medium text-gray-700"
+                          >
                             Total Amount
                           </Label>
                           <div className="relative mt-1">
@@ -1302,7 +1423,10 @@ export default function EditClientForm({
 
                     {/* Promissory Note */}
                     <div>
-                      <Label htmlFor="promissoryNote" className="text-sm font-medium text-gray-700">
+                      <Label
+                        htmlFor="promissoryNote"
+                        className="text-sm font-medium text-gray-700"
+                      >
                         Promissory Note
                       </Label>
                       <div className="space-y-3 mt-2">
@@ -1326,7 +1450,9 @@ export default function EditClientForm({
                               variant="outline"
                               size="sm"
                               onClick={() =>
-                                document.getElementById("promissoryNote")?.click()
+                                document
+                                  .getElementById("promissoryNote")
+                                  ?.click()
                               }
                             >
                               <Upload className="h-4 w-4 mr-2" />
@@ -1355,11 +1481,12 @@ export default function EditClientForm({
                             </a>
                           </div>
                         )}
-                        {!client.promissoryNoteUrl && !promissoryNoteFileName && (
-                          <p className="text-sm text-gray-500 italic p-3 bg-gray-50 rounded-lg">
-                            No promissory note uploaded
-                          </p>
-                        )}
+                        {!client.promissoryNoteUrl &&
+                          !promissoryNoteFileName && (
+                            <p className="text-sm text-gray-500 italic p-3 bg-gray-50 rounded-lg">
+                              No promissory note uploaded
+                            </p>
+                          )}
                       </div>
                     </div>
 
@@ -1367,12 +1494,19 @@ export default function EditClientForm({
                     <div className="border-t pt-6">
                       <div className="flex items-center justify-between mb-4">
                         <div>
-                          <Label className="text-lg font-semibold text-gray-900">Payment Schedule</Label>
+                          <Label className="text-lg font-semibold text-gray-900">
+                            Payment Schedule
+                          </Label>
                           <p className="text-sm text-gray-500 mt-1">
-                            {postPlacementPaymentSchedule.length === 0 
-                              ? "No payments added yet" 
-                              : `${postPlacementPaymentSchedule.length} payment${postPlacementPaymentSchedule.length > 1 ? 's' : ''} scheduled`
-                            }
+                            {postPlacementPaymentSchedule.length === 0
+                              ? "No payments added yet"
+                              : `${
+                                  postPlacementPaymentSchedule.length
+                                } payment${
+                                  postPlacementPaymentSchedule.length > 1
+                                    ? "s"
+                                    : ""
+                                } scheduled`}
                           </p>
                         </div>
                         {canEdit && (
@@ -1388,12 +1522,17 @@ export default function EditClientForm({
                           </Button>
                         )}
                       </div>
-                      
+
                       {postPlacementPaymentSchedule.length === 0 ? (
                         <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
                           <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                          <h3 className="text-sm font-medium text-gray-900 mb-2">No payment schedule yet</h3>
-                          <p className="text-sm text-gray-500 mb-4">Add payments to create a schedule for this post-placement plan.</p>
+                          <h3 className="text-sm font-medium text-gray-900 mb-2">
+                            No payment schedule yet
+                          </h3>
+                          <p className="text-sm text-gray-500 mb-4">
+                            Add payments to create a schedule for this
+                            post-placement plan.
+                          </p>
                           {canEdit && (
                             <Button
                               type="button"
@@ -1409,95 +1548,118 @@ export default function EditClientForm({
                         </div>
                       ) : (
                         <div className="space-y-4 max-h-80 overflow-y-auto px-3 py-3">
-                          {postPlacementPaymentSchedule.map((payment, index) => (
-                            <div
-                              key={index}
-                              className="group relative bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 hover:border-[#682A53]/20 mt-3 mb-3"
-                            >
-                              {/* Payment Number Badge */}
-                              <div className="absolute -top-3 -left-3 w-7 h-7 bg-[#682A53] text-white rounded-full flex items-center justify-center text-xs font-semibold shadow-md z-10">
-                                {index + 1}
-                              </div>
-                              
-                              {/* Delete Button */}
-                              {canEdit && (
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removePaymentRow(index, "postPlacement")}
-                                  className="absolute -top-3 -right-3 w-7 h-7 p-0 bg-red-500 text-white hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md z-10"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              )}
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                  <Label className="text-sm font-medium text-gray-700 flex items-center">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                                    Payment Date
-                                  </Label>
-                                  <Input
-                                    type="date"
-                                    value={formatDateForInput(payment.paymentDate)}
-                                    onChange={(e) =>
-                                      updatePaymentSchedule(
-                                        index,
-                                        "paymentDate",
-                                        e.target.value,
-                                        "postPlacement"
-                                      )
-                                    }
-                                    disabled={!canEdit}
-                                    className="h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
-                                  />
-                                  {errors[`postPlacementPayment_${index}_date`] && (
-                                    <p className="text-xs text-red-500 mt-1">
-                                      {errors[`postPlacementPayment_${index}_date`]}
-                                    </p>
-                                  )}
+                          {postPlacementPaymentSchedule.map(
+                            (payment, index) => (
+                              <div
+                                key={index}
+                                className="group relative bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 hover:border-[#682A53]/20 mt-3 mb-3"
+                              >
+                                {/* Payment Number Badge */}
+                                <div className="absolute -top-3 -left-3 w-7 h-7 bg-[#682A53] text-white rounded-full flex items-center justify-center text-xs font-semibold shadow-md z-10">
+                                  {index + 1}
                                 </div>
-                                <div className="space-y-2">
-                                  <Label className="text-sm font-medium text-gray-700 flex items-center">
-                                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                                    Amount
-                                  </Label>
-                                  <div className="relative">
-                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium text-sm">
-                                      $
-                                    </span>
+
+                                {/* Delete Button */}
+                                {canEdit && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                      removePaymentRow(index, "postPlacement")
+                                    }
+                                    className="absolute -top-3 -right-3 w-7 h-7 p-0 bg-red-500 text-white hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md z-10"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-gray-700 flex items-center">
+                                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                                      Payment Date
+                                    </Label>
                                     <Input
-                                      type="number"
-                                      step="0.01"
-                                      min="0.01"
-                                      placeholder="0.00"
-                                      value={payment.amount || ""}
-                                      onChange={(e) => {
-                                        const value = parseFloat(e.target.value);
-                                        if (value < 0.01 && e.target.value !== "") {
-                                          return; // Prevent negative values and values less than 0.01
-                                        }
+                                      type="date"
+                                      value={formatDateForInput(
+                                        payment.paymentDate
+                                      )}
+                                      onChange={(e) =>
                                         updatePaymentSchedule(
                                           index,
-                                          "amount",
+                                          "paymentDate",
                                           e.target.value,
                                           "postPlacement"
                                         )
-                                      }}
+                                      }
                                       disabled={!canEdit}
-                                      className="h-11 pl-8 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                                      className="h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
                                     />
-                                    {errors[`postPlacementPayment_${index}_amount`] && (
+                                    {errors[
+                                      `postPlacementPayment_${index}_date`
+                                    ] && (
                                       <p className="text-xs text-red-500 mt-1">
-                                        {errors[`postPlacementPayment_${index}_amount`]}
+                                        {
+                                          errors[
+                                            `postPlacementPayment_${index}_date`
+                                          ]
+                                        }
                                       </p>
                                     )}
                                   </div>
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-gray-700 flex items-center">
+                                      <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                                      Amount
+                                    </Label>
+                                    <div className="relative">
+                                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium text-sm">
+                                        $
+                                      </span>
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0.01"
+                                        placeholder="0.00"
+                                        value={payment.amount || ""}
+                                        onChange={(e) => {
+                                          const value = parseFloat(
+                                            e.target.value
+                                          );
+                                          if (
+                                            value < 0.01 &&
+                                            e.target.value !== ""
+                                          ) {
+                                            return; // Prevent negative values and values less than 0.01
+                                          }
+                                          updatePaymentSchedule(
+                                            index,
+                                            "amount",
+                                            e.target.value,
+                                            "postPlacement"
+                                          );
+                                        }}
+                                        disabled={!canEdit}
+                                        className="h-11 pl-8 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                                      />
+                                      {errors[
+                                        `postPlacementPayment_${index}_amount`
+                                      ] && (
+                                        <p className="text-xs text-red-500 mt-1">
+                                          {
+                                            errors[
+                                              `postPlacementPayment_${index}_amount`
+                                            ]
+                                          }
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            )
+                          )}
                         </div>
                       )}
                     </div>

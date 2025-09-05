@@ -255,8 +255,8 @@ export default function CreateInterviewChainForm({
             </div>
 
             {/* Recruiter Name */}
-            <div>
-              <Label htmlFor="recruiterId">Recruiter Name *</Label>
+            <div className="field-container">
+              <Label htmlFor="recruiterId" className="text-sm font-medium text-gray-700">Recruiter Name *</Label>
               <Select
                 value={newInterview.RecruiterID?.toString() || ""}
                 onValueChange={(value) =>
@@ -279,15 +279,15 @@ export default function CreateInterviewChainForm({
                 </SelectContent>
               </Select>
               {errors.RecruiterID && (
-                <p className="text-sm text-red-600 mt-1">
+                <p className="text-sm text-red-500 mt-1">
                   Recruiter is required
                 </p>
               )}
             </div>
 
             {/* Client Name */}
-            <div>
-              <Label htmlFor="clientId">Client Name *</Label>
+            <div className="field-container">
+              <Label htmlFor="clientId" className="text-sm font-medium text-gray-700">Client Name *</Label>
               <Select
                 value={newInterview.ClientID?.toString() || ""}
                 onValueChange={(value) =>
@@ -310,13 +310,13 @@ export default function CreateInterviewChainForm({
                 </SelectContent>
               </Select>
               {errors.ClientID && (
-                <p className="text-sm text-red-600 mt-1">Client is required</p>
+                <p className="text-sm text-red-500 mt-1">Client is required</p>
               )}
             </div>
 
             {/* Technology */}
-            <div>
-              <Label htmlFor="position">Technology *</Label>
+            <div className="field-container">
+              <Label htmlFor="position" className="text-sm font-medium text-gray-700">Technology *</Label>
               <Input
                 id="position"
                 value={newInterview.position || ""}
@@ -325,7 +325,7 @@ export default function CreateInterviewChainForm({
                 disabled={isSubmitting || loading}
               />
               {errors.position && (
-                <p className="text-sm text-red-600 mt-1">
+                <p className="text-sm text-red-500 mt-1">
                   Technology is required
                 </p>
               )}
@@ -347,8 +347,8 @@ export default function CreateInterviewChainForm({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Interview Date */}
-              <div>
-                <Label htmlFor="interviewDate">Interview Date *</Label>
+              <div className="field-container">
+                <Label htmlFor="interviewDate" className="text-sm font-medium text-gray-700">Interview Date *</Label>
                 <Input
                   id="interviewDate"
                   type="date"
@@ -365,13 +365,13 @@ export default function CreateInterviewChainForm({
                   disabled={isSubmitting || loading}
                 />
                 {errors.InterviewDate && (
-                  <p className="text-sm text-red-600 mt-1">Date is required</p>
+                  <p className="text-sm text-red-500 mt-1">Date is required</p>
                 )}
               </div>
 
               {/* Interview Type */}
-              <div>
-                <Label htmlFor="interviewType">Interview Type *</Label>
+              <div className="field-container">
+                <Label htmlFor="interviewType" className="text-sm font-medium text-gray-700">Interview Type *</Label>
                 <Select
                   value={newInterview.InterviewType || ""}
                   onValueChange={(value) =>
@@ -391,15 +391,15 @@ export default function CreateInterviewChainForm({
                   </SelectContent>
                 </Select>
                 {errors.InterviewType && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-sm text-red-500 mt-1">
                     Interview Type is required
                   </p>
                 )}
               </div>
 
               {/* Start Time */}
-              <div>
-                <Label htmlFor="startTime">Start Time *</Label>
+              <div className="field-container">
+                <Label htmlFor="startTime" className="text-sm font-medium text-gray-700">Start Time *</Label>
                 <Input
                   id="startTime"
                   type="time"
@@ -410,15 +410,15 @@ export default function CreateInterviewChainForm({
                   disabled={isSubmitting || loading}
                 />
                 {errors.InterviewStartTime && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-sm text-red-500 mt-1">
                     Start time is required
                   </p>
                 )}
               </div>
 
               {/* End Time */}
-              <div>
-                <Label htmlFor="endTime">End Time *</Label>
+              <div className="field-container">
+                <Label htmlFor="endTime" className="text-sm font-medium text-gray-700">End Time *</Label>
                 <Input
                   id="endTime"
                   type="time"
@@ -429,7 +429,7 @@ export default function CreateInterviewChainForm({
                   disabled={isSubmitting || loading}
                 />
                 {errors.InterviewEndTime && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-sm text-red-500 mt-1">
                     End time is required
                   </p>
                 )}
@@ -437,8 +437,8 @@ export default function CreateInterviewChainForm({
             </div>
 
             {/* Interview Method */}
-            <div>
-              <Label htmlFor="interviewMethod">Interview Method *</Label>
+            <div className="field-container">
+              <Label htmlFor="interviewMethod" className="text-sm font-medium text-gray-700">Interview Method *</Label>
               <Select
                 value={newInterview.InterviewMethod || ""}
                 onValueChange={(value) =>
@@ -458,15 +458,15 @@ export default function CreateInterviewChainForm({
                 </SelectContent>
               </Select>
               {errors.InterviewMethod && (
-                <p className="text-sm text-red-600 mt-1">
+                <p className="text-sm text-red-500 mt-1">
                   Interview Method is required
                 </p>
               )}
             </div>
 
             {/* Interview Support */}
-            <div>
-              <Label htmlFor="interviewSupport">Support</Label>
+            <div className="field-container">
+              <Label htmlFor="interviewSupport" className="text-sm font-medium text-gray-700">Support</Label>
               <Select
                 value={newInterview.InterviewSupport || ""}
                 onValueChange={(value) =>
@@ -502,8 +502,8 @@ export default function CreateInterviewChainForm({
             </div>
 
             {/* End Client Name */}
-            <div>
-              <Label htmlFor="endClientName">End Client Name *</Label>
+            <div className="field-container">
+              <Label htmlFor="endClientName" className="text-sm font-medium text-gray-700">End Client Name *</Label>
               <Input
                 id="endClientName"
                 value={newInterview.EndClientName || ""}
@@ -514,7 +514,7 @@ export default function CreateInterviewChainForm({
                 disabled={isSubmitting || loading}
               />
               {errors.EndClientName && (
-                <p className="text-sm text-red-600 mt-1">
+                <p className="text-sm text-red-500 mt-1">
                   End Client Name is required
                 </p>
               )}
@@ -522,8 +522,8 @@ export default function CreateInterviewChainForm({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* End Client Recruiter Name */}
-              <div>
-                <Label htmlFor="endClientRecruiterName">
+              <div className="field-container">
+                <Label htmlFor="endClientRecruiterName" className="text-sm font-medium text-gray-700">
                   End Client Recruiter Name *
                 </Label>
                 <Input
@@ -536,15 +536,15 @@ export default function CreateInterviewChainForm({
                   disabled={isSubmitting || loading}
                 />
                 {errors.EndClientRecruiterName && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-sm text-red-500 mt-1">
                     Recruiter Name is required
                   </p>
                 )}
               </div>
 
               {/* End Client Recruiter Email */}
-              <div>
-                <Label htmlFor="endClientRecruiterEmail">
+              <div className="field-container">
+                <Label htmlFor="endClientRecruiterEmail" className="text-sm font-medium text-gray-700">
                   End Client Recruiter Email *
                 </Label>
                 <Input
@@ -558,15 +558,15 @@ export default function CreateInterviewChainForm({
                   disabled={isSubmitting || loading}
                 />
                 {errors.EndClientRecruiterEmail && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-sm text-red-500 mt-1">
                     Valid email is required
                   </p>
                 )}
               </div>
 
               {/* End Client Recruiter Phone */}
-              <div>
-                <Label htmlFor="endClientRecruiterPhone">
+              <div className="field-container">
+                <Label htmlFor="endClientRecruiterPhone" className="text-sm font-medium text-gray-700">
                   End Client Recruiter Phone
                 </Label>
                 <Input
@@ -579,15 +579,15 @@ export default function CreateInterviewChainForm({
                   disabled={isSubmitting || loading}
                 />
                 {errors.EndClientRecruiterPhone && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-sm text-red-500 mt-1">
                     Phone number is required
                   </p>
                 )}
               </div>
 
               {/* End Client Recruiter LinkedIn */}
-              <div>
-                <Label htmlFor="endClientRecruiterLinkedIn">
+              <div className="field-container">
+                <Label htmlFor="endClientRecruiterLinkedIn" className="text-sm font-medium text-gray-700">
                   End Client Recruiter LinkedIn
                 </Label>
                 <Input
@@ -603,7 +603,7 @@ export default function CreateInterviewChainForm({
                   disabled={isSubmitting || loading}
                 />
                 {errors.EndClientRecruiterLinkedIn && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-sm text-red-500 mt-1">
                     LinkedIn URL is required
                   </p>
                 )}
@@ -611,8 +611,8 @@ export default function CreateInterviewChainForm({
             </div>
 
             {/* Comments */}
-            <div>
-              <Label htmlFor="comments">Comments</Label>
+            <div className="field-container">
+              <Label htmlFor="comments" className="text-sm font-medium text-gray-700">Comments</Label>
               <Textarea
                 id="comments"
                 value={newInterview.Comments || ""}
@@ -777,7 +777,7 @@ export default function CreateInterviewChainForm({
       open={open}
       onOpenChange={isSubmitting || loading ? undefined : onClose}
     >
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-full sm:max-w-2xl lg:max-w-4xl max-h-[95vh] mx-2 sm:mx-4 lg:mx-auto overflow-y-auto client-form">
         <DialogHeader className="pb-4">
           <DialogTitle className="text-2xl font-bold text-[#682A53]">
             Create New Interview Chain

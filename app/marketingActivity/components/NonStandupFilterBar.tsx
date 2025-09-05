@@ -111,58 +111,55 @@ export function NonStandupFilterBar({
   }, [onFiltersChange]);
 
   return (
-    <div className="mb-4">
+    <div className="client-form mb-4">
       <Card className="mb-4 border border-gray-200 bg-transparent">
-        <CardContent className="p-3 sm:p-4">
-          <div className="flex flex-col gap-3 sm:gap-4">
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <div className="flex-1">
-                <Input
-                  type="text"
-                  placeholder="Search interviews..."
-                  value={searchInput}
-                  onChange={handleSearchChange}
-                  className="w-full"
-                  aria-label="Search interviews"
-                />
-              </div>
+        <CardContent className="card-form-content p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-end">
+            <div className="flex-[3]">
+              <Input
+                type="text"
+                placeholder="Search interviews..."
+                value={searchInput}
+                onChange={handleSearchChange}
+                className="w-full"
+                aria-label="Search interviews"
+              />
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <div className="flex flex-col gap-1">
-                <Label className="text-[#682A53] text-xs sm:text-sm">
-                  Start Date
-                </Label>
-                <Input
-                  type="date"
-                  value={filters.dateRange[0]?.format("YYYY-MM-DD") || ""}
-                  onChange={handleStartDateChange}
-                  className="w-full"
-                  aria-label="Start date"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label className="text-[#682A53] text-xs sm:text-sm">
-                  End Date
-                </Label>
-                <Input
-                  type="date"
-                  value={filters.dateRange[1]?.format("YYYY-MM-DD") || ""}
-                  onChange={handleEndDateChange}
-                  className="w-full"
-                  aria-label="End date"
-                />
-              </div>
+            
+            <div className="w-auto min-w-[130px] max-w-[150px]">
+              <Label className="text-xs font-medium text-gray-700 block mb-1">
+                Start Date
+              </Label>
+              <Input
+                type="date"
+                value={filters.dateRange[0]?.format("YYYY-MM-DD") || ""}
+                onChange={handleStartDateChange}
+                className="w-full text-xs px-1.5"
+                aria-label="Start date"
+              />
             </div>
-
-            <div className="flex gap-2">
+            
+            <div className="w-auto min-w-[130px] max-w-[150px]">
+              <Label className="text-xs font-medium text-gray-700 block mb-1">
+                End Date
+              </Label>
+              <Input
+                type="date"
+                value={filters.dateRange[1]?.format("YYYY-MM-DD") || ""}
+                onChange={handleEndDateChange}
+                className="w-full text-xs px-1.5"
+                aria-label="End date"
+              />
+            </div>
+            
+            <div className="flex-shrink-0">
               <Button
                 onClick={handleClearFilters}
                 variant="outline"
-                className="whitespace-nowrap text-xs sm:text-sm"
+                className="whitespace-nowrap text-xs sm:text-sm px-3"
                 aria-label="Clear filters"
               >
-                Clear
+                Reset
               </Button>
             </div>
           </div>

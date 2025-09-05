@@ -688,7 +688,7 @@ export default function EditInterviewDialog({
       open={open}
       onOpenChange={isSubmitting || loading ? undefined : onClose}
     >
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-full sm:max-w-2xl lg:max-w-4xl max-h-[95vh] mx-2 sm:mx-4 lg:mx-auto overflow-y-auto client-form">
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <DialogTitle className="text-2xl font-bold text-[#682A53]">
             Edit Interview
