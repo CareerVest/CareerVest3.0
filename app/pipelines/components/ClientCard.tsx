@@ -50,14 +50,25 @@ export function ClientCard({
           <div className="space-y-1">
             {getRequiredActions(client.status, currentUserRole).map(
               (action: string) => {
+                // Debug client departments in ClientCard
+                if (action === "RateCandidate") {
+                  console.log(`🔍 ClientCard for ${client.name} - departments:`, client.departments);
+                }
                 // Calculate completion status from departments structure
                 const isCompleted =
-                  client.departments?.some((dept) =>
-                    dept.actions.some(
-                      (act) =>
-                        act.actionType === action && act.status === "completed"
-                    )
-                  ) ?? false;
+                  client.departments?.some((dept) => {
+                    // Only check actions in the current department/stage
+                    const isDepartmentMatch = dept.department === client.status;
+                    return isDepartmentMatch && dept.actions.some(
+                      (act) => {
+                        const match = act.actionType === action && act.status === "completed";
+                        if (action === "Acknowledged" || action.includes("Acknowledged")) {
+                          console.log(`🔍 ClientCard checking action "${action}" in dept "${dept.department}" against "${act.actionType}" (status: ${act.status}) - dept match: ${isDepartmentMatch}, action match: ${match}`);
+                        }
+                        return match;
+                      }
+                    );
+                  }) ?? false;
                 const actionDisplayName = action.includes("-")
                   ? action.split("-")[0]
                   : action;

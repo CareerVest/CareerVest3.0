@@ -93,13 +93,6 @@ export default function Dashboard() {
   }, [isAuthenticated, isInitialized, login, router]);
 
   if (!isInitialized) {
-    return (
-      <div className="flex justify-center items-center h-50vh w-full">
-        <div className="text-center">
-          <span className="text-sm text-muted-foreground">Loading...</span>
-        </div>
-      </div>
-    );
   }
 
   if (error) {

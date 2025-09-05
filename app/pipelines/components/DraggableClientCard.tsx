@@ -35,6 +35,7 @@ import { UnifiedActionDialog } from "./UnifiedActionDialog";
 import {
   getAvailableActionsForClient,
   normalizeDepartments,
+  getPipelineCandidateById,
 } from "../actions/pipelineActions";
 import { formatDateEST } from "../../utils/dateUtils";
 import {
@@ -871,6 +872,23 @@ export const DraggableClientCard = memo(function DraggableClientCard({
           actionType={selectedUnifiedAction}
           currentStage={client.status}
           onSuccess={async (result?: any) => {
+            console.log("🎯 UnifiedActionDialog onSuccess called with result:", result);
+            console.log("🎯 Selected action was:", selectedUnifiedAction);
+            console.log("🎯 API returned actionCompleted:", result?.actionCompleted);
+            console.log("🎯 Client departments before update:", client.departments);
+            
+            // Debug all available actions in departments
+            if (client.departments) {
+              client.departments.forEach((dept: any, deptIndex: number) => {
+                console.log(`🔍 Department ${deptIndex} (${dept.department}):`, dept);
+                if (dept.actions && Array.isArray(dept.actions)) {
+                  dept.actions.forEach((action: any, actionIndex: number) => {
+                    console.log(`  Action ${actionIndex}: ${action.actionType} (status: ${action.status})`);
+                  });
+                }
+              });
+            }
+            
             // Handle the unified backend response
             if (result && result.stageTransitioned && result.newStage) {
               // Backend automatically transitioned the client - move in frontend too
@@ -883,59 +901,113 @@ export const DraggableClientCard = memo(function DraggableClientCard({
               onMoveClient(client.id, result.newStage as any, true);
             } else {
               // Regular action completion without transition
-              // Update client data locally without another API call
-              if (onClientUpdate) {
-                // Create a deep copy of the client
-                const updatedClient = JSON.parse(JSON.stringify(client));
-
-                // Update the priority if provided
-                if (result?.additionalData?.updatedPriority) {
-                  updatedClient.priority =
-                    result.additionalData.updatedPriority;
-                }
-
-                // Find and update the specific action in departments
-                if (updatedClient.departments) {
-                  const departments = normalizeDepartments(
-                    updatedClient.departments
-                  );
-                  departments.forEach((dept: any) => {
-                    if (dept && dept.actions) {
-                      let actions = dept.actions;
-                      // Handle Entity Framework $values format
-                      if (
-                        dept.actions &&
-                        typeof dept.actions === "object" &&
-                        (dept.actions as any).$values
-                      ) {
-                        actions = (dept.actions as any).$values;
-                      } else if (Array.isArray(dept.actions)) {
-                        actions = dept.actions;
-                      }
-
-                      // Find and update the specific action
-                      const actionToUpdate = actions.find(
-                        (act: any) =>
-                          act && act.actionType === selectedUnifiedAction
-                      );
-
-                      if (actionToUpdate) {
-                        actionToUpdate.status = "completed";
-                        actionToUpdate.timestamp = new Date().toISOString();
-                        actionToUpdate.performedBy = "System"; // Or get from user context
-                        actionToUpdate.performedByRole = "system";
-                      }
+              // Fetch fresh client data from backend to ensure departments are up-to-date
+              console.log("🔄 Fetching fresh client data after action completion...");
+              try {
+                const freshClientData = await getPipelineCandidateById(client.id);
+                console.log("✅ Fresh client data received:", freshClientData);
+                console.log("✅ Fresh client departments:", freshClientData.departments);
+                
+                // Debug fresh client departments
+                if (freshClientData.departments) {
+                  freshClientData.departments.forEach((dept: any, deptIndex: number) => {
+                    console.log(`🔍 Fresh Department ${deptIndex} (${dept.department}):`, dept);
+                    console.log(`🔍 Department actions property:`, dept.actions);
+                    
+                    // Handle Entity Framework serialization
+                    let actions = dept.actions;
+                    if (dept.actions && typeof dept.actions === "object" && dept.actions.$values) {
+                      actions = dept.actions.$values;
+                      console.log(`🔍 Using $values format:`, actions);
+                    }
+                    
+                    if (actions && Array.isArray(actions)) {
+                      actions.forEach((action: any, actionIndex: number) => {
+                        console.log(`  Fresh Action ${actionIndex}: ${action.actionType} (status: ${action.status})`);
+                      });
+                    } else {
+                      console.log(`❌ Actions is not an array:`, typeof actions, actions);
                     }
                   });
+                } else {
+                  console.log("❌ Fresh client data still has no departments!");
                 }
+                
+                if (onClientUpdate) {
+                  // Use fresh data from backend instead of manual updates
+                  onClientUpdate(freshClientData);
+                } else {
+                  // Fallback to action completion callback
+                  const completedActionType = result?.actionCompleted || selectedUnifiedAction;
+                  await onActionComplete(client.id, completedActionType, {
+                    comment: result?.message || "Action completed via unified system",
+                  });
+                }
+              } catch (error) {
+                console.error("❌ Error fetching fresh client data:", error);
+                // Fallback to the original manual update approach
+                if (onClientUpdate) {
+                  // Create a deep copy of the client
+                  const updatedClient = JSON.parse(JSON.stringify(client));
 
-                // Update the client with modified data
-                onClientUpdate(updatedClient);
-              } else {
-                // Fallback to local action completion if no onClientUpdate prop
-                await onActionComplete(client.id, selectedUnifiedAction, {
-                  comment: "Action completed via unified system",
-                });
+                  // Update the priority if provided
+                  if (result?.additionalData?.updatedPriority) {
+                    updatedClient.priority =
+                      result.additionalData.updatedPriority;
+                  }
+
+                  // Find and update the specific action in departments
+                  if (updatedClient.departments) {
+                    const departments = normalizeDepartments(
+                      updatedClient.departments
+                    );
+                    departments.forEach((dept: any) => {
+                      if (dept && dept.actions) {
+                        let actions = dept.actions;
+                        // Handle Entity Framework $values format
+                        if (
+                          dept.actions &&
+                          typeof dept.actions === "object" &&
+                          (dept.actions as any).$values
+                        ) {
+                          actions = (dept.actions as any).$values;
+                        } else if (Array.isArray(dept.actions)) {
+                          actions = dept.actions;
+                        }
+
+                        // Find and update the specific action using API response
+                        const completedActionType = result?.actionCompleted || selectedUnifiedAction;
+                        console.log("🔍 Looking for action:", completedActionType, "in actions:", actions);
+                        
+                        const actionToUpdate = actions.find(
+                          (act: any) =>
+                            act && act.actionType === completedActionType
+                        );
+
+                        console.log("🔍 Found action to update:", actionToUpdate);
+
+                        if (actionToUpdate) {
+                          console.log("✅ Updating action status to completed");
+                          actionToUpdate.status = "completed";
+                          actionToUpdate.timestamp = new Date().toISOString();
+                          actionToUpdate.performedBy = "System"; // Or get from user context
+                          actionToUpdate.performedByRole = "system";
+                        } else {
+                          console.log("❌ Action not found in department actions");
+                        }
+                      }
+                    });
+                  }
+
+                  // Update the client with modified data
+                  onClientUpdate(updatedClient);
+                } else {
+                  // Fallback to local action completion if no onClientUpdate prop
+                  const completedActionType = result?.actionCompleted || selectedUnifiedAction;
+                  await onActionComplete(client.id, completedActionType, {
+                    comment: result?.message || "Action completed via unified system",
+                  });
+                }
               }
 
               // Update local priority state for immediate UI feedback

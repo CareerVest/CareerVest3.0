@@ -256,6 +256,16 @@ export function UnifiedActionDialog({
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
+    // Check if client status allows actions
+    const restrictedStatuses = ["backed-out", "on-hold", "placed"];
+    if (restrictedStatuses.includes(currentStage)) {
+      setErrors([
+        `Actions are not allowed on clients with status: ${currentStage.replace('-', ' ')}. ` +
+        `This client has reached a terminal state where no further pipeline actions should be performed.`
+      ]);
+      return;
+    }
+
     setIsSubmitting(true);
     setErrors([]);
     setWarnings([]);
@@ -287,13 +297,11 @@ export function UnifiedActionDialog({
           );
         }
 
-        // Wait a moment to show success, then close and notify parent
-        setTimeout(() => {
-          onSuccess(result); // Pass the result to parent so it can handle stage changes
-          onClose();
-          resetForm();
-          setIsSubmitting(false); // Reset submitting state when dialog actually closes
-        }, 1500);
+        // Close dialog and notify parent immediately for better UX
+        onSuccess(result); // Pass the result to parent so it can handle stage changes
+        onClose();
+        resetForm();
+        setIsSubmitting(false);
       } else {
         setErrors(result.errors || ["Action failed"]);
       }

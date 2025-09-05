@@ -72,6 +72,51 @@ export function Pipeline({
 
   const hasLoadedRef = useRef(false);
 
+  // Function to refresh pipeline data
+  const refreshPipelineData = async () => {
+    try {
+      setError(null);
+      console.log("🔄 Refreshing pipeline candidates...");
+
+      const candidates = await apiCall(fetchPipelineCandidates(), {
+        showLoading: false, // Don't show loading spinner on refresh
+      });
+
+      console.log(
+        `✅ Refreshed ${candidates.length} candidates`
+      );
+
+      setClients(candidates);
+
+      // Debug: Show status distribution for admin access issue investigation
+      const statusCounts = candidates.reduce(
+        (acc: Record<string, number>, client) => {
+          acc[client.status] = (acc[client.status] || 0) + 1;
+          return acc;
+        },
+        {}
+      );
+      console.log("🔍 Client status distribution after refresh:", statusCounts);
+    } catch (err: any) {
+      console.error("❌ Error refreshing pipeline candidates:", err);
+      setError(err.message || "Failed to refresh pipeline candidates");
+    }
+  };
+
+  // Function to update individual client in the clients array
+  const updateClientInState = (updatedClient: Client) => {
+    console.log("🔄 Pipeline updating client in state:", updatedClient.id);
+    setClients((prev) => 
+      prev.map((client) => 
+        client.id === updatedClient.id ? updatedClient : client
+      )
+    );
+    // Also notify parent component
+    if (onClientUpdate) {
+      onClientUpdate(updatedClient);
+    }
+  };
+
   // Fetch pipeline candidates on component mount
   useEffect(() => {
     if (hasLoadedRef.current) return;
@@ -93,6 +138,14 @@ export function Pipeline({
             2
           )}ms`
         );
+
+        // Debug departments data
+        console.log("🔍 Sample candidate departments:", candidates[0]?.departments);
+        candidates.forEach((candidate, index) => {
+          if (index < 3) { // Only log first 3 for brevity
+            console.log(`🔍 Candidate ${index} (${candidate.name}) departments:`, candidate.departments);
+          }
+        });
 
         // Add timing for React state update and re-renders
         const renderStartTime = performance.now();
@@ -404,13 +457,12 @@ export function Pipeline({
   ) => {
     try {
       console.log(
-        "🔄 Finalizing action locally:",
-        action,
-        "for client:",
-        clientId
+        "🔄 Pipeline.handleActionComplete called with:",
+        { clientId, action, data }
       );
-      console.log("🔄 Action data:", data);
-      console.log("🔄 User role:", currentUserRole);
+      const client = clients.find((c) => c.id === clientId);
+      console.log("🔄 Client before update:", client);
+      console.log("🔄 Client departments before update:", client?.departments);
 
       // Only update local state here. The backend action was executed in UnifiedActionDialog.
       console.log("🔄 Adding action to completedActions:", action);
@@ -424,7 +476,19 @@ export function Pipeline({
           client.id === clientId
             ? {
                 ...client,
-                // Action completion is managed by backend departments structure
+                // Update departments structure to mark action as completed
+                departments: client.departments?.map(dept => 
+                  dept.department === client.status 
+                    ? {
+                        ...dept,
+                        actions: dept.actions.map(act => 
+                          act.actionType === action 
+                            ? { ...act, status: "completed", completedAt: getCurrentDateEST() }
+                            : act
+                        )
+                      }
+                    : dept
+                ) || [],
                 lastUpdated: getCurrentDateEST(),
                 // Update priority if this is a RateCandidate action
                 priority:
@@ -471,6 +535,11 @@ export function Pipeline({
           }
         }
 
+        // Log the updated client after state change
+        const updatedClient = updatedClients.find((c) => c.id === clientId);
+        console.log("🔄 Client after update:", updatedClient);
+        console.log("🔄 Client departments after update:", updatedClient?.departments);
+
         return updatedClients;
       });
 
@@ -484,6 +553,12 @@ export function Pipeline({
         "🔄 Updated client completedActions:",
         clients.find((c) => c.id === clientId)?.completedActions
       );
+
+      // Note: Individual client refresh is now handled in DraggableClientCard
+      // This general refresh is kept as a backup for any edge cases
+      console.log("🔄 Refreshing general pipeline data after action completion...");
+      await refreshPipelineData();
+      
     } catch (err: any) {
       console.error("❌ Error completing action:", err);
       // You might want to show a toast notification here
@@ -645,7 +720,7 @@ export function Pipeline({
                   toStage: toStage,
                 });
               }}
-              onClientUpdate={onClientUpdate}
+              onClientUpdate={updateClientInState}
               currentUserRole={currentUserRole}
               isMainStage={true}
               selectedClientId={selectedClientId}

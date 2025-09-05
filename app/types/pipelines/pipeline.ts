@@ -3,7 +3,6 @@ export type ClientStatus =
   | "resume"
   | "marketing"
   | "placed"
-  | "completed"
   | "backed-out"
   | "remarketing"
   | "on-hold";

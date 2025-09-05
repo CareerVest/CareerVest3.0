@@ -11,7 +11,23 @@ export default function PipelinesPage() {
   console.log("PipelinesPage rendered");
   const { roles } = useAuth();
   const { getPipelineCandidateById } = usePipelineActions();
-  const currentUserRole: UserRole = "Admin"; // Simulating Sales role
+  
+  // Determine user role from auth context
+  const currentUserRole: UserRole = roles.length > 0 
+    ? (roles.includes("Admin") 
+        ? "Admin"
+        : roles.includes("Sales_Executive")
+        ? "Sales_Executive" 
+        : roles.includes("Senior_Recruiter")
+        ? "Senior_Recruiter"
+        : roles.includes("Recruiter")
+        ? "Recruiter"
+        : roles.includes("Resume_Writer")
+        ? "Resume_Writer"
+        : roles.includes("Marketing_Manager")
+        ? "Marketing_Manager"
+        : "Admin") // fallback to Admin
+    : "Admin"; // fallback if no roles
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isClientDetailsOpen, setIsClientDetailsOpen] = useState(false);
 
@@ -71,6 +87,7 @@ export default function PipelinesPage() {
         isOpen={isClientDetailsOpen}
         onClose={handleCloseSidebar}
         onRefresh={() => selectedClient && handleClientSelect(selectedClient)}
+        currentUserRole={currentUserRole}
       />
     </div>
   );

@@ -45,7 +45,7 @@ const menuItems = [
   {
     title: "Dashboard",
     icon: Gauge,
-    path: "/",
+    path: "/dashboard",
     permissionKey: "viewDashboard",
     module: "dashboard",
   },

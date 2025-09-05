@@ -18,9 +18,10 @@ export default function AccountingLayout({
   const [isCollapsed, setIsCollapsed] = useState(true); // Start collapsed by default
   const [sidebarWidth, setSidebarWidth] = useState(80); // Default collapsed width
   const [userRole, setUserRole] = useState("Admin"); // Default to Admin for demo
+  const [isLoading, setIsLoading] = useState(true); // Add loading state
 
   // Inactivity timeout hook
-  const { isInactive, handleExtendSession } = useInactivity(5, 60); // 5 minutes timeout, 60 seconds countdown
+  const { isInactive, handleExtendSession } = useInactivity(30, 60); // 30 minutes timeout, 60 seconds countdown
 
   useEffect(() => {
     if (isInitialized && !isAuthenticated) {
@@ -54,6 +55,9 @@ export default function AccountingLayout({
         setUserRole("default");
       }
     }
+    // Prevent sidebar flash on reload
+    const timer = setTimeout(() => setIsLoading(false), 0);
+    return () => clearTimeout(timer);
   }, [roles]);
 
   if (!isInitialized) {
@@ -62,6 +66,18 @@ export default function AccountingLayout({
         <div className="text-center">
           <span className="text-sm text-muted-foreground">Loading...</span>
         </div>
+      </div>
+    );
+  }
+
+  // Show loading state to prevent sidebar flash
+  if (isLoading) {
+    return (
+      <div className="flex h-screen bg-background">
+        <div style={{ width: `${sidebarWidth}px` }} className="bg-white border-r border-gray-200" />
+        <main className="flex-1">
+          <div className="h-full bg-background" />
+        </main>
       </div>
     );
   }

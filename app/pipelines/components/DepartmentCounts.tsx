@@ -118,14 +118,6 @@ export function DepartmentCounts({
       textColor: "text-gray-700",
       clients: clients.filter((c) => c.status === "on-hold"),
     },
-    completed: {
-      title: "Completed",
-      icon: CheckCircle2,
-      color: "bg-emerald-500",
-      bgColor: "bg-emerald-50",
-      textColor: "text-emerald-700",
-      clients: clients.filter((c) => c.status === "completed"),
-    },
   };
 
   // Define which departments are clickable (only special states)

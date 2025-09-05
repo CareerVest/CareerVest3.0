@@ -15,6 +15,8 @@ import {
 export const normalizeDepartments = (departments: any): Department[] => {
   if (!departments) return [];
 
+  let deptArray: any[] = [];
+
   // Handle Entity Framework serialization format
   if (
     departments &&
@@ -22,16 +24,22 @@ export const normalizeDepartments = (departments: any): Department[] => {
     departments.$values &&
     Array.isArray(departments.$values)
   ) {
-    return departments.$values;
+    deptArray = departments.$values;
+  } else if (Array.isArray(departments)) {
+    deptArray = departments;
+  } else {
+    console.warn("Unexpected departments format:", departments);
+    return [];
   }
 
-  // Handle regular array format
-  if (Array.isArray(departments)) {
-    return departments;
-  }
-
-  console.warn("Unexpected departments format:", departments);
-  return [];
+  // Transform backend department structure to frontend format
+  return deptArray.map((dept: any) => ({
+    ...dept,
+    department: dept.department || dept.name, // Map backend 'name' field to 'department'
+    actions: Array.isArray(dept.actions) 
+      ? dept.actions 
+      : dept.actions?.$values || [], // Handle actions serialization
+  }));
 };
 
 // Helper function to determine which assigned person to show based on stage

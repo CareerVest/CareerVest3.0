@@ -141,7 +141,7 @@ export function ClientDepartmentActions({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {normalizedDepartments.map((department) => {
         const departmentActions = normalizeDepartmentActions(department);
         const completedActions = departmentActions.filter(

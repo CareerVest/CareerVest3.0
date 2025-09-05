@@ -1,22 +1,24 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { Client } from "../../types/pipelines/pipeline";
+import { Client, UserRole } from "../../types/pipelines/pipeline";
 import { calculateDepartmentTime } from "./utils";
 import { getAssignedPerson } from "../actions/pipelineActions";
-import { formatDateEST } from "../../utils/dateUtils";
-import { getSLAStatus, getSLAStatusColor, getSLAStatusIcon } from "./slaConfig";
+import { getSLAStatus, getSLAStatusIcon } from "./slaConfig";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   User,
   X,
   Activity,
   RefreshCw,
-  Timer,
   Target,
-  CheckCircle2,
   Clock,
+  Shield,
+  Mail,
+  TrendingUp,
+  Award,
+  Zap,
+  Star,
 } from "lucide-react";
 import { ClientDepartmentActions } from "./ClientDepartmentActions";
 
@@ -25,6 +27,7 @@ interface ClientDetailsSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onRefresh?: () => void;
+  currentUserRole: UserRole;
 }
 
 export function ClientDetailsSidebar({
@@ -32,6 +35,7 @@ export function ClientDetailsSidebar({
   isOpen,
   onClose,
   onRefresh,
+  currentUserRole,
 }: ClientDetailsSidebarProps) {
   const sidebarRef = React.useRef<HTMLDivElement>(null);
 
@@ -43,6 +47,32 @@ export function ClientDetailsSidebar({
   }, [isOpen]);
 
   if (!client) return null;
+
+  // Define roles that can access resume/sales action history
+  const canAccessSensitiveInfo = ["Admin", "Sales_Executive", "Resume_Writer"].includes(currentUserRole);
+
+  // Helper functions for visual enhancements
+  const getPriorityIcon = (priority: string) => {
+    switch (priority) {
+      case "exceptional": return <Star className="w-4 h-4 text-yellow-500" />;
+      case "real-time": return <Zap className="w-4 h-4 text-blue-500" />;
+      case "fresher": return <Award className="w-4 h-4 text-green-500" />;
+      default: return <Target className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "sales": return "bg-blue-500";
+      case "resume": return "bg-orange-500";
+      case "marketing": return "bg-green-500";
+      case "remarketing": return "bg-yellow-500";
+      case "placed": return "bg-purple-500";
+      case "backed-out": return "bg-red-500";
+      case "on-hold": return "bg-gray-500";
+      default: return "bg-gray-500";
+    }
+  };
 
   const departmentTime = calculateDepartmentTime(client);
 
@@ -84,35 +114,17 @@ export function ClientDetailsSidebar({
         isolation: "isolate",
       }}
       onClick={(e) => {
-        // Prevent clicks from bubbling up to dialog
         e.stopPropagation();
         e.preventDefault();
       }}
-      onMouseDown={(e) => {
-        // Prevent mouse events from bubbling
-        e.stopPropagation();
-      }}
-      onMouseUp={(e) => {
-        // Prevent mouse events from bubbling
-        e.stopPropagation();
-      }}
     >
-      {/* Backdrop - Only for sidebar, doesn't affect dialog */}
+      {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black bg-opacity-50 transition-opacity pointer-events-auto"
         onClick={(e) => {
-          // Only close sidebar, don't affect dialog
           e.stopPropagation();
           e.preventDefault();
           onClose();
-        }}
-        onMouseDown={(e) => {
-          // Prevent mouse events from bubbling
-          e.stopPropagation();
-        }}
-        onMouseUp={(e) => {
-          // Prevent mouse events from bubbling
-          e.stopPropagation();
         }}
         style={{
           position: "fixed",
@@ -127,34 +139,17 @@ export function ClientDetailsSidebar({
 
       {/* Side Panel */}
       <div
-        className="relative ml-auto w-full max-w-3xl h-full bg-white shadow-2xl transform transition-transform duration-300 ease-in-out"
+        className="relative ml-auto w-full max-w-3xl h-full bg-white shadow-2xl transform transition-all duration-500 ease-out animate-in slide-in-from-right"
         style={{ isolation: "isolate" }}
         onClick={(e) => {
-          // Prevent clicks from bubbling up to dialog
           e.stopPropagation();
           e.preventDefault();
         }}
-        onMouseDown={(e) => {
-          // Prevent mouse events from bubbling
-          e.stopPropagation();
-        }}
-        onMouseUp={(e) => {
-          // Prevent mouse events from bubbling
-          e.stopPropagation();
-        }}
-        onPointerDown={(e) => {
-          // Prevent pointer events from bubbling
-          e.stopPropagation();
-        }}
-        onPointerUp={(e) => {
-          // Prevent pointer events from bubbling
-          e.stopPropagation();
-        }}
       >
-        <div className="h-full flex flex-col">
+        <div className="h-full flex flex-col animate-in fade-in-50 duration-500 delay-200">
           <div
             ref={sidebarRef}
-            className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+            className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 animate-in fade-in duration-700"
             style={{
               isolation: "isolate",
               scrollBehavior: "smooth",
@@ -164,157 +159,194 @@ export function ClientDetailsSidebar({
             }}
             tabIndex={-1}
             onClick={(e) => {
-              // Prevent clicks from bubbling up to dialog
               e.stopPropagation();
               e.preventDefault();
-            }}
-            onMouseDown={(e) => {
-              // Prevent mouse events from bubbling up
-              e.stopPropagation();
-            }}
-            onMouseUp={(e) => {
-              // Prevent mouse events from bubbling up
-              e.stopPropagation();
-            }}
-            onWheel={(e) => {
-              // Prevent wheel events from bubbling up to parent dialogs
-              e.stopPropagation();
-              e.preventDefault();
-            }}
-            onTouchMove={(e) => {
-              // Prevent touch events from bubbling up
-              e.stopPropagation();
-            }}
-            onTouchStart={(e) => {
-              // Prevent touch events from bubbling up
-              e.stopPropagation();
-            }}
-            onTouchEnd={(e) => {
-              // Prevent touch events from bubbling up
-              e.stopPropagation();
             }}
           >
-            <div className="p-6">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <User className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      {client.name}
-                    </h2>
-                    <p className="text-sm text-gray-500">{client.email}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge
-                        variant="secondary"
-                        className="text-xs px-2 py-1 capitalize"
-                      >
-                        {client.status.replace("-", " ")}
-                      </Badge>
-                      {client.priority && (
-                        <Badge
-                          variant="outline"
-                          className="text-xs px-2 py-1 capitalize"
+            <div className="p-4 animate-in slide-in-from-bottom duration-600 delay-300">
+              {/* Beautiful Header with Integrated Metrics */}
+              <div className="relative mb-6">
+                <div className={`${getStatusColor(client.status)} p-5 rounded-2xl text-white relative overflow-hidden`}>
+                  {/* Decorative Elements */}
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6"></div>
+                  <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/5 rounded-full translate-y-3 -translate-x-3"></div>
+                  
+                  <div className="relative flex items-start justify-between">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/30">
+                        <User className="w-7 h-7 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h2 className="text-xl font-bold text-white mb-1 truncate">
+                          {client.name}
+                        </h2>
+                        <div className="flex items-center gap-2 mb-3">
+                          <Mail className="w-4 h-4 text-white/80" />
+                          <p className="text-white/90 text-sm truncate">{client.email}</p>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/30">
+                            <span className="text-white text-xs font-medium capitalize">
+                              {client.status.replace("-", " ")}
+                            </span>
+                          </div>
+                          
+                          {client.priority && (
+                            <div className="bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/30 flex items-center gap-1.5">
+                              {getPriorityIcon(client.priority)}
+                              <span className="text-white text-xs font-medium capitalize">
+                                {client.priority}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Assigned Person */}
+                        {client.assignedTo && (
+                          <div className="flex items-center gap-2 mb-3">
+                            <User className="w-3.5 h-3.5 text-white/80" />
+                            <span className="text-white/90 text-sm">
+                              <span className="font-medium">
+                                {client.status === "sales" ||
+                                client.status === "resume"
+                                  ? "Sales Person"
+                                  : "Recruiter"}
+                              </span>
+                              : {getAssignedPerson(client, client.status)}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Integrated Performance Metrics */}
+                        <div className="flex items-center gap-4 pt-2">
+                          {/* Total Time */}
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                              <Clock className="w-3.5 h-3.5 text-white" />
+                            </div>
+                            <div>
+                              <p className="text-xs text-white/70 uppercase tracking-wide">Time</p>
+                              <p className="text-sm font-bold text-white">
+                                {totalBusinessDays}<span className="text-xs ml-0.5">d</span>
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Efficiency */}
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                              <TrendingUp className="w-3.5 h-3.5 text-white" />
+                            </div>
+                            <div>
+                              <p className="text-xs text-white/70 uppercase tracking-wide">Efficiency</p>
+                              <p className="text-sm font-bold text-white">
+                                {efficiencyScore.toFixed(0)}<span className="text-xs ml-0.5">%</span>
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* SLA Status */}
+                          {currentStageSLA && (
+                            <div className="flex items-center gap-2">
+                              <div className={`w-7 h-7 backdrop-blur-sm rounded-lg flex items-center justify-center ${
+                                currentStageSLA.status === "overdue" ? "bg-red-400/30" :
+                                currentStageSLA.status === "warning" ? "bg-amber-400/30" :
+                                "bg-emerald-400/30"
+                              }`}>
+                                <div className="text-white text-sm">
+                                  {getSLAStatusIcon(currentStageSLA.status)}
+                                </div>
+                              </div>
+                              <div>
+                                <p className="text-xs text-white/70 uppercase tracking-wide">SLA</p>
+                                <p className="text-sm font-bold text-white">
+                                  {currentStageSLA.status === "overdue"
+                                    ? `${currentStageSLA.daysOverdue}d over`
+                                    : currentStageSLA.status === "warning"
+                                    ? `${currentStageSLA.daysRemaining.toFixed(1)}d left`
+                                    : "On track"}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-2">
+                      {onRefresh && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={onRefresh}
+                          className="h-8 w-8 p-0 bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30 text-white transition-all duration-200"
+                          title="Refresh client data"
                         >
-                          {client.priority}
-                        </Badge>
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        </Button>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onClose}
+                        className="h-8 w-8 p-0 bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30 text-white transition-all duration-200"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
-                    {/* Assigned Person Information */}
-                    {client.assignedTo && (
-                      <div className="mt-2">
-                        <p className="text-xs text-gray-600">
-                          <span className="font-medium">
-                            {client.status === "sales" ||
-                            client.status === "resume"
-                              ? "Sales Person"
-                              : "Recruiter"}
-                          </span>
-                          : {getAssignedPerson(client, client.status)}
-                        </p>
-                      </div>
-                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {onRefresh && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={onRefresh}
-                      className="h-8 w-8 p-0"
-                      title="Refresh client data"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onClose}
-                    className="h-8 w-8 p-0"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
               </div>
 
-              {/* Compact Count Cards - Full Width */}
-              <div className="flex items-stretch gap-1 mb-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 flex-1 flex items-center justify-center gap-2">
-                  <Timer className="w-3 h-3 text-blue-500 flex-shrink-0" />
-                  <div className="text-center min-w-0 flex-1">
-                    <p className="text-xs text-blue-600 font-medium leading-tight">Time</p>
-                    <p className="text-sm font-bold text-blue-900 leading-tight">
-                      {totalBusinessDays}d
-                        </p>
-                      </div>
-                    </div>
-
-                <div className="bg-green-50 border border-green-200 rounded-md px-3 py-2 flex-1 flex items-center justify-center gap-2">
-                  <Target className="w-3 h-3 text-green-500 flex-shrink-0" />
-                  <div className="text-center min-w-0 flex-1">
-                    <p className="text-xs text-green-600 font-medium leading-tight">Efficiency</p>
-                    <p className="text-sm font-bold text-green-900 leading-tight">
-                          {efficiencyScore.toFixed(0)}%
-                        </p>
-                      </div>
-                    </div>
-
-                {currentStageSLA && (
-                  <div className={`border-2 rounded-md px-3 py-2 flex-1 flex items-center justify-center gap-2 ${getSLAStatusColor(currentStageSLA.status)}`}>
-                    <div className="text-sm flex-shrink-0">
-                          {getSLAStatusIcon(currentStageSLA.status)}
-                        </div>
-                    <div className="text-center min-w-0 flex-1">
-                      <p className="text-xs font-medium leading-tight">SLA</p>
-                      <p className="text-sm font-bold leading-tight">
-                            {currentStageSLA.status === "overdue"
-                          ? `${currentStageSLA.daysOverdue}d`
-                              : currentStageSLA.status === "warning"
-                          ? `${currentStageSLA.daysRemaining.toFixed(1)}d`
-                          : "OK"}
-                          </p>
-                        </div>
-                      </div>
-                )}
-              </div>
-
-              {/* Combined Department Actions & History */}
-              <Card className="mb-4">
-                <CardHeader>
+              {/* Compact Department Actions */}
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50/50 rounded-2xl overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white pb-4">
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <Activity className="w-5 h-5" />
-                    Department Actions & History
+                    <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                      <Activity className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Department Progress</h3>
+                      <p className="text-white/80 text-sm font-normal mt-0.5">
+                        Track actions across pipeline stages
+                      </p>
+                    </div>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <ClientDepartmentActions
-                    client={client}
-                    departments={client.departments || []}
-                  />
+                <CardContent className="p-5">
+                  {canAccessSensitiveInfo ? (
+                    <div className="relative">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full -translate-y-6 translate-x-6 opacity-30"></div>
+                      <div className="relative">
+                        <ClientDepartmentActions
+                          client={client}
+                          departments={client.departments || []}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 px-4 relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 to-gray-100 rounded-xl opacity-50"></div>
+                      <div className="relative">
+                        <div className="w-16 h-16 bg-gradient-to-br from-slate-400 to-slate-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                          <Shield className="w-8 h-8 text-white" />
+                        </div>
+                        <h3 className="text-base font-semibold text-gray-800 mb-2">
+                          Restricted Access
+                        </h3>
+                        <p className="text-gray-600 leading-relaxed mb-4 text-sm">
+                          Resume and Sales action history is restricted to Admin, Sales Executive, and Resume Writer roles only.
+                        </p>
+                        <div className="inline-flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                          <User className="w-4 h-4 text-gray-500" />
+                          <span className="text-sm font-medium text-gray-700">
+                            Current Role: {currentUserRole.replace('_', ' ')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
