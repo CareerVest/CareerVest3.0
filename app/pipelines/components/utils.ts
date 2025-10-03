@@ -44,7 +44,6 @@ export const getAvailableStages = (
     "resume",
     "marketing",
     "placed",
-    "completed",
     "backed-out",
     "remarketing",
     "on-hold",
@@ -54,10 +53,6 @@ export const getAvailableStages = (
   if (userRole === "Admin") {
     if (currentStatus === "placed") {
       // From placed stage, admin can only move to remarketing or completed
-      return ["remarketing", "completed"];
-    }
-    if (currentStatus === "completed") {
-      // From completed stage, admin can only move to remarketing
       return ["remarketing"];
     }
     return allStages.filter((stage) => stage !== currentStatus);

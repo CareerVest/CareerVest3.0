@@ -68,6 +68,8 @@ const transformListToInterviewChain = (
     latestInterviewDate: item.latestInterviewDate || null,
     latestInterviewStatus: item.latestInterviewStatus || null,
     latestInterviewType: item.latestInterviewType || null,
+    jobBoardName: item.jobBoardName || null,
+    jobBoardUrl: item.jobBoardUrl || null,
   }));
 };
 
@@ -115,6 +117,8 @@ const transformDetailToInterviewChain = (
       UpdatedTS: parseDate(i.updatedTS?.toString()) || new Date(),
       CreatedBy: i.createdBy || null,
       UpdatedBy: i.updatedBy || null,
+      JobBoardName: i.jobBoardName || data.jobBoardName || null,
+      JobBoardUrl: i.jobBoardUrl || data.jobBoardUrl || null,
     };
     console.log("Transformed Interview:", interview);
     return interview;
@@ -148,6 +152,8 @@ const transformDetailToInterviewChain = (
       ? latestInterview.InterviewStatus
       : null,
     latestInterviewType: latestInterview ? latestInterview.InterviewType : null,
+    jobBoardName: data.jobBoardName || null,
+    jobBoardUrl: data.jobBoardUrl || null,
   };
 };
 

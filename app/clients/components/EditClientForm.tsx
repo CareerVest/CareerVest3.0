@@ -645,11 +645,7 @@ export default function EditClientForm({
         {/* Horizontal Dashboard Layout */}
         <div className="space-y-6">
           {/* Cards Grid */}
-          <div
-            className={`grid grid-cols-1 lg:grid-cols-${
-              clientData.clientStatus === "Placed" ? "4" : "3"
-            } gap-6`}
-          >
+          <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-3 gap-6">
             {/* Card 1: Basic Information */}
             <Card>
               <CardHeader className="pb-4">
@@ -750,11 +746,51 @@ export default function EditClientForm({
                       disabled={!canEdit}
                     />
                   </div>
+
+                  <div>
+                    <Label htmlFor="assignedSalesPersonID">
+                      Assigned Sales Person
+                    </Label>
+                    <Select
+                      value={clientData.assignedSalesPersonID?.toString() || ""}
+                      onValueChange={(value) => {
+                        const salesPerson = salesPersons.find(
+                          (s) => s.employeeID.toString() === value
+                        );
+                        handleInputChange(
+                          "assignedSalesPersonID",
+                          value ? parseInt(value) : null
+                        );
+                        handleInputChange(
+                          "assignedSalesPersonName",
+                          salesPerson
+                            ? `${salesPerson.firstName} ${salesPerson.lastName}`
+                            : ""
+                        );
+                      }}
+                      disabled={!canEdit}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select sales person" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {salesPersons.map((salesPerson) => (
+                          <SelectItem
+                            key={salesPerson.employeeID}
+                            value={salesPerson.employeeID.toString()}
+                          >
+                            {salesPerson.firstName} {salesPerson.lastName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Card 2: Marketing & Assignment */}
+            {/* Card 2: Marketing & Assignment - Admin Only */}
+            {userRole === "Admin" && (
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-3">
@@ -768,6 +804,28 @@ export default function EditClientForm({
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="clientStatus">Client Status</Label>
+                    <Select
+                      value={clientData.clientStatus || ""}
+                      onValueChange={(value) =>
+                        handleInputChange("clientStatus", value)
+                      }
+                      disabled={!canEdit}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select client status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sales">Sales</SelectItem>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="marketing">Marketing</SelectItem>
+                        <SelectItem value="placed">Placed</SelectItem>
+                        <SelectItem value="backed_out">Backed Out</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div>
                     <Label htmlFor="marketingStartDate">
                       Marketing Start Date
@@ -880,114 +938,10 @@ export default function EditClientForm({
                     </Select>
                   </div>
 
-                  <div>
-                    <Label htmlFor="assignedSalesPersonID">
-                      Assigned Sales Person
-                    </Label>
-                    <Select
-                      value={clientData.assignedSalesPersonID?.toString() || ""}
-                      onValueChange={(value) => {
-                        const salesPerson = salesPersons.find(
-                          (s) => s.employeeID.toString() === value
-                        );
-                        handleInputChange(
-                          "assignedSalesPersonID",
-                          value ? parseInt(value) : null
-                        );
-                        handleInputChange(
-                          "assignedSalesPersonName",
-                          salesPerson
-                            ? `${salesPerson.firstName} ${salesPerson.lastName}`
-                            : ""
-                        );
-                      }}
-                      disabled={!canEdit}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select sales person" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {salesPersons.map((salesPerson) => (
-                          <SelectItem
-                            key={salesPerson.employeeID}
-                            value={salesPerson.employeeID.toString()}
-                          >
-                            {salesPerson.firstName} {salesPerson.lastName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="clientStatus">Client Status</Label>
-                    <Select
-                      value={clientData.clientStatus}
-                      onValueChange={(value) =>
-                        handleInputChange("clientStatus", value)
-                      }
-                      disabled={!canEdit}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Active">Active</SelectItem>
-                        <SelectItem value="Placed">Placed</SelectItem>
-                        <SelectItem value="BackedOut">Backed Out</SelectItem>
-                        <SelectItem value="ReMarketing">ReMarketing</SelectItem>
-                        <SelectItem value="OnHold">On Hold</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {clientData.clientStatus === "Placed" && (
-                    <div>
-                      <Label htmlFor="placedDate">Placed Date</Label>
-                      <Input
-                        id="placedDate"
-                        type="date"
-                        value={formatDateForInput(clientData.placedDate)}
-                        onChange={(e) =>
-                          handleInputChange("placedDate", e.target.value)
-                        }
-                        disabled={!canEdit}
-                      />
-                    </div>
-                  )}
-
-                  {clientData.clientStatus === "BackedOut" && (
-                    <>
-                      <div>
-                        <Label htmlFor="backedOutDate">Backed Out Date</Label>
-                        <Input
-                          id="backedOutDate"
-                          type="date"
-                          value={formatDateForInput(clientData.backedOutDate)}
-                          onChange={(e) =>
-                            handleInputChange("backedOutDate", e.target.value)
-                          }
-                          disabled={!canEdit}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="backedOutReason">
-                          Backed Out Reason
-                        </Label>
-                        <Textarea
-                          id="backedOutReason"
-                          value={clientData.backedOutReason || ""}
-                          onChange={(e) =>
-                            handleInputChange("backedOutReason", e.target.value)
-                          }
-                          disabled={!canEdit}
-                        />
-                      </div>
-                    </>
-                  )}
                 </div>
               </CardContent>
             </Card>
+            )}
 
             {/* Card 3: Subscription */}
             <Card>
@@ -1327,8 +1281,7 @@ export default function EditClientForm({
               </CardContent>
             </Card>
 
-            {/* Card 4: Post-Placement (only shown for placed clients) */}
-            {clientData.clientStatus === "Placed" && (
+            {/* Card 4: Post-Placement */}
               <Card>
                 <CardHeader className="pb-4">
                   <div className="flex items-center space-x-3">
@@ -1666,7 +1619,6 @@ export default function EditClientForm({
                   </div>
                 </CardContent>
               </Card>
-            )}
           </div>
 
           {/* Submit Button */}

@@ -253,7 +253,7 @@ export default function ClientView({ params }: { params: { id: string } }) {
       {/* Horizontal Dashboard Layout */}
       <div className="space-y-6">
         {/* Cards Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {/* Card 1: Basic Information */}
           <Card className="lg:col-span-1">
             <CardHeader className="pb-4">
@@ -324,11 +324,20 @@ export default function ClientView({ params }: { params: { id: string } }) {
                     <p className="text-sm font-medium">N/A</p>
                   )}
                 </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    Assigned Sales Person
+                  </label>
+                  <p className="text-sm font-medium">
+                    {client.assignedSalesPersonName || "N/A"}
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Card 2: Marketing & Assignment */}
+          {/* Card 2: Marketing & Assignment - Admin Only */}
+          {userRole === "Admin" && (
           <Card className="lg:col-span-1">
             <CardHeader className="pb-4">
               <div className="flex items-center space-x-3">
@@ -399,14 +408,6 @@ export default function ClientView({ params }: { params: { id: string } }) {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">
-                    Assigned Sales Person
-                  </label>
-                  <p className="text-sm font-medium">
-                    {client.assignedSalesPersonName || "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">
                     Placed Date
                   </label>
                   <p className="text-sm font-medium">
@@ -434,6 +435,7 @@ export default function ClientView({ params }: { params: { id: string } }) {
               </div>
             </CardContent>
           </Card>
+          )}
 
           {/* Card 3: Subscription */}
           <Card className="lg:col-span-1">

@@ -518,6 +518,38 @@ export default function ChainExploration({
                               </div>
                             )}
 
+                            {/* Job Board Information */}
+                            {(interview.JobBoardName || interview.JobBoardUrl) && (
+                              <div className="border-t border-gray-200 pt-3">
+                                <h4 className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                                  Job Board Information
+                                </h4>
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                  {interview.JobBoardName && (
+                                    <div>
+                                      <p className="text-xs text-gray-500">Name</p>
+                                      <p className="font-semibold text-gray-900">
+                                        {interview.JobBoardName}
+                                      </p>
+                                    </div>
+                                  )}
+                                  {interview.JobBoardUrl && (
+                                    <div>
+                                      <p className="text-xs text-gray-500">URL</p>
+                                      <a
+                                        href={interview.JobBoardUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:text-blue-800 underline font-semibold text-sm truncate block"
+                                      >
+                                        View Posting
+                                      </a>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
                             {/* Action Buttons */}
                             <div className="flex space-x-2 pt-2 border-t border-gray-200">
                               <Button

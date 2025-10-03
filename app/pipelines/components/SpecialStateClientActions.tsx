@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -13,11 +13,12 @@ import {
 import { Client, ClientStatus, UserRole } from "../../types/pipelines/pipeline";
 import { stageConfig } from "./constants";
 import { canMoveClient, getAvailableStages } from "./utils";
+import { UnifiedActionDialog } from "./UnifiedActionDialog";
 
 interface SpecialStateClientActionsProps {
   client: Client;
   currentUserRole: UserRole;
-  onMoveClient: (clientId: string, newStatus: ClientStatus) => void;
+  onMoveClient: (clientId: string, newStatus: ClientStatus, skipBackendCall?: boolean) => void;
   onActionComplete: (
     clientId: string,
     action: string,
@@ -31,6 +32,9 @@ export function SpecialStateClientActions({
   onMoveClient,
   onActionComplete,
 }: SpecialStateClientActionsProps) {
+  const [unifiedActionDialogOpen, setUnifiedActionDialogOpen] = useState(false);
+  const [selectedActionType, setSelectedActionType] = useState<string>("");
+  
   const config = stageConfig[client.status];
 
   // Define available actions for each special state
@@ -52,7 +56,11 @@ export function SpecialStateClientActions({
         label: "Move to ReMarketing",
         icon: RotateCcw,
         color: "bg-yellow-500 hover:bg-yellow-600",
-        action: () => onMoveClient(client.id, "remarketing"),
+        actionType: "Move to remarketing",
+        action: () => {
+          setSelectedActionType("Move to remarketing");
+          setUnifiedActionDialogOpen(true);
+        },
       });
     }
 
@@ -62,7 +70,11 @@ export function SpecialStateClientActions({
         label: "Move to On Hold",
         icon: Pause,
         color: "bg-gray-500 hover:bg-gray-600",
-        action: () => onMoveClient(client.id, "on-hold"),
+        actionType: "Move to on-hold",
+        action: () => {
+          setSelectedActionType("Move to on-hold");
+          setUnifiedActionDialogOpen(true);
+        },
       });
     }
 
@@ -72,7 +84,11 @@ export function SpecialStateClientActions({
         label: "Restart in Sales",
         icon: ArrowRight,
         color: "bg-blue-500 hover:bg-blue-600",
-        action: () => onMoveClient(client.id, "sales"),
+        actionType: "Move to sales",
+        action: () => {
+          setSelectedActionType("Move to sales");
+          setUnifiedActionDialogOpen(true);
+        },
       });
     }
 
@@ -82,7 +98,11 @@ export function SpecialStateClientActions({
         label: "Restart in Resume",
         icon: ArrowRight,
         color: "bg-orange-500 hover:bg-orange-600",
-        action: () => onMoveClient(client.id, "resume"),
+        actionType: "Move to resume",
+        action: () => {
+          setSelectedActionType("Move to resume");
+          setUnifiedActionDialogOpen(true);
+        },
       });
     }
 
@@ -92,7 +112,11 @@ export function SpecialStateClientActions({
         label: "Resume in Marketing",
         icon: Play,
         color: "bg-green-500 hover:bg-green-600",
-        action: () => onMoveClient(client.id, "marketing"),
+        actionType: "Move to marketing",
+        action: () => {
+          setSelectedActionType("Move to marketing");
+          setUnifiedActionDialogOpen(true);
+        },
       });
     }
 
@@ -112,31 +136,72 @@ export function SpecialStateClientActions({
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <div className={`w-2 h-2 rounded-full ${config.color}`} />
-        <span className="text-xs font-medium text-muted-foreground">
-          Actions:
-        </span>
+    <>
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${config.color}`} />
+          <span className="text-xs font-medium text-muted-foreground">
+            Actions:
+          </span>
+        </div>
+
+        <div className="flex flex-wrap gap-1.5">
+          {availableActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <Button
+                key={action.id}
+                size="sm"
+                variant="outline"
+                className={`text-xs h-6 px-2 ${action.color} text-white border-0 hover:opacity-90`}
+                onClick={action.action}
+              >
+                <Icon className="w-3 h-3 mr-1" />
+                {action.label}
+              </Button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
-        {availableActions.map((action) => {
-          const Icon = action.icon;
-          return (
-            <Button
-              key={action.id}
-              size="sm"
-              variant="outline"
-              className={`text-xs h-6 px-2 ${action.color} text-white border-0 hover:opacity-90`}
-              onClick={action.action}
-            >
-              <Icon className="w-3 h-3 mr-1" />
-              {action.label}
-            </Button>
-          );
-        })}
-      </div>
-    </div>
+      {/* Unified Action Dialog */}
+      {unifiedActionDialogOpen && (
+        <UnifiedActionDialog
+          isOpen={unifiedActionDialogOpen}
+          onClose={() => {
+            setUnifiedActionDialogOpen(false);
+            setSelectedActionType("");
+          }}
+          clientId={parseInt(client.id)}
+          actionType={selectedActionType}
+          currentStage={client.status}
+          onSuccess={async (result?: any) => {
+            console.log("🎯 UnifiedActionDialog onSuccess called with result:", result);
+            
+            // Check if this is a stage transition
+            const isStageTransition = selectedActionType.startsWith("Move to ");
+            
+            if (isStageTransition && result?.stageTransitioned && result?.newStage) {
+              console.log("🔄 SpecialStateClientActions: Stage transition detected, calling onMoveClient...");
+              
+              // For stage transitions, use onMoveClient which handles the state properly
+              // Skip backend call since UnifiedActionDialog already handled it
+              onMoveClient(client.id, result.newStage, true);
+            } else {
+              // For regular actions, call onActionComplete to update local state
+              if (onActionComplete) {
+                await onActionComplete(client.id, selectedActionType, {
+                  comment: result?.notes || "Action completed",
+                });
+              }
+            }
+            
+            // Reset dialog state
+            setUnifiedActionDialogOpen(false);
+            setSelectedActionType("");
+          }}
+        />
+      )}
+    </>
   );
 }

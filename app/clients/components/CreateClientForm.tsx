@@ -35,8 +35,6 @@ import {
   Plus,
   Trash2,
   Upload,
-  Eye,
-  EyeOff,
   Check,
   User,
   Mail,
@@ -47,7 +45,6 @@ import { createClient } from "../actions/clientActions";
 import type {
   Client,
   SubscriptionPlan,
-  PostPlacementPlan,
   PaymentSchedule,
 } from "../../types/Clients/Client";
 import { useAuth } from "../../../contexts/authContext";
@@ -59,51 +56,17 @@ import {
 import { Recruiter } from "../../types/employees/recruiter";
 import { formatDateForInput, parseDateForState } from "../../utils/dateUtils";
 
-const steps = [
-  {
-    id: 1,
-    title: "Basic Information",
-    icon: User,
-    description: "Client details and contact info",
-  },
-  {
-    id: 2,
-    title: "Marketing & Assignment",
-    icon: Mail,
-    description: "Marketing details and team assignment",
-  },
-  {
-    id: 3,
-    title: "Subscription",
-    icon: CreditCard,
-    description: "Subscription plan and payment schedule",
-  },
-  {
-    id: 4,
-    title: "Post-Placement",
-    icon: FileText,
-    description: "Post-placement plan and documents",
-  },
-];
 
 export default function CreateClientForm() {
   const router = useRouter();
   const { roles } = useAuth();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
   const [salesPersons, setSalesPersons] = useState<Recruiter[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [serviceAgreementFile, setServiceAgreementFile] = useState<File | null>(
     null
   );
-  const [promissoryNoteFile, setPromissoryNoteFile] = useState<File | null>(
-    null
-  );
   const [serviceAgreementFileName, setServiceAgreementFileName] =
-    useState<string>("");
-  const [promissoryNoteFileName, setPromissoryNoteFileName] =
     useState<string>("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -111,6 +74,7 @@ export default function CreateClientForm() {
     clientID: 0,
     clientName: "",
     enrollmentDate: null,
+    clientStatus: "sales", // Default status, will be controlled by backend
     techStack: "",
     personalPhoneNumber: "",
     personalEmailAddress: "",
@@ -120,15 +84,10 @@ export default function CreateClientForm() {
     assignedSalesPersonName: "",
     visaStatus: "",
     linkedInURL: "",
-    clientStatus: "Active",
     subscriptionPlanID: null,
     totalDue: 0.0,
     totalPaid: 0.0,
     postPlacementPlanID: null,
-    marketingStartDate: null,
-    marketingEndDate: null,
-    marketingEmailID: "",
-    marketingEmailPassword: "",
     placedDate: null,
     backedOutDate: null,
     backedOutReason: "",
@@ -147,30 +106,16 @@ export default function CreateClientForm() {
     paymentSchedules: [],
     serviceAgreementUrl: null,
     promissoryNoteUrl: null,
+    marketingStartDate: null,
+    marketingEndDate: null,
+    marketingEmailID: "",
+    marketingEmailPassword: "",
   };
 
   const [clientData, setClientData] = useState<Client>(initialClientData);
   const [subscriptionPaymentSchedule, setSubscriptionPaymentSchedule] =
     useState<PaymentSchedule[]>([]);
-  const [postPlacementPaymentSchedule, setPostPlacementPaymentSchedule] =
-    useState<PaymentSchedule[]>([]);
 
-  const userRole =
-    roles.length > 0
-      ? roles.includes("Admin")
-        ? "Admin"
-        : roles.includes("Sales_Executive")
-        ? "Sales_Executive"
-        : roles.includes("Senior_Recruiter")
-        ? "Senior_Recruiter"
-        : roles.includes("Recruiter")
-        ? "Recruiter"
-        : roles.includes("Resume_Writer")
-        ? "Resume_Writer"
-        : roles.includes("Marketing_Manager")
-        ? "Marketing_Manager"
-        : "default"
-      : "default";
 
   useEffect(() => {
     const fetchData = async () => {
@@ -194,16 +139,6 @@ export default function CreateClientForm() {
       (sum, payment) => sum + (payment.amount || 0),
       0
     );
-    const totalPaid = postPlacementPaymentSchedule.reduce(
-      (sum, payment) => sum + (payment.amount || 0),
-      0
-    );
-
-    const hasPostPlacementData =
-      clientData.postPlacementPlan?.planName?.trim() ||
-      clientData.postPlacementPlan?.postPlacementPlanPaymentStartDate ||
-      clientData.postPlacementPlan?.totalPostPlacementAmount ||
-      postPlacementPaymentSchedule.length > 0;
 
     // Auto-update subscription plan total amount
     if (totalDue > 0) {
@@ -216,21 +151,10 @@ export default function CreateClientForm() {
       }));
     }
 
-    // Auto-update post-placement plan total amount
-    if (totalPaid > 0) {
-      setClientData((prevData) => ({
-        ...prevData,
-        postPlacementPlan: {
-          ...prevData.postPlacementPlan!,
-          totalPostPlacementAmount: totalPaid,
-        },
-      }));
-    }
-
     setClientData((prevData) => ({
       ...prevData,
       totalDue,
-      totalPaid,
+      totalPaid: 0,
       paymentSchedules: [
         ...subscriptionPaymentSchedule.map((ps) => ({
           ...ps,
@@ -242,25 +166,9 @@ export default function CreateClientForm() {
           updatedTS: null,
           updatedBy: null,
         })),
-        ...(hasPostPlacementData
-          ? postPlacementPaymentSchedule.map((ps) => ({
-              ...ps,
-              paymentType: "PostPlacement" as const,
-              paymentScheduleID: 0,
-              clientID: 0,
-              createdTS: null,
-              createdBy: null,
-              updatedTS: null,
-              updatedBy: null,
-            }))
-          : []),
       ],
     }));
-  }, [
-    subscriptionPaymentSchedule,
-    postPlacementPaymentSchedule,
-    clientData.postPlacementPlan,
-  ]);
+  }, [subscriptionPaymentSchedule]);
 
   // Auto-populate payment start dates from first payment in schedule
   useEffect(() => {
@@ -278,20 +186,6 @@ export default function CreateClientForm() {
     }
   }, [subscriptionPaymentSchedule, clientData.subscriptionPlan?.subscriptionPlanPaymentStartDate]);
 
-  useEffect(() => {
-    if (postPlacementPaymentSchedule.length > 0) {
-      const firstPaymentDate = postPlacementPaymentSchedule
-        .filter(p => p.paymentDate)
-        .sort((a, b) => new Date(a.paymentDate!).getTime() - new Date(b.paymentDate!).getTime())[0]?.paymentDate;
-      
-      if (firstPaymentDate && !clientData.postPlacementPlan?.postPlacementPlanPaymentStartDate) {
-        handleInputChange(
-          "postPlacementPlan.postPlacementPlanPaymentStartDate",
-          firstPaymentDate
-        );
-      }
-    }
-  }, [postPlacementPaymentSchedule, clientData.postPlacementPlan?.postPlacementPlanPaymentStartDate]);
 
   const handleInputChange = (field: string, value: any) => {
     if (field.includes(".")) {
@@ -308,17 +202,6 @@ export default function CreateClientForm() {
               [fieldName]: fieldName.includes("Date")
                 ? parseDateForState(value)
                 : value,
-            },
-          };
-        } else if (prefix === "postPlacementPlan") {
-          const newValue = fieldName.includes("Date")
-            ? parseDateForState(value)
-            : value;
-          return {
-            ...prevData,
-            postPlacementPlan: {
-              ...prevData.postPlacementPlan!,
-              [fieldName]: newValue,
             },
           };
         }
@@ -343,23 +226,18 @@ export default function CreateClientForm() {
   };
 
   const handleFileChange = (
-    field: "serviceAgreement" | "promissoryNote",
+    field: "serviceAgreement",
     file: File | null
   ) => {
-    if (field === "serviceAgreement") {
-      setServiceAgreementFile(file);
-      setServiceAgreementFileName(file ? file.name : "");
-    } else {
-      setPromissoryNoteFile(file);
-      setPromissoryNoteFileName(file ? file.name : "");
-    }
+    setServiceAgreementFile(file);
+    setServiceAgreementFileName(file ? file.name : "");
   };
 
-  const addPaymentRow = (type: "subscription" | "postPlacement") => {
+  const addPaymentRow = () => {
     const newPayment: PaymentSchedule = {
       paymentDate: null,
       amount: 0,
-      paymentType: type === "subscription" ? "Subscription" : "PostPlacement",
+      paymentType: "Subscription",
       paymentScheduleID: 0,
       clientID: 0,
       subscriptionPlanID: null,
@@ -371,36 +249,19 @@ export default function CreateClientForm() {
       isPaid: false,
     };
 
-    if (type === "subscription") {
-      setSubscriptionPaymentSchedule([
-        ...subscriptionPaymentSchedule,
-        newPayment,
-      ]);
-    } else if (type === "postPlacement") {
-      setPostPlacementPaymentSchedule([
-        ...postPlacementPaymentSchedule,
-        newPayment,
-      ]);
-    }
+    setSubscriptionPaymentSchedule([
+      ...subscriptionPaymentSchedule,
+      newPayment,
+    ]);
   };
 
-  const removePaymentRow = (
-    index: number,
-    type: "subscription" | "postPlacement"
-  ) => {
-    if (type === "subscription") {
-      setSubscriptionPaymentSchedule(
-        subscriptionPaymentSchedule.filter((_, i) => i !== index)
-      );
-    } else if (type === "postPlacement") {
-      setPostPlacementPaymentSchedule(
-        postPlacementPaymentSchedule.filter((_, i) => i !== index)
-      );
-    }
+  const removePaymentRow = (index: number) => {
+    setSubscriptionPaymentSchedule(
+      subscriptionPaymentSchedule.filter((_, i) => i !== index)
+    );
   };
 
   const updatePaymentSchedule = (
-    type: "subscription" | "postPlacement",
     index: number,
     field: keyof PaymentSchedule,
     value: string | number
@@ -420,82 +281,60 @@ export default function CreateClientForm() {
           : payment
       );
 
-    if (type === "subscription") {
-      setSubscriptionPaymentSchedule(updater(subscriptionPaymentSchedule));
+    setSubscriptionPaymentSchedule(updater(subscriptionPaymentSchedule));
 
-      // Auto-set payment start date to the first payment date
-      if (field === "paymentDate" && index === 0) {
-        const newDate = parseDateForState(value as string);
-        setClientData((prevData) => ({
-          ...prevData,
-          subscriptionPlan: {
-            ...prevData.subscriptionPlan!,
-            subscriptionPlanPaymentStartDate: newDate,
-          },
-        }));
-      }
-    } else if (type === "postPlacement") {
-      setPostPlacementPaymentSchedule(updater(postPlacementPaymentSchedule));
-
-      // Auto-set payment start date to the first payment date
-      if (field === "paymentDate" && index === 0) {
-        const newDate = parseDateForState(value as string);
-        setClientData((prevData) => ({
-          ...prevData,
-          postPlacementPlan: {
-            ...prevData.postPlacementPlan!,
-            postPlacementPlanPaymentStartDate: newDate,
-          },
-        }));
-      }
+    // Auto-set payment start date to the first payment date
+    if (field === "paymentDate" && index === 0) {
+      const newDate = parseDateForState(value as string);
+      setClientData((prevData) => ({
+        ...prevData,
+        subscriptionPlan: {
+          ...prevData.subscriptionPlan!,
+          subscriptionPlanPaymentStartDate: newDate,
+        },
+      }));
     }
   };
 
-  const validateStep = (step: number): boolean => {
+  const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
-    if (step === 1) {
-      if (!clientData.clientName.trim()) {
-        newErrors.clientName = "Client name is required";
-      }
-      if (!clientData.enrollmentDate) {
-        newErrors.enrollmentDate = "Enrollment date is required";
-      }
-      if (!clientData.techStack?.trim()) {
-        newErrors.techStack = "Tech stack is required";
-      }
-      if (!clientData.visaStatus?.trim()) {
-        newErrors.visaStatus = "Visa status is required";
-      }
-      if (!clientData.personalPhoneNumber?.trim()) {
-        newErrors.personalPhoneNumber = "Phone number is required";
-      }
-      if (!clientData.personalEmailAddress?.trim()) {
-        newErrors.personalEmailAddress = "Email address is required";
-      } else if (!isValidEmail(clientData.personalEmailAddress)) {
-        newErrors.personalEmailAddress = "Invalid email format";
-      }
-      if (clientData.linkedInURL && !isValidUrl(clientData.linkedInURL)) {
-        newErrors.linkedInURL = "Invalid URL format";
-      }
+    // Basic Information validation
+    if (!clientData.clientName.trim()) {
+      newErrors.clientName = "Client name is required";
+    }
+    if (!clientData.enrollmentDate) {
+      newErrors.enrollmentDate = "Enrollment date is required";
+    }
+    if (!clientData.techStack?.trim()) {
+      newErrors.techStack = "Tech stack is required";
+    }
+    if (!clientData.visaStatus?.trim()) {
+      newErrors.visaStatus = "Visa status is required";
+    }
+    if (!clientData.personalPhoneNumber?.trim()) {
+      newErrors.personalPhoneNumber = "Phone number is required";
+    }
+    if (!clientData.personalEmailAddress?.trim()) {
+      newErrors.personalEmailAddress = "Email address is required";
+    } else if (!isValidEmail(clientData.personalEmailAddress)) {
+      newErrors.personalEmailAddress = "Invalid email format";
+    }
+    if (clientData.linkedInURL && !isValidUrl(clientData.linkedInURL)) {
+      newErrors.linkedInURL = "Invalid URL format";
     }
 
-    if (step === 2) {
-      if (!clientData.assignedSalesPersonID) {
-        newErrors.assignedSalesPerson = "Assigned sales person is required";
-      }
-      if (!clientData.clientStatus) {
-        newErrors.clientStatus = "Client status is required";
-      }
+    // Assignment validation
+    if (!clientData.assignedSalesPersonID) {
+      newErrors.assignedSalesPerson = "Assigned sales person is required";
     }
 
-    if (step === 3) {
-      if (!clientData.subscriptionPlan?.planName?.trim()) {
-        newErrors.subscriptionPlanName = "Subscription plan name is required";
-      }
-      if (!serviceAgreementFile) {
-        newErrors.serviceAgreement = "Service agreement is required";
-      }
+    // Subscription validation
+    if (!clientData.subscriptionPlan?.planName?.trim()) {
+      newErrors.subscriptionPlanName = "Subscription plan name is required";
+    }
+    if (!serviceAgreementFile) {
+      newErrors.serviceAgreement = "Service agreement is required";
     }
 
     setErrors(newErrors);
@@ -516,67 +355,21 @@ export default function CreateClientForm() {
     }
   };
 
-  const nextStep = () => {
-    if (validateStep(currentStep)) {
-      if (!completedSteps.includes(currentStep)) {
-        setCompletedSteps([...completedSteps, currentStep]);
-      }
-
-      // Skip post-placement step if client status is not "Placed"
-      if (currentStep === 3 && clientData.clientStatus !== "Placed") {
-        setCurrentStep(5); // Skip to final step
-      } else {
-        setCurrentStep(currentStep + 1);
-      }
-    }
-  };
-
-  const prevStep = () => {
-    // Handle going back from final step when post-placement was skipped
-    if (currentStep === 5 && clientData.clientStatus !== "Placed") {
-      setCurrentStep(3);
-    } else {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const goToStep = (step: number) => {
-    // Don't allow going to post-placement step if status is not "Placed"
-    if (step === 4 && clientData.clientStatus !== "Placed") {
-      return;
-    }
-
-    if (step <= currentStep || completedSteps.includes(step - 1)) {
-      setCurrentStep(step);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateStep(currentStep)) {
+    if (!validateForm()) {
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const hasPostPlacementData =
-        clientData.postPlacementPlan?.planName?.trim() ||
-        clientData.postPlacementPlan?.postPlacementPlanPaymentStartDate ||
-        clientData.postPlacementPlan?.totalPostPlacementAmount ||
-        postPlacementPaymentSchedule.length > 0;
-
       const submitData: Client = {
         ...clientData,
         enrollmentDate: clientData.enrollmentDate
           ? new Date(clientData.enrollmentDate)
-          : null,
-        marketingStartDate: clientData.marketingStartDate
-          ? new Date(clientData.marketingStartDate)
-          : null,
-        marketingEndDate: clientData.marketingEndDate
-          ? new Date(clientData.marketingEndDate)
           : null,
         placedDate: clientData.placedDate
           ? new Date(clientData.placedDate)
@@ -584,16 +377,9 @@ export default function CreateClientForm() {
         backedOutDate: clientData.backedOutDate
           ? new Date(clientData.backedOutDate)
           : null,
-        postPlacementPlan: hasPostPlacementData
-          ? clientData.postPlacementPlan
-          : null,
-        postPlacementPlanID: hasPostPlacementData
-          ? clientData.postPlacementPlanID
-          : null,
-        paymentSchedules: [
-          ...subscriptionPaymentSchedule,
-          ...(hasPostPlacementData ? postPlacementPaymentSchedule : []),
-        ].map((ps) => ({
+        postPlacementPlan: null,
+        postPlacementPlanID: null,
+        paymentSchedules: subscriptionPaymentSchedule.map((ps) => ({
           ...ps,
           paymentScheduleID: 0,
           clientID: 0,
@@ -607,7 +393,7 @@ export default function CreateClientForm() {
       const success = await createClient(
         submitData,
         serviceAgreementFile,
-        promissoryNoteFile
+        null
       );
       if (success) {
         router.push("/clients");
@@ -624,835 +410,7 @@ export default function CreateClientForm() {
     router.push("/clients");
   };
 
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-              <p className="text-gray-600">
-                Enter the client's basic details and contact information
-              </p>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="clientName">Client Name *</Label>
-                <Input
-                  id="clientName"
-                  value={clientData.clientName}
-                  onChange={(e) =>
-                    handleInputChange("clientName", e.target.value)
-                  }
-                  className={errors.clientName ? "border-red-500" : ""}
-                />
-                {errors.clientName && (
-                  <p className="text-sm text-red-500 mt-1">
-                    {errors.clientName}
-                  </p>
-                )}
-              </div>
 
-              <div>
-                <Label htmlFor="enrollmentDate">Enrollment Date *</Label>
-                <Input
-                  id="enrollmentDate"
-                  type="date"
-                  value={formatDateForInput(clientData.enrollmentDate)}
-                  onChange={(e) =>
-                    handleInputChange("enrollmentDate", e.target.value)
-                  }
-                  className={errors.enrollmentDate ? "border-red-500" : ""}
-                />
-                {errors.enrollmentDate && (
-                  <p className="text-sm text-red-500 mt-1">
-                    {errors.enrollmentDate}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="techStack">Tech Stack *</Label>
-                <Input
-                  id="techStack"
-                  value={clientData.techStack || ""}
-                  onChange={(e) =>
-                    handleInputChange("techStack", e.target.value)
-                  }
-                  placeholder="e.g., React, Node.js, TypeScript"
-                  className={errors.techStack ? "border-red-500" : ""}
-                />
-                {errors.techStack && (
-                  <p className="text-sm text-red-500 mt-1">
-                    {errors.techStack}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="visaStatus">Visa Status *</Label>
-                <Input
-                  id="visaStatus"
-                  value={clientData.visaStatus || ""}
-                  onChange={(e) =>
-                    handleInputChange("visaStatus", e.target.value)
-                  }
-                  className={errors.visaStatus ? "border-red-500" : ""}
-                />
-                {errors.visaStatus && (
-                  <p className="text-sm text-red-500 mt-1">
-                    {errors.visaStatus}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="personalPhoneNumber">Phone Number *</Label>
-                <Input
-                  id="personalPhoneNumber"
-                  value={clientData.personalPhoneNumber || ""}
-                  onChange={(e) =>
-                    handleInputChange("personalPhoneNumber", e.target.value)
-                  }
-                  className={errors.personalPhoneNumber ? "border-red-500" : ""}
-                />
-                {errors.personalPhoneNumber && (
-                  <p className="text-sm text-red-500 mt-1">
-                    {errors.personalPhoneNumber}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="personalEmailAddress">Email Address *</Label>
-                <Input
-                  id="personalEmailAddress"
-                  type="email"
-                  value={clientData.personalEmailAddress || ""}
-                  onChange={(e) =>
-                    handleInputChange("personalEmailAddress", e.target.value)
-                  }
-                  className={
-                    errors.personalEmailAddress ? "border-red-500" : ""
-                  }
-                />
-                {errors.personalEmailAddress && (
-                  <p className="text-sm text-red-500 mt-1">
-                    {errors.personalEmailAddress}
-                  </p>
-                )}
-              </div>
-
-              <div className="md:col-span-2">
-                <Label htmlFor="linkedInURL">LinkedIn URL</Label>
-                <Input
-                  id="linkedInURL"
-                  value={clientData.linkedInURL || ""}
-                  onChange={(e) =>
-                    handleInputChange("linkedInURL", e.target.value)
-                  }
-                  className={errors.linkedInURL ? "border-red-500" : ""}
-                />
-                {errors.linkedInURL && (
-                  <p className="text-sm text-red-500 mt-1">
-                    {errors.linkedInURL}
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        );
-
-      case 2:
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Marketing & Assignment</CardTitle>
-              <p className="text-gray-600">
-                Configure marketing details and assign team members
-              </p>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="marketingStartDate">Marketing Start Date</Label>
-                <Input
-                  id="marketingStartDate"
-                  type="date"
-                  value={formatDateForInput(clientData.marketingStartDate)}
-                  onChange={(e) =>
-                    handleInputChange("marketingStartDate", e.target.value)
-                  }
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="marketingEndDate">Marketing End Date</Label>
-                <Input
-                  id="marketingEndDate"
-                  type="date"
-                  value={formatDateForInput(clientData.marketingEndDate)}
-                  onChange={(e) =>
-                    handleInputChange("marketingEndDate", e.target.value)
-                  }
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="marketingEmailID">Marketing Email ID</Label>
-                <Input
-                  id="marketingEmailID"
-                  value={clientData.marketingEmailID || ""}
-                  onChange={(e) =>
-                    handleInputChange("marketingEmailID", e.target.value)
-                  }
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="marketingEmailPassword">
-                  Marketing Email Password
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="marketingEmailPassword"
-                    type={showPassword ? "text" : "password"}
-                    value={clientData.marketingEmailPassword || ""}
-                    onChange={(e) =>
-                      handleInputChange(
-                        "marketingEmailPassword",
-                        e.target.value
-                      )
-                    }
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="assignedRecruiter">Assigned Recruiter</Label>
-                <Select
-                  value={clientData.assignedRecruiterID?.toString() || ""}
-                  onValueChange={(value) => {
-                    const recruiter = recruiters.find(
-                      (r) => r.employeeID.toString() === value
-                    );
-                    handleInputChange(
-                      "assignedRecruiterID",
-                      value ? parseInt(value) : null
-                    );
-                    handleInputChange(
-                      "assignedRecruiterName",
-                      recruiter
-                        ? `${recruiter.firstName} ${recruiter.lastName}`
-                        : ""
-                    );
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select recruiter" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {recruiters.map((recruiter) => (
-                      <SelectItem
-                        key={recruiter.employeeID}
-                        value={recruiter.employeeID.toString()}
-                      >
-                        {recruiter.firstName} {recruiter.lastName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="assignedSalesPerson">
-                  Assigned Sales Person *
-                </Label>
-                <Select
-                  value={clientData.assignedSalesPersonID?.toString() || ""}
-                  onValueChange={(value) => {
-                    const salesPerson = salesPersons.find(
-                      (s) => s.employeeID.toString() === value
-                    );
-                    handleInputChange(
-                      "assignedSalesPersonID",
-                      value ? parseInt(value) : null
-                    );
-                    handleInputChange(
-                      "assignedSalesPersonName",
-                      salesPerson
-                        ? `${salesPerson.firstName} ${salesPerson.lastName}`
-                        : ""
-                    );
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select sales person" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {salesPersons.map((salesPerson) => (
-                      <SelectItem
-                        key={salesPerson.employeeID}
-                        value={salesPerson.employeeID.toString()}
-                      >
-                        {salesPerson.firstName} {salesPerson.lastName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.assignedSalesPerson && (
-                  <p className="text-sm text-red-500 mt-1">
-                    {errors.assignedSalesPerson}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="clientStatus">Client Status *</Label>
-                <Select
-                  value={clientData.clientStatus}
-                  onValueChange={(value) =>
-                    handleInputChange("clientStatus", value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Placed">Placed</SelectItem>
-                    <SelectItem value="BackedOut">Backed Out</SelectItem>
-                    <SelectItem value="ReMarketing">ReMarketing</SelectItem>
-                    <SelectItem value="OnHold">On Hold</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.clientStatus && (
-                  <p className="text-sm text-red-500 mt-1">
-                    {errors.clientStatus}
-                  </p>
-                )}
-              </div>
-
-              {clientData.clientStatus === "Placed" && (
-                <div>
-                  <Label htmlFor="placedDate">Placed Date</Label>
-                  <Input
-                    id="placedDate"
-                    type="date"
-                    value={formatDateForInput(clientData.placedDate)}
-                    onChange={(e) =>
-                      handleInputChange("placedDate", e.target.value)
-                    }
-                  />
-                </div>
-              )}
-
-              {clientData.clientStatus === "BackedOut" && (
-                <>
-                  <div>
-                    <Label htmlFor="backedOutDate">Backed Out Date</Label>
-                    <Input
-                      id="backedOutDate"
-                      type="date"
-                      value={formatDateForInput(clientData.backedOutDate)}
-                      onChange={(e) =>
-                        handleInputChange("backedOutDate", e.target.value)
-                      }
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label htmlFor="backedOutReason">Backed Out Reason</Label>
-                    <Textarea
-                      id="backedOutReason"
-                      value={clientData.backedOutReason || ""}
-                      onChange={(e) =>
-                        handleInputChange("backedOutReason", e.target.value)
-                      }
-                    />
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        );
-
-      case 3:
-        return (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Subscription Information</CardTitle>
-                <p className="text-gray-600">
-                  Configure subscription plan and payment schedule
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-4">
-                  {/* Plan Name - Full width */}
-                  <div>
-                    <Label htmlFor="subscriptionPlan.planName">
-                      Subscription Plan Name *
-                    </Label>
-                    <Input
-                      id="subscriptionPlan.planName"
-                      value={clientData.subscriptionPlan?.planName || ""}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "subscriptionPlan.planName",
-                          e.target.value
-                        )
-                      }
-                      className={
-                        errors.subscriptionPlanName ? "border-red-500" : ""
-                      }
-                    />
-                    {errors.subscriptionPlanName && (
-                      <p className="text-sm text-red-500 mt-1">
-                        {errors.subscriptionPlanName}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="subscriptionPlan.subscriptionPlanPaymentStartDate">
-                      Payment Start Date *
-                    </Label>
-                    <Input
-                      id="subscriptionPlan.subscriptionPlanPaymentStartDate"
-                      type="date"
-                      value={formatDateForInput(
-                        clientData.subscriptionPlan
-                          ?.subscriptionPlanPaymentStartDate || null
-                      )}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "subscriptionPlan.subscriptionPlanPaymentStartDate",
-                          e.target.value
-                        )
-                      }
-                      className={
-                        errors.subscriptionPlanPaymentStartDate
-                          ? "border-red-500"
-                          : ""
-                      }
-                    />
-                    {errors.subscriptionPlanPaymentStartDate && (
-                      <p className="text-sm text-red-500 mt-1">
-                        {errors.subscriptionPlanPaymentStartDate}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="subscriptionPlan.totalSubscriptionAmount">
-                      Total Subscription Amount *
-                    </Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                        $
-                      </span>
-                      <Input
-                        id="subscriptionPlan.totalSubscriptionAmount"
-                        type="number"
-                        value={
-                          clientData.subscriptionPlan
-                            ?.totalSubscriptionAmount || ""
-                        }
-                        onChange={(e) =>
-                          handleInputChange(
-                            "subscriptionPlan.totalSubscriptionAmount",
-                            e.target.value
-                          )
-                        }
-                        className="pl-8"
-                        readOnly
-                      />
-                    </div>
-                    {errors.subscriptionPlanTotalAmount && (
-                      <p className="text-sm text-red-500 mt-1">
-                        {errors.subscriptionPlanTotalAmount}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Service Agreement Upload */}
-                <div>
-                  <Label htmlFor="serviceAgreement">Service Agreement *</Label>
-                  <div className="flex items-center space-x-2 mt-2">
-                    <Input
-                      id="serviceAgreement"
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      onChange={(e) =>
-                        handleFileChange(
-                          "serviceAgreement",
-                          e.target.files?.[0] || null
-                        )
-                      }
-                      className="hidden"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() =>
-                        document.getElementById("serviceAgreement")?.click()
-                      }
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Service Agreement
-                    </Button>
-                  </div>
-                  {serviceAgreementFileName && (
-                    <p className="text-sm text-gray-600 mt-2">
-                      Selected: {serviceAgreementFileName}
-                    </p>
-                  )}
-                  {errors.serviceAgreement && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {errors.serviceAgreement}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">
-                    Subscription Payment Schedule
-                  </h3>
-                  <div className="border rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Payment Date</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead className="w-20">Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {subscriptionPaymentSchedule.map((payment, index) => (
-                          <TableRow key={index}>
-                            <TableCell>
-                              <Input
-                                type="date"
-                                value={formatDateForInput(payment.paymentDate)}
-                                onChange={(e) =>
-                                  updatePaymentSchedule(
-                                    "subscription",
-                                    index,
-                                    "paymentDate",
-                                    e.target.value
-                                  )
-                                }
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                                  $
-                                </span>
-                                <Input
-                                  type="number"
-                                  value={
-                                    payment.amount === 0 ? "" : payment.amount
-                                  }
-                                  onChange={(e) =>
-                                    updatePaymentSchedule(
-                                      "subscription",
-                                      index,
-                                      "amount",
-                                      e.target.value
-                                    )
-                                  }
-                                  className="pl-8"
-                                />
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  removePaymentRow(index, "subscription")
-                                }
-                              >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => addPaymentRow("subscription")}
-                    className="mt-2"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Payment
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        );
-
-      case 4:
-        // Only show post-placement step if client status is "Placed"
-        if (clientData.clientStatus !== "Placed") {
-          return null;
-        }
-
-        return (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Post-Placement Information</CardTitle>
-                <p className="text-gray-600">
-                  Configure post-placement plan and payment schedule
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="postPlacementPlan.planName">
-                      Post Placement Plan Name
-                    </Label>
-                    <Input
-                      id="postPlacementPlan.planName"
-                      value={clientData.postPlacementPlan?.planName || ""}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "postPlacementPlan.planName",
-                          e.target.value
-                        )
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="postPlacementPlan.postPlacementPlanPaymentStartDate">
-                      Payment Start Date
-                    </Label>
-                    <Input
-                      id="postPlacementPlan.postPlacementPlanPaymentStartDate"
-                      type="date"
-                      value={formatDateForInput(
-                        clientData.postPlacementPlan
-                          ?.postPlacementPlanPaymentStartDate || null
-                      )}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "postPlacementPlan.postPlacementPlanPaymentStartDate",
-                          e.target.value
-                        )
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="postPlacementPlan.totalPostPlacementAmount">
-                      Total Post Placement Amount
-                    </Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                        $
-                      </span>
-                      <Input
-                        id="postPlacementPlan.totalPostPlacementAmount"
-                        type="number"
-                        value={
-                          clientData.postPlacementPlan
-                            ?.totalPostPlacementAmount || ""
-                        }
-                        onChange={(e) =>
-                          handleInputChange(
-                            "postPlacementPlan.totalPostPlacementAmount",
-                            e.target.value
-                          )
-                        }
-                        className="pl-8"
-                        readOnly
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Promissory Note Upload */}
-                <div>
-                  <Label htmlFor="promissoryNote">Promissory Note</Label>
-                  <div className="flex items-center space-x-2 mt-2">
-                    <Input
-                      id="promissoryNote"
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      onChange={(e) =>
-                        handleFileChange(
-                          "promissoryNote",
-                          e.target.files?.[0] || null
-                        )
-                      }
-                      className="hidden"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() =>
-                        document.getElementById("promissoryNote")?.click()
-                      }
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Promissory Note
-                    </Button>
-                  </div>
-                  {promissoryNoteFileName && (
-                    <p className="text-sm text-gray-600 mt-2">
-                      Selected: {promissoryNoteFileName}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <Label className="text-lg font-semibold text-gray-900">Payment Schedule</Label>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {postPlacementPaymentSchedule.length === 0 
-                          ? "No payments added yet" 
-                          : `${postPlacementPaymentSchedule.length} payment${postPlacementPaymentSchedule.length > 1 ? 's' : ''} scheduled`
-                        }
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="default"
-                      size="sm"
-                      onClick={() => addPaymentRow("postPlacement")}
-                      className="bg-[#682A53] hover:bg-[#682A53]/90 text-white shadow-sm"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Payment
-                    </Button>
-                  </div>
-                  
-                  {postPlacementPaymentSchedule.length === 0 ? (
-                    <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
-                      <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-sm font-medium text-gray-900 mb-2">No payment schedule yet</h3>
-                      <p className="text-sm text-gray-500 mb-4">Add payments to create a schedule for this post-placement plan.</p>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addPaymentRow("postPlacement")}
-                        className="border-[#682A53] text-[#682A53] hover:bg-[#682A53] hover:text-white"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add First Payment
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4 max-h-80 overflow-y-auto px-3 py-3">
-                      {postPlacementPaymentSchedule.map((payment, index) => (
-                        <div
-                          key={index}
-                          className="group relative bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 hover:border-[#682A53]/20 mt-3 mb-3"
-                        >
-                          {/* Payment Number Badge */}
-                          <div className="absolute -top-3 -left-3 w-7 h-7 bg-[#682A53] text-white rounded-full flex items-center justify-center text-xs font-semibold shadow-md z-10">
-                            {index + 1}
-                          </div>
-                          
-                          {/* Delete Button */}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removePaymentRow(index, "postPlacement")}
-                            className="absolute -top-3 -right-3 w-7 h-7 p-0 bg-red-500 text-white hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md z-10"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium text-gray-700 flex items-center">
-                                <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                                Payment Date
-                              </Label>
-                              <Input
-                                type="date"
-                                value={formatDateForInput(payment.paymentDate)}
-                                onChange={(e) =>
-                                  updatePaymentSchedule(
-                                    "postPlacement",
-                                    index,
-                                    "paymentDate",
-                                    e.target.value
-                                  )
-                                }
-                                className="h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium text-gray-700 flex items-center">
-                                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                                Amount
-                              </Label>
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium text-sm">
-                                  $
-                                </span>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  placeholder="0.00"
-                                  value={payment.amount === 0 ? "" : payment.amount}
-                                  onChange={(e) =>
-                                    updatePaymentSchedule(
-                                      "postPlacement",
-                                      index,
-                                      "amount",
-                                      e.target.value
-                                    )
-                                  }
-                                  className="h-11 pl-8 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  const getStepCount = () => {
-    return clientData.clientStatus === "Placed" ? 4 : 3;
-  };
 
   return (
     <div className="p-6 w-full">
@@ -1471,9 +429,9 @@ export default function CreateClientForm() {
         {/* Horizontal Dashboard Layout */}
         <div className="space-y-6">
           {/* Cards Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Card 1: Basic Information */}
-            <Card className="lg:col-span-1">
+            <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-[#682A53] rounded-full flex items-center justify-center">
@@ -1614,118 +572,6 @@ export default function CreateClientForm() {
                       </p>
                     )}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Card 2: Marketing & Assignment */}
-            <Card className="lg:col-span-1">
-              <CardHeader className="pb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-[#682A53] rounded-full flex items-center justify-center">
-                    <Mail className="h-4 w-4 text-white" />
-                  </div>
-                  <CardTitle className="text-base">
-                    Marketing & Assignment
-                  </CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="marketingStartDate">
-                      Marketing Start Date
-                    </Label>
-                    <Input
-                      id="marketingStartDate"
-                      type="date"
-                      value={formatDateForInput(clientData.marketingStartDate)}
-                      onChange={(e) =>
-                        handleInputChange("marketingStartDate", e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="marketingEndDate">Marketing End Date</Label>
-                    <Input
-                      id="marketingEndDate"
-                      type="date"
-                      value={formatDateForInput(clientData.marketingEndDate)}
-                      onChange={(e) =>
-                        handleInputChange("marketingEndDate", e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="marketingEmailID">Marketing Email ID</Label>
-                    <Input
-                      id="marketingEmailID"
-                      value={clientData.marketingEmailID || ""}
-                      onChange={(e) =>
-                        handleInputChange("marketingEmailID", e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="marketingEmailPassword">
-                      Marketing Email Password
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="marketingEmailPassword"
-                        type={showPassword ? "text" : "password"}
-                        value={clientData.marketingEmailPassword || ""}
-                        onChange={(e) =>
-                          handleInputChange(
-                            "marketingEmailPassword",
-                            e.target.value
-                          )
-                        }
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="assignedRecruiterID">
-                      Assigned Recruiter
-                    </Label>
-                    <Select
-                      value={clientData.assignedRecruiterID?.toString() || ""}
-                      onValueChange={(value) =>
-                        handleInputChange("assignedRecruiterID", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select recruiter" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {recruiters.map((recruiter) => (
-                          <SelectItem
-                            key={recruiter.employeeID}
-                            value={recruiter.employeeID.toString()}
-                          >
-                            {recruiter.firstName} {recruiter.lastName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
 
                   <div>
                     <Label htmlFor="assignedSalesPersonID">
@@ -1761,169 +607,134 @@ export default function CreateClientForm() {
                       </p>
                     )}
                   </div>
-
-                  <div>
-                    <Label htmlFor="clientStatus">Client Status *</Label>
-                    <Select
-                      value={clientData.clientStatus}
-                      onValueChange={(value) =>
-                        handleInputChange("clientStatus", value)
-                      }
-                    >
-                      <SelectTrigger
-                        className={errors.clientStatus ? "border-red-500" : ""}
-                      >
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Active">Active</SelectItem>
-                        <SelectItem value="Placed">Placed</SelectItem>
-                        <SelectItem value="Backed Out">Backed Out</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {errors.clientStatus && (
-                      <p className="text-sm text-red-500 mt-1">
-                        {errors.clientStatus}
-                      </p>
-                    )}
-                  </div>
-
-                  {clientData.clientStatus === "Backed Out" && (
-                    <>
-                      <div>
-                        <Label htmlFor="backedOutDate">Backed Out Date</Label>
-                        <Input
-                          id="backedOutDate"
-                          type="date"
-                          value={formatDateForInput(clientData.backedOutDate)}
-                          onChange={(e) =>
-                            handleInputChange("backedOutDate", e.target.value)
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="backedOutReason">
-                          Backed Out Reason
-                        </Label>
-                        <Textarea
-                          id="backedOutReason"
-                          value={clientData.backedOutReason || ""}
-                          onChange={(e) =>
-                            handleInputChange("backedOutReason", e.target.value)
-                          }
-                        />
-                      </div>
-                    </>
-                  )}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Card 3: Subscription */}
-            <Card className="lg:col-span-1">
+            {/* Card 2: Subscription */}
+            <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-[#682A53] rounded-full flex items-center justify-center">
                     <CreditCard className="h-4 w-4 text-white" />
                   </div>
-                  <CardTitle className="text-base">Subscription</CardTitle>
+                  <CardTitle className="text-base">
+                    Subscription
+                  </CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="subscriptionPlanName">
-                      Subscription Plan Name *
-                    </Label>
-                    <Input
-                      id="subscriptionPlanName"
-                      value={clientData.subscriptionPlan?.planName || ""}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "subscriptionPlan.planName",
-                          e.target.value
-                        )
-                      }
-                      className={
-                        errors.subscriptionPlanName ? "border-red-500" : ""
-                      }
-                    />
-                    {errors.subscriptionPlanName && (
-                      <p className="text-sm text-red-500 mt-1">
-                        {errors.subscriptionPlanName}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="subscriptionPlanPaymentStartDate">
-                      Payment Start Date
-                    </Label>
-                    <Input
-                      id="subscriptionPlanPaymentStartDate"
-                      type="date"
-                      value={formatDateForInput(
-                        clientData.subscriptionPlan
-                          ?.subscriptionPlanPaymentStartDate || null
+                <div className="space-y-6">
+                  {/* Plan Details */}
+                  <div className="space-y-4">
+                    {/* Plan Name - Full width */}
+                    <div>
+                      <Label
+                        htmlFor="subscriptionPlanName"
+                        className="text-sm font-medium text-gray-700"
+                      >
+                        Plan Name *
+                      </Label>
+                      <Input
+                        id="subscriptionPlanName"
+                        value={clientData.subscriptionPlan?.planName || ""}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "subscriptionPlan.planName",
+                            e.target.value
+                          )
+                        }
+                        className={
+                          errors.subscriptionPlanName ? "border-red-500 mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20" : "mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                        }
+                        placeholder="Enter subscription plan name"
+                      />
+                      {errors.subscriptionPlanName && (
+                        <p className="text-sm text-red-500 mt-1">
+                          {errors.subscriptionPlanName}
+                        </p>
                       )}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "subscriptionPlan.subscriptionPlanPaymentStartDate",
-                          e.target.value
-                        )
-                      }
-                      readOnly
-                    />
+                    </div>
+
+                    {/* Payment Start Date and Total Amount - Side by side */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label
+                          htmlFor="subscriptionPlanPaymentStartDate"
+                          className="text-sm font-medium text-gray-700"
+                        >
+                          Payment Start Date
+                          <span className="text-xs text-gray-500 ml-1">
+                            (auto-filled from first payment)
+                          </span>
+                        </Label>
+                        <Input
+                          id="subscriptionPlanPaymentStartDate"
+                          type="date"
+                          value={formatDateForInput(
+                            clientData.subscriptionPlan
+                              ?.subscriptionPlanPaymentStartDate || null
+                          )}
+                          readOnly
+                          className="mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20 bg-gray-50"
+                        />
+                      </div>
+                      <div>
+                        <Label
+                          htmlFor="totalSubscriptionAmount"
+                          className="text-sm font-medium text-gray-700"
+                        >
+                          Total Amount
+                        </Label>
+                        <div className="relative mt-1">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium text-sm">
+                            $
+                          </span>
+                          <Input
+                            id="totalSubscriptionAmount"
+                            type="number"
+                            value={subscriptionPaymentSchedule.reduce(
+                              (sum, payment) => sum + (payment.amount || 0),
+                              0
+                            )}
+                            disabled={true}
+                            className="h-11 pl-8 bg-gray-50 border-gray-200"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
+                  {/* Service Agreement */}
                   <div>
-                    <Label htmlFor="totalSubscriptionAmount">
-                      Total Subscription Amount
-                    </Label>
-                    <Input
-                      id="totalSubscriptionAmount"
-                      type="number"
-                      value={
-                        clientData.subscriptionPlan?.totalSubscriptionAmount ||
-                        ""
-                      }
-                      onChange={(e) =>
-                        handleInputChange(
-                          "subscriptionPlan.totalSubscriptionAmount",
-                          e.target.value
-                        )
-                      }
-                      readOnly
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="serviceAgreement">
+                    <Label
+                      htmlFor="serviceAgreement"
+                      className="text-sm font-medium text-gray-700"
+                    >
                       Service Agreement *
                     </Label>
-                    <div className="space-y-2">
+                    <div className="space-y-3 mt-2">
                       <div className="flex items-center space-x-2">
                         <Input
                           id="serviceAgreement"
                           type="file"
                           accept=".pdf,.doc,.docx"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              setServiceAgreementFile(file);
-                              setServiceAgreementFileName(file.name);
-                            }
-                          }}
-                          className={
-                            errors.serviceAgreement ? "border-red-500" : ""
+                          onChange={(e) =>
+                            handleFileChange(
+                              "serviceAgreement",
+                              e.target.files?.[0] || null
+                            )
                           }
+                          className="flex-1"
                         />
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           onClick={() =>
-                            document.getElementById("serviceAgreement")?.click()
+                            document
+                              .getElementById("serviceAgreement")
+                              ?.click()
                           }
                         >
                           <Upload className="h-4 w-4 mr-2" />
@@ -1931,12 +742,17 @@ export default function CreateClientForm() {
                         </Button>
                       </div>
                       {serviceAgreementFileName && (
-                        <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded border">
-                          <FileText className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm text-gray-700">
-                            {serviceAgreementFileName}
+                        <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <FileText className="h-4 w-4 text-blue-500" />
+                          <span className="text-sm font-medium text-blue-700">
+                            Selected: {serviceAgreementFileName}
                           </span>
                         </div>
+                      )}
+                      {!serviceAgreementFileName && (
+                        <p className="text-sm text-gray-500 italic p-3 bg-gray-50 rounded-lg">
+                          No service agreement uploaded
+                        </p>
                       )}
                     </div>
                     {errors.serviceAgreement && (
@@ -1950,36 +766,46 @@ export default function CreateClientForm() {
                   <div className="border-t pt-6">
                     <div className="flex items-center justify-between mb-4">
                       <div>
-                        <Label className="text-lg font-semibold text-gray-900">Payment Schedule</Label>
+                        <Label className="text-lg font-semibold text-gray-900">
+                          Payment Schedule
+                        </Label>
                         <p className="text-sm text-gray-500 mt-1">
-                          {subscriptionPaymentSchedule.length === 0 
-                            ? "No payments added yet" 
-                            : `${subscriptionPaymentSchedule.length} payment${subscriptionPaymentSchedule.length > 1 ? 's' : ''} scheduled`
-                          }
+                          {subscriptionPaymentSchedule.length === 0
+                            ? "No payments added yet"
+                            : `${subscriptionPaymentSchedule.length} payment${
+                                subscriptionPaymentSchedule.length > 1
+                                  ? "s"
+                                  : ""
+                              } scheduled`}
                         </p>
                       </div>
                       <Button
                         type="button"
                         variant="default"
                         size="sm"
-                        onClick={() => addPaymentRow("subscription")}
+                        onClick={addPaymentRow}
                         className="bg-[#682A53] hover:bg-[#682A53]/90 text-white shadow-sm"
                       >
                         <Plus className="h-4 w-4 mr-2" />
                         Add Payment
                       </Button>
                     </div>
-                    
+
                     {subscriptionPaymentSchedule.length === 0 ? (
                       <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
                         <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-sm font-medium text-gray-900 mb-2">No payment schedule yet</h3>
-                        <p className="text-sm text-gray-500 mb-4">Add payments to create a schedule for this subscription plan.</p>
+                        <h3 className="text-sm font-medium text-gray-900 mb-2">
+                          No payment schedule yet
+                        </h3>
+                        <p className="text-sm text-gray-500 mb-4">
+                          Add payments to create a schedule for this
+                          subscription plan.
+                        </p>
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => addPaymentRow("subscription")}
+                          onClick={addPaymentRow}
                           className="border-[#682A53] text-[#682A53] hover:bg-[#682A53] hover:text-white"
                         >
                           <Plus className="h-4 w-4 mr-2" />
@@ -1997,13 +823,13 @@ export default function CreateClientForm() {
                             <div className="absolute -top-3 -left-3 w-7 h-7 bg-[#682A53] text-white rounded-full flex items-center justify-center text-xs font-semibold shadow-md z-10">
                               {index + 1}
                             </div>
-                            
+
                             {/* Delete Button */}
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
-                              onClick={() => removePaymentRow(index, "subscription")}
+                              onClick={() => removePaymentRow(index)}
                               className="absolute -top-3 -right-3 w-7 h-7 p-0 bg-red-500 text-white hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md z-10"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -2020,7 +846,6 @@ export default function CreateClientForm() {
                                   value={formatDateForInput(payment.paymentDate)}
                                   onChange={(e) =>
                                     updatePaymentSchedule(
-                                      "subscription",
                                       index,
                                       "paymentDate",
                                       e.target.value
@@ -2041,16 +866,23 @@ export default function CreateClientForm() {
                                   <Input
                                     type="number"
                                     step="0.01"
+                                    min="0.01"
                                     placeholder="0.00"
                                     value={payment.amount || ""}
-                                    onChange={(e) =>
+                                    onChange={(e) => {
+                                      const value = parseFloat(e.target.value);
+                                      if (
+                                        value < 0.01 &&
+                                        e.target.value !== ""
+                                      ) {
+                                        return; // Prevent negative values and values less than 0.01
+                                      }
                                       updatePaymentSchedule(
-                                        "subscription",
                                         index,
                                         "amount",
                                         e.target.value
-                                      )
-                                    }
+                                      );
+                                    }}
                                     className="h-11 pl-8 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
                                   />
                                 </div>
@@ -2064,6 +896,8 @@ export default function CreateClientForm() {
                 </div>
               </CardContent>
             </Card>
+
+
           </div>
 
           {/* Submit Button */}

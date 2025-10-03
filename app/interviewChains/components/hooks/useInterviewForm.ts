@@ -57,6 +57,8 @@ export const useInterviewForm = (
     clientName: chain.clientName || "",
     position: chain.position || "",
     recruiterName: chain.recruiterName || "",
+    JobBoardName: chain.jobBoardName || null,
+    JobBoardUrl: chain.jobBoardUrl || null,
   });
   const [errors, setErrors] = useState({
     InterviewMethod: false,
@@ -74,6 +76,8 @@ export const useInterviewForm = (
     EndClientRecruiterEmail: false,
     EndClientRecruiterPhone: false,
     EndClientRecruiterLinkedIn: false,
+    JobBoardName: false,
+    JobBoardUrl: false,
   });
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState<ClientList[]>([]);
@@ -266,6 +270,10 @@ export const useInterviewForm = (
         ));
     const endClientRecruiterPhoneError = false; // Not required
     const endClientRecruiterLinkedInError = false; // Not required
+    const jobBoardNameError =
+      !isEditing && outcome === "AddNew" && !newInterview.JobBoardName;
+    const jobBoardUrlError =
+      !isEditing && outcome === "AddNew" && !newInterview.JobBoardUrl;
 
     console.log("Validation errors:", {
       methodError,
@@ -283,6 +291,8 @@ export const useInterviewForm = (
       endClientRecruiterEmailError,
       endClientRecruiterPhoneError,
       endClientRecruiterLinkedInError,
+      jobBoardNameError,
+      jobBoardUrlError,
     });
 
     setErrors({
@@ -301,6 +311,8 @@ export const useInterviewForm = (
       EndClientRecruiterEmail: endClientRecruiterEmailError,
       EndClientRecruiterPhone: endClientRecruiterPhoneError,
       EndClientRecruiterLinkedIn: endClientRecruiterLinkedInError,
+      JobBoardName: jobBoardNameError,
+      JobBoardUrl: jobBoardUrlError,
     });
 
     if (
@@ -316,7 +328,9 @@ export const useInterviewForm = (
       interviewStatusError ||
       endClientNameError ||
       endClientRecruiterNameError ||
-      endClientRecruiterEmailError
+      endClientRecruiterEmailError ||
+      jobBoardNameError ||
+      jobBoardUrlError
     ) {
       console.log("Validation failed, errors set:", errors);
       return;
@@ -363,6 +377,8 @@ export const useInterviewForm = (
       EndClientRecruiterEmail: false,
       EndClientRecruiterPhone: false,
       EndClientRecruiterLinkedIn: false,
+      JobBoardName: false,
+      JobBoardUrl: false,
     });
   };
 

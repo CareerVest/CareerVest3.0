@@ -142,6 +142,8 @@ export default function CreateInterviewChainForm({
       handleInputChange("InterviewType", "");
       handleInputChange("InterviewSupport", "");
       handleInputChange("Comments", "");
+      handleInputChange("JobBoardName", "");
+      handleInputChange("JobBoardUrl", "");
 
       // Reset validation errors
       setErrors({
@@ -160,6 +162,8 @@ export default function CreateInterviewChainForm({
         EndClientRecruiterEmail: false,
         EndClientRecruiterPhone: false,
         EndClientRecruiterLinkedIn: false,
+        JobBoardName: false,
+        JobBoardUrl: false,
       });
 
       setCurrentStep(1);
@@ -185,6 +189,8 @@ export default function CreateInterviewChainForm({
         EndClientRecruiterEmail: false,
         EndClientRecruiterPhone: false,
         EndClientRecruiterLinkedIn: false,
+        JobBoardName: false,
+        JobBoardUrl: false,
       });
     }
     prevOpenRef.current = open;
@@ -230,7 +236,9 @@ export default function CreateInterviewChainForm({
         return !!(
           newInterview.EndClientName &&
           newInterview.EndClientRecruiterName &&
-          newInterview.EndClientRecruiterEmail
+          newInterview.EndClientRecruiterEmail &&
+          newInterview.JobBoardName &&
+          newInterview.JobBoardUrl
         );
       case 4:
         return true;
@@ -610,6 +618,45 @@ export default function CreateInterviewChainForm({
               </div>
             </div>
 
+            {/* Job Board Name */}
+            <div className="field-container">
+              <Label htmlFor="jobBoardName" className="text-sm font-medium text-gray-700">Job Board Name *</Label>
+              <Input
+                id="jobBoardName"
+                value={newInterview.JobBoardName || ""}
+                onChange={(e) =>
+                  handleInputChange("JobBoardName", e.target.value)
+                }
+                placeholder="Enter job board name"
+                disabled={isSubmitting || loading}
+              />
+              {errors.JobBoardName && (
+                <p className="text-sm text-red-500 mt-1">
+                  Job Board Name is required
+                </p>
+              )}
+            </div>
+
+            {/* Job Board URL */}
+            <div className="field-container">
+              <Label htmlFor="jobBoardUrl" className="text-sm font-medium text-gray-700">Job Board URL *</Label>
+              <Input
+                id="jobBoardUrl"
+                type="url"
+                value={newInterview.JobBoardUrl || ""}
+                onChange={(e) =>
+                  handleInputChange("JobBoardUrl", e.target.value)
+                }
+                placeholder="https://example.com/job-posting"
+                disabled={isSubmitting || loading}
+              />
+              {errors.JobBoardUrl && (
+                <p className="text-sm text-red-500 mt-1">
+                  Job Board URL is required
+                </p>
+              )}
+            </div>
+
             {/* Comments */}
             <div className="field-container">
               <Label htmlFor="comments" className="text-sm font-medium text-gray-700">Comments</Label>
@@ -751,6 +798,18 @@ export default function CreateInterviewChainForm({
                     <span className="text-gray-600">Phone:</span>
                     <span className="ml-2 font-medium">
                       {newInterview.EndClientRecruiterPhone || "Not provided"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Job Board:</span>
+                    <span className="ml-2 font-medium">
+                      {newInterview.JobBoardName}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Job URL:</span>
+                    <span className="ml-2 font-medium text-blue-600 truncate">
+                      {newInterview.JobBoardUrl}
                     </span>
                   </div>
                 </div>

@@ -210,6 +210,8 @@ export const useInterviewChains = () => {
         endClientRecruiterPhone: newInterview.EndClientRecruiterPhone || null,
         endClientRecruiterLinkedIn:
           newInterview.EndClientRecruiterLinkedIn || null,
+        jobBoardName: newInterview.JobBoardName || "",
+        jobBoardUrl: newInterview.JobBoardUrl || "",
       };
 
       if (newInterview.ParentInterviewChainID) {
@@ -294,6 +296,8 @@ export const useInterviewChains = () => {
         endClientRecruiterPhone: newInterview.EndClientRecruiterPhone || null,
         endClientRecruiterLinkedIn:
           newInterview.EndClientRecruiterLinkedIn || null,
+        jobBoardName: newInterview.JobBoardName || null,
+        jobBoardUrl: newInterview.JobBoardUrl || null,
       };
 
       await apiCall(
@@ -492,6 +496,8 @@ export const useInterviewChains = () => {
         interviewStatus: newInterview?.InterviewStatus || "Scheduled",
         interviewSupport: newInterview?.InterviewSupport || null,
         comments: newInterview?.Comments || null,
+        jobBoardName: newInterview?.JobBoardName || "",
+        jobBoardUrl: newInterview?.JobBoardUrl || "",
       };
 
       console.log("Payload being sent to API:", payload);

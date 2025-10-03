@@ -38,6 +38,7 @@ import {
   executePipelineAction,
   fetchRecruiters,
 } from "../actions/pipelineActions";
+import { showActionSuccess, showActionError, showRetryableError } from "@/lib/toastUtils";
 
 interface UnifiedActionDialogProps {
   isOpen: boolean;
@@ -256,15 +257,9 @@ export function UnifiedActionDialog({
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
-    // Check if client status allows actions
-    const restrictedStatuses = ["backed-out", "on-hold", "placed"];
-    if (restrictedStatuses.includes(currentStage)) {
-      setErrors([
-        `Actions are not allowed on clients with status: ${currentStage.replace('-', ' ')}. ` +
-        `This client has reached a terminal state where no further pipeline actions should be performed.`
-      ]);
-      return;
-    }
+    // Note: Removed frontend restriction for special states (backed-out, on-hold, placed)
+    // The backend rules service now properly handles moves FROM these states
+    // Let the backend determine what actions are allowed based on user role and rules
 
     setIsSubmitting(true);
     setErrors([]);
@@ -286,8 +281,24 @@ export function UnifiedActionDialog({
 
       if (result.success) {
         console.log("✅ Action completed successfully:", result);
+
+        // Show success toast notification
+        showActionSuccess(
+          actionType,
+          undefined, // Could pass client name if available
+          result.stageTransitioned,
+          result.newStage
+        );
+
+        // Show warnings as info toasts if any
         if (result.warnings && result.warnings.length > 0) {
           setWarnings(result.warnings);
+          result.warnings.forEach((warning: string) => {
+            // Using info toast for warnings to not alarm the user
+            setTimeout(() => {
+              showActionError(actionType, [warning]);
+            }, 500);
+          });
         }
 
         // Check if the backend performed a stage transition
@@ -303,11 +314,34 @@ export function UnifiedActionDialog({
         resetForm();
         setIsSubmitting(false);
       } else {
-        setErrors(result.errors || ["Action failed"]);
+        // Backend returned success: false with errors
+        const errorMessages = result.errors || ["Action failed"];
+        setErrors(errorMessages);
+        showActionError(actionType, errorMessages);
+        setIsSubmitting(false);
       }
     } catch (error: any) {
       console.error("Failed to execute action:", error);
-      setErrors([error.message || "Failed to execute action"]);
+
+      // Determine error type for better UX
+      const errorMessage = error.message || "Failed to execute action";
+      const isNetworkError =
+        error.message?.toLowerCase().includes("network") ||
+        error.message?.toLowerCase().includes("fetch") ||
+        error.code === "ECONNABORTED";
+
+      setErrors([errorMessage]);
+
+      // Show retryable error for network issues
+      if (isNetworkError) {
+        showRetryableError("Network error occurred. Please check your connection.", () => {
+          setIsSubmitting(false);
+          handleSubmit(); // Retry the action
+        });
+      } else {
+        showActionError(actionType, [errorMessage]);
+      }
+
       setIsSubmitting(false); // Only reset on error
     }
   };

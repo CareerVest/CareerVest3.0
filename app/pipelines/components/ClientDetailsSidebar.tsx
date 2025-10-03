@@ -48,8 +48,35 @@ export function ClientDetailsSidebar({
 
   if (!client) return null;
 
-  // Define roles that can access resume/sales action history
+  // Define role-based access levels for pipeline history
+  // Full access: Admin, Sales_Executive, Resume_Writer (can see all departments)
   const canAccessSensitiveInfo = ["Admin", "Sales_Executive", "Resume_Writer"].includes(currentUserRole);
+  
+  // Limited access: Marketing_Manager (can see marketing departments only)
+  // No access: Senior_Recruiter and other roles (restricted access message)
+  const canAccessMarketingInfo = ["Admin", "Sales_Executive", "Resume_Writer", "Marketing_Manager"].includes(currentUserRole);
+  
+  // Filter departments based on user role
+  const getFilteredDepartments = (departments: any[]) => {
+    if (canAccessSensitiveInfo) {
+      // Full access: Admin, Sales_Executive, Resume_Writer can see all departments
+      return departments;
+    } else if (currentUserRole === "Marketing_Manager") {
+      // Limited access: Marketing Manager can only see marketing-related departments
+      // Excludes sales and resume departments for privacy/security
+      return departments.filter(dept => 
+        dept && (
+          dept.name === "marketing" || 
+          dept.name === "remarketing" || 
+          dept.name === "placed" || 
+          dept.name === "on-hold" || 
+          dept.name === "backed-out"
+        )
+      );
+    }
+    // No access: Senior_Recruiter and other roles get empty array (restricted message shown)
+    return [];
+  };
 
   // Helper functions for visual enhancements
   const getPriorityIcon = (priority: string) => {
@@ -315,13 +342,13 @@ export function ClientDetailsSidebar({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-5">
-                  {canAccessSensitiveInfo ? (
+                  {canAccessMarketingInfo ? (
                     <div className="relative">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full -translate-y-6 translate-x-6 opacity-30"></div>
                       <div className="relative">
                         <ClientDepartmentActions
                           client={client}
-                          departments={client.departments || []}
+                          departments={getFilteredDepartments(client.departments || [])}
                         />
                       </div>
                     </div>
@@ -335,9 +362,6 @@ export function ClientDetailsSidebar({
                         <h3 className="text-base font-semibold text-gray-800 mb-2">
                           Restricted Access
                         </h3>
-                        <p className="text-gray-600 leading-relaxed mb-4 text-sm">
-                          Resume and Sales action history is restricted to Admin, Sales Executive, and Resume Writer roles only.
-                        </p>
                         <div className="inline-flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
                           <User className="w-4 h-4 text-gray-500" />
                           <span className="text-sm font-medium text-gray-700">

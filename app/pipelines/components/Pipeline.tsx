@@ -23,21 +23,19 @@ import {
   shouldResetActions,
   getActionsToReset,
 } from "./utils";
-import { DroppableStage } from "./DroppableStage";
+import { Stage } from "./Stage";
 import { DepartmentCounts } from "./DepartmentCounts";
-import { MultiFileUploadDialog, FileUpload } from "./MultiFileUploadDialog";
-import { formatDateEST, getCurrentDateEST } from "../../utils/dateUtils";
+import { UnifiedActionDialog } from "./UnifiedActionDialog";
+import { getCurrentDateEST } from "../../utils/dateUtils";
 import {
   isTransitionRequiringDocuments,
-  getTransitionRequirement,
-  getFileRequirementsForTransition,
   canUserPerformTransition,
 } from "./documentRequirements";
 import {
   fetchPipelineCandidates,
-  executePipelineAction,
 } from "../actions/pipelineActions";
 import { getClient } from "../../clients/actions/clientActions";
+import { showSuccess, showError, showInfo } from "@/lib/toastUtils";
 
 interface PipelineProps {
   currentUserRole: UserRole;
@@ -58,16 +56,18 @@ export function Pipeline({
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<ClientStatus | "all">("all");
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-  const [multiFileDialog, setMultiFileDialog] = useState<{
+  
+  // Unified action dialog state for stage transitions
+  const [unifiedActionDialog, setUnifiedActionDialog] = useState<{
     isOpen: boolean;
-    client: Client | null;
-    fromStage: ClientStatus | null;
-    toStage: ClientStatus | null;
+    clientId: string | null;
+    actionType: string;
+    currentStage: ClientStatus | null;
   }>({
     isOpen: false,
-    client: null,
-    fromStage: null,
-    toStage: null,
+    clientId: null,
+    actionType: "",
+    currentStage: null,
   });
 
   const hasLoadedRef = useRef(false);
@@ -88,6 +88,9 @@ export function Pipeline({
 
       setClients(candidates);
 
+      // Show subtle success notification
+      showInfo("Pipeline refreshed", `${candidates.length} clients loaded`);
+
       // Debug: Show status distribution for admin access issue investigation
       const statusCounts = candidates.reduce(
         (acc: Record<string, number>, client) => {
@@ -99,7 +102,9 @@ export function Pipeline({
       console.log("🔍 Client status distribution after refresh:", statusCounts);
     } catch (err: any) {
       console.error("❌ Error refreshing pipeline candidates:", err);
-      setError(err.message || "Failed to refresh pipeline candidates");
+      const errorMsg = err.message || "Failed to refresh pipeline candidates";
+      setError(errorMsg);
+      showError("Failed to refresh pipeline", errorMsg);
     }
   };
 
@@ -284,171 +289,32 @@ export function Pipeline({
       return;
     }
 
-    // Check if this transition requires documents (and they haven't been uploaded yet)
+    // Use unified action dialog for all stage transitions
+    const actionType = `Move to ${newStatus}`;
+    
+    // Check if user can perform this transition
     if (
       isTransitionRequiringDocuments(
         client.status,
         newStatus,
         client.completedActions
-      )
+      ) &&
+      !canUserPerformTransition(client.status, newStatus, currentUserRole)
     ) {
-      // Check if user can perform this transition
-      if (
-        !canUserPerformTransition(client.status, newStatus, currentUserRole)
-      ) {
-        console.log("❌ User cannot perform this transition");
-        return;
-      }
-
-      // Open the multi-file upload dialog for the transition
-      setMultiFileDialog({
-        isOpen: true,
-        client: client,
-        fromStage: client.status,
-        toStage: newStatus,
-      });
+      console.log("❌ User cannot perform this transition");
       return;
     }
 
-    try {
-      // Use unified action system for all stage transitions
-      const result = await apiCall(
-        executePipelineAction({
-          clientID: parseInt(clientId),
-          actionType: `Move to ${newStatus}`,
-          notes: `Client moved from ${client.status} to ${newStatus}`,
-        }),
-        { showLoading: true }
-      );
-
-      console.log("✅ Stage transition completed:", result);
-
-      // Check if we need to reset actions (moving backwards)
-      const needsActionReset = shouldResetActions(client.status, newStatus);
-      const actionsToReset = needsActionReset
-        ? getActionsToReset(client.status, newStatus)
-        : [];
-
-      // Update local state
-      setClients((prev) =>
-        prev.map((client) =>
-          client.id === clientId
-            ? {
-                ...client,
-                status: newStatus,
-                lastUpdated: getCurrentDateEST(),
-                // Departments will be updated when the data is refetched from backend
-                // The backend ExecutePipelineAction handles all action state management
-              }
-            : client
-        )
-      );
-
-      if (needsActionReset) {
-        console.log(
-          "🔄 Reset actions for client moving backwards:",
-          actionsToReset
-        );
-      }
-
-      console.log("✅ Moved client", clientId, "to", newStatus);
-    } catch (err: any) {
-      console.error("❌ Error moving client:", err);
-      // You might want to show a toast notification here
-    }
+    // Open the unified action dialog for the transition
+    setUnifiedActionDialog({
+      isOpen: true,
+      clientId: clientId,
+      actionType: actionType,
+      currentStage: client.status,
+    });
+    return;
   };
 
-  const handleMultiFileUpload = async (data: {
-    comments: string;
-    files: FileUpload[];
-  }) => {
-    if (
-      !multiFileDialog.client ||
-      !multiFileDialog.fromStage ||
-      !multiFileDialog.toStage
-    )
-      return;
-
-    const transitionRequirement = getTransitionRequirement(
-      multiFileDialog.fromStage,
-      multiFileDialog.toStage
-    );
-
-    if (!transitionRequirement) return;
-
-    try {
-      // Complete the transition action with multiple files using unified system
-      await apiCall(
-        executePipelineAction({
-          clientID: parseInt(multiFileDialog.client.id),
-          actionType: transitionRequirement.actionName,
-          notes: data.comments,
-          additionalFiles: data.files.map((f) => f.file),
-          additionalFileLabels: data.files.map((f) => f.label),
-        }),
-        { showLoading: true }
-      );
-
-      // Check if we need to reset actions (moving backwards)
-      const needsActionReset = shouldResetActions(
-        multiFileDialog.client!.status,
-        multiFileDialog.toStage!
-      );
-      const actionsToReset = needsActionReset
-        ? getActionsToReset(
-            multiFileDialog.client!.status,
-            multiFileDialog.toStage!
-          )
-        : [];
-
-      // Update local state
-      setClients((prev) =>
-        prev.map((client) =>
-          client.id === multiFileDialog.client!.id
-            ? {
-                ...client,
-                status: multiFileDialog.toStage!,
-                lastUpdated: getCurrentDateEST(),
-                // Departments and actions are managed by backend ExecutePipelineAction
-                notes:
-                  client.notes +
-                  `\n${formatDateEST(new Date())} - ${
-                    transitionRequirement.actionName
-                  }: ${data.comments}`,
-                // Documents and action history are managed by backend departments structure
-                // No need to track locally as ExecutePipelineAction handles everything
-              }
-            : client
-        )
-      );
-
-      if (needsActionReset) {
-        console.log(
-          "🔄 Reset actions for client moving backwards via transition:",
-          actionsToReset
-        );
-      }
-
-      // Close the dialog
-      setMultiFileDialog({
-        isOpen: false,
-        client: null,
-        fromStage: null,
-        toStage: null,
-      });
-
-      console.log(
-        "✅ Completed transition for client",
-        multiFileDialog.client.id,
-        "from",
-        multiFileDialog.fromStage,
-        "to",
-        multiFileDialog.toStage
-      );
-    } catch (err: any) {
-      console.error("❌ Error completing transition:", err);
-    }
-  };
 
   const handleActionComplete = async (
     clientId: string,
@@ -460,11 +326,24 @@ export function Pipeline({
         "🔄 Pipeline.handleActionComplete called with:",
         { clientId, action, data }
       );
+
+      // Check if this is a stage transition action (Move to X)
+      const isStageTransition = action.startsWith("Move to ");
+      
+      if (isStageTransition) {
+        console.log("🔄 Stage transition detected - skipping local state update to avoid conflicts");
+        console.log("🔄 Only refreshing data to get backend changes...");
+        
+        // For stage transitions, just refresh data - don't update local state
+        await refreshPipelineData();
+        return;
+      }
+
       const client = clients.find((c) => c.id === clientId);
       console.log("🔄 Client before update:", client);
       console.log("🔄 Client departments before update:", client?.departments);
 
-      // Only update local state here. The backend action was executed in UnifiedActionDialog.
+      // Only update local state here for non-transition actions.
       console.log("🔄 Adding action to completedActions:", action);
       console.log(
         "🔄 Before update - client completedActions:",
@@ -478,7 +357,7 @@ export function Pipeline({
                 ...client,
                 // Update departments structure to mark action as completed
                 departments: client.departments?.map(dept => 
-                  dept.department === client.status 
+                  dept.name === client.status 
                     ? {
                         ...dept,
                         actions: dept.actions.map(act => 
@@ -706,20 +585,12 @@ export function Pipeline({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {mainStages.map((status) => (
           <div key={status}>
-            <DroppableStage
+            <Stage
               status={status}
               clients={getClientsForStatus(status)}
               onMoveClient={moveClient}
               onViewDetails={handleViewDetails}
               onActionComplete={handleActionComplete}
-              onTransitionAction={(client, fromStage, toStage) => {
-                setMultiFileDialog({
-                  isOpen: true,
-                  client: client,
-                  fromStage: fromStage,
-                  toStage: toStage,
-                });
-              }}
               onClientUpdate={updateClientInState}
               currentUserRole={currentUserRole}
               isMainStage={true}
@@ -729,47 +600,54 @@ export function Pipeline({
         ))}
       </div>
 
-      {/* Multi-File Upload Dialog */}
-      {multiFileDialog.client &&
-        multiFileDialog.fromStage &&
-        multiFileDialog.toStage && (
-          <MultiFileUploadDialog
-            isOpen={multiFileDialog.isOpen}
-            onClose={() =>
-              setMultiFileDialog({
-                isOpen: false,
-                client: null,
-                fromStage: null,
-                toStage: null,
-              })
+
+      {/* Unified Action Dialog for Stage Transitions */}
+      {unifiedActionDialog.isOpen && (
+        <UnifiedActionDialog
+          isOpen={unifiedActionDialog.isOpen}
+          onClose={() =>
+            setUnifiedActionDialog({
+              isOpen: false,
+              clientId: null,
+              actionType: "",
+              currentStage: null,
+            })
+          }
+          clientId={parseInt(unifiedActionDialog.clientId!)}
+          actionType={unifiedActionDialog.actionType}
+          currentStage={unifiedActionDialog.currentStage!}
+          onSuccess={async (result?: any) => {
+            console.log("🎯 UnifiedActionDialog stage transition success:", result);
+            
+            // Check if stage was transitioned
+            if (result?.stageTransitioned && result?.newStage) {
+              const clientId = unifiedActionDialog.clientId;
+              console.log(`🔄 Processing stage transition for client ${clientId} to ${result.newStage}`);
+              
+              // Log client status before refresh
+              const clientBefore = clients.find(c => c.id === clientId);
+              console.log(`📊 Client ${clientId} status before refresh: ${clientBefore?.status}`);
+              
+              // Refresh pipeline data to get the updated state from backend
+              await refreshPipelineData();
+              
+              // Log client status after refresh
+              const clientAfter = clients.find(c => c.id === clientId);
+              console.log(`📊 Client ${clientId} status after refresh: ${clientAfter?.status}`);
+              
+              console.log(`✅ Stage transition complete: Client moved to ${result.newStage}`);
             }
-            onSubmit={handleMultiFileUpload}
-            title={
-              getTransitionRequirement(
-                multiFileDialog.fromStage,
-                multiFileDialog.toStage
-              )?.title || "Complete Transition"
-            }
-            description={
-              getTransitionRequirement(
-                multiFileDialog.fromStage,
-                multiFileDialog.toStage
-              )?.description ||
-              "Complete the required documents for this transition"
-            }
-            fileRequirements={getFileRequirementsForTransition(
-              multiFileDialog.fromStage,
-              multiFileDialog.toStage
-            )}
-            clientName={multiFileDialog.client.name}
-            requiresComments={
-              getTransitionRequirement(
-                multiFileDialog.fromStage,
-                multiFileDialog.toStage
-              )?.requiresComments ?? true
-            }
-          />
-        )}
+
+            // Close the dialog
+            setUnifiedActionDialog({
+              isOpen: false,
+              clientId: null,
+              actionType: "",
+              currentStage: null,
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

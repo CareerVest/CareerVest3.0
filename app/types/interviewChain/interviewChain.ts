@@ -27,6 +27,8 @@ export interface Interview {
   UpdatedTS: Date | null;
   CreatedBy: string | null;
   UpdatedBy: string | null;
+  JobBoardName?: string | null;
+  JobBoardUrl?: string | null;
 }
 
 export interface InterviewChain {
@@ -48,6 +50,8 @@ export interface InterviewChain {
   latestInterviewDate?: string | null;
   latestInterviewStatus?: string | null;
   latestInterviewType?: string | null;
+  jobBoardName?: string | null;
+  jobBoardUrl?: string | null;
 }
 
 export interface InterviewChainStats {
@@ -85,6 +89,8 @@ export interface InterviewChainList {
   latestInterviewDate?: string | null;
   latestInterviewStatus?: string | null;
   latestInterviewType?: string | null;
+  jobBoardName?: string | null;
+  jobBoardUrl?: string | null;
 }
 
 export interface InterviewChainDetail {
@@ -103,6 +109,8 @@ export interface InterviewChainDetail {
   interviewEntryDate: string;
   recruiterID?: number | null;
   recruiterName?: string | null;
+  jobBoardName?: string | null;
+  jobBoardUrl?: string | null;
   interviews: { $values: any[] };
 }
 
@@ -124,6 +132,8 @@ export interface InterviewChainCreate {
   interviewStatus?: string;
   interviewSupport?: string | null;
   comments?: string | null;
+  jobBoardName: string; // Required: Name of the job board
+  jobBoardUrl: string; // Required: URL of the job board posting
 }
 
 export interface InterviewChainUpdate {
@@ -143,6 +153,8 @@ export interface InterviewChainUpdate {
   endClientRecruiterEmail?: string | null;
   endClientRecruiterPhone?: string | null;
   endClientRecruiterLinkedIn?: string | null;
+  jobBoardName?: string | null;
+  jobBoardUrl?: string | null;
 }
 
 export interface InterviewChainEnd {
@@ -167,6 +179,8 @@ export interface InterviewChainAdd {
   endClientRecruiterEmail?: string | null;
   endClientRecruiterPhone?: string | null;
   endClientRecruiterLinkedIn?: string | null;
+  jobBoardName: string; // Required: Name of the job board
+  jobBoardUrl: string; // Required: URL of the job board posting
 }
 
 export interface InterviewChainCreateResponse {

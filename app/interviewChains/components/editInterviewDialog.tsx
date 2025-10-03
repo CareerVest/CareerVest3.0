@@ -199,6 +199,8 @@ export default function EditInterviewDialog({
         clientName: chain.clientName || "",
         position: chain.position || "",
         recruiterName: chain.recruiterName || "",
+        JobBoardName: interviewToEdit.JobBoardName || chain.jobBoardName || "",
+        JobBoardUrl: interviewToEdit.JobBoardUrl || chain.jobBoardUrl || "",
       });
       console.log(
         "EditInterviewDialog: State after setNewInterview:",
@@ -664,6 +666,31 @@ export default function EditInterviewDialog({
                 onChange={(e) => handleInputChange("Comments", e.target.value)}
                 placeholder="Enter any additional comments"
                 rows={3}
+                disabled={isSubmitting || loading}
+              />
+            </div>
+
+            {/* Job Board Name */}
+            <div>
+              <Label htmlFor="jobBoardName">Job Board Name</Label>
+              <Input
+                id="jobBoardName"
+                value={newInterview.JobBoardName || ""}
+                onChange={(e) => handleInputChange("JobBoardName", e.target.value)}
+                placeholder="Enter job board name"
+                disabled={isSubmitting || loading}
+              />
+            </div>
+
+            {/* Job Board URL */}
+            <div>
+              <Label htmlFor="jobBoardUrl">Job Board URL</Label>
+              <Input
+                id="jobBoardUrl"
+                type="url"
+                value={newInterview.JobBoardUrl || ""}
+                onChange={(e) => handleInputChange("JobBoardUrl", e.target.value)}
+                placeholder="https://example.com/job-posting"
                 disabled={isSubmitting || loading}
               />
             </div>

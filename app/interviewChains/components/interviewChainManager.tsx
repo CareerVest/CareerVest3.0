@@ -55,26 +55,26 @@ export default function InterviewChainManager({
     type: "Next" | "Rescheduled";
     targetChainId: string;
   }>(null);
-  // Auto-open the last chain when chains are loaded (only on initial navigation, not refresh)
-  useEffect(() => {
-    // Check if this is a page refresh using sessionStorage
-    const hasVisited = sessionStorage.getItem("interviewChainsVisited");
+  // Auto-open functionality disabled - let users manually select chains
+  // useEffect(() => {
+  //   // Check if this is a page refresh using sessionStorage
+  //   const hasVisited = sessionStorage.getItem("interviewChainsVisited");
 
-    if (
-      chains.length > 0 &&
-      !selectedChain &&
-      !openChainExploration &&
-      !hasVisited
-    ) {
-      // Get the last chain (most recent)
-      const lastChain = chains[chains.length - 1];
-      if (lastChain) {
-        onViewChain(lastChain);
-        // Mark as visited for this session
-        sessionStorage.setItem("interviewChainsVisited", "true");
-      }
-    }
-  }, [chains, selectedChain, openChainExploration]);
+  //   if (
+  //     chains.length > 0 &&
+  //     !selectedChain &&
+  //     !openChainExploration &&
+  //     !hasVisited
+  //   ) {
+  //     // Get the last chain (most recent)
+  //     const lastChain = chains[chains.length - 1];
+  //     if (lastChain) {
+  //       onViewChain(lastChain);
+  //       // Mark as visited for this session
+  //       sessionStorage.setItem("interviewChainsVisited", "true");
+  //     }
+  //   }
+  // }, [chains, selectedChain, openChainExploration]);
 
   const handleEndInterview = (
     chain: InterviewChain,

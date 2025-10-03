@@ -150,11 +150,23 @@ export default function Sidebar({
     }
   }, [user, userData]);
 
-  // Find active item index for animations
+  // Find active item index for animations - only consider permitted items
   useEffect(() => {
-    const activeIndex = menuItems.findIndex(item => pathname === item.path);
+    const permittedItems = menuItems.filter(item => {
+      const module = item.module as keyof typeof permissions;
+      if (!(module in permissions)) {
+        return false;
+      }
+      const permissionType = permissions[module];
+      const permissionKey = item.permissionKey as keyof (typeof permissionType)[string];
+      return permissionType[userRole]?.[permissionKey] === true;
+    });
+
+    const activeIndex = permittedItems.findIndex(item =>
+      pathname === item.path || pathname.startsWith(item.path + '/')
+    );
     setActiveItemIndex(activeIndex);
-  }, [pathname]);
+  }, [pathname, permissions, userRole]);
 
   // Notify parent of width changes
   useEffect(() => {
@@ -282,15 +294,15 @@ export default function Sidebar({
             <div
               className="absolute left-2 h-12 rounded-xl transition-all duration-500 ease-out backdrop-blur-sm border border-white/10"
               style={{
-                transform: `translateY(${activeItemIndex * 48 + 4}px)`,
-                width: isCollapsed && !isHovered ? '48px' : '256px',
-                background: isCollapsed && !isHovered 
+                transform: `translateY(${activeItemIndex * 52}px)`,
+                width: isCollapsed && !isHovered ? '48px' : 'calc(100% - 16px)',
+                background: isCollapsed && !isHovered
                   ? 'linear-gradient(to right, rgba(255, 193, 5, 1), rgba(255, 193, 5, 0.8))'
                   : 'linear-gradient(to right, rgba(255, 193, 5, 1), rgba(255, 193, 5, 0.7))',
               }}
             />
           )}
-          
+
           <ul className="space-y-1">
             {menuItems.map((item, index) => {
               const module = item.module as keyof typeof permissions;
@@ -311,7 +323,7 @@ export default function Sidebar({
               }
 
               if (hasPermission) {
-                const isActive = pathname === item.path;
+                const isActive = pathname === item.path || pathname.startsWith(item.path + '/');
                 const isHoveredItem = hoveredItem === item.title;
                 
                 return (
@@ -323,7 +335,7 @@ export default function Sidebar({
                     <Link
                       href={item.path}
                       className={cn(
-                        "relative flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 min-h-[48px] group overflow-hidden",
+                        "relative flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 h-[48px] group overflow-hidden",
                         "hover:scale-105 hover:shadow-lg",
                         isActive
                           ? "text-white shadow-lg"
@@ -342,7 +354,7 @@ export default function Sidebar({
                         )}
                       >
                         <item.icon className="h-5 w-5" />
-                        
+
                         {/* Active Icon Glow */}
                         {isActive && (
                           <div className={`absolute inset-0 bg-gradient-to-r ${item.color} rounded-full blur-md opacity-30 animate-pulse`} />
@@ -352,7 +364,7 @@ export default function Sidebar({
                       {/* Text with Stagger Animation */}
                       <span
                         className={cn(
-                          "transition-all duration-300 font-medium relative z-10",
+                          "transition-all duration-300 font-medium relative z-10 whitespace-nowrap",
                           !isCollapsed || isHovered
                             ? "opacity-100 translate-x-0"
                             : "opacity-0 -translate-x-2"
@@ -362,13 +374,13 @@ export default function Sidebar({
                       </span>
 
                       {/* Hover Effect Gradient */}
-                      <div 
+                      <div
                         className={cn(
                           "absolute inset-0 transition-all duration-300 rounded-xl",
-                          isHoveredItem ? "opacity-100" : "opacity-0"
+                          isHoveredItem && !isActive ? "opacity-100" : "opacity-0"
                         )}
                         style={{
-                          background: 'linear-gradient(to right, rgba(255, 193, 5, 1), rgba(255, 193, 5, 0.7))',
+                          background: 'linear-gradient(to right, rgba(255, 193, 5, 0.6), rgba(255, 193, 5, 0.4))',
                           zIndex: 0
                         }}
                       />
@@ -394,7 +406,7 @@ export default function Sidebar({
               <Button
                 variant="ghost"
                 onClick={handleLogoutClick}
-                className="w-full justify-start text-white/80 hover:text-red-400 hover:bg-red-500/10 min-h-[48px] transition-all duration-300 group hover:scale-105"
+                className="w-full justify-start text-white/80 hover:text-red-400 hover:bg-red-500/10 h-[48px] transition-all duration-300 group hover:scale-105 px-4 py-3 rounded-xl"
                 title={isCollapsed && !isHovered ? "Logout" : undefined}
               >
                 <LogOut className="h-5 w-5 mr-4 flex-shrink-0 group-hover:rotate-12 transition-transform duration-300" />

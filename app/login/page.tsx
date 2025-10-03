@@ -31,7 +31,7 @@ export default function LoginPage() {
       console.log(
         "✅ Microsoft authentication successful, redirecting to dashboard"
       );
-      router.replace("/");
+      router.replace("/dashboard");
     }
   }, [isAuthenticated, isInitialized, router]);
 
@@ -68,7 +68,7 @@ export default function LoginPage() {
         console.log("✅ Form authentication successful, redirecting...");
         // Force redirect after a short delay to ensure state is set
         setTimeout(() => {
-          router.push("/");
+          router.push("/dashboard");
         }, 100);
       } else {
         setError(

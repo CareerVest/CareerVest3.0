@@ -204,7 +204,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       extractRoles(accessToken);
       setIsAuthenticated(true);
       setError(null);
-      router.push("/");
+      router.push("/dashboard");
       return true;
     } catch (err) {
       setError("Login failed. Please try again.");
