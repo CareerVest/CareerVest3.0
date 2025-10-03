@@ -10,6 +10,14 @@ import {
   ClientAssignment,
   Department,
 } from "../../types/pipelines/pipeline";
+import type {
+  BlockClientRequest,
+  UnblockClientRequest,
+  BlockClientResponse,
+  ActiveBlockResponse,
+  BlockHistoryResponse,
+  ClientBlockHistory,
+} from "../../types/pipelines/clientBlock";
 
 // Helper function to normalize departments data (handle Entity Framework serialization)
 export const normalizeDepartments = (departments: any): Department[] => {
@@ -670,6 +678,150 @@ export async function getPipelineActionRules(): Promise<Record<string, any>> {
 }
 
 /**
+ * Block a client with a specific reason
+ */
+export async function blockClient(
+  clientId: number,
+  request: BlockClientRequest
+): Promise<BlockClientResponse> {
+  try {
+    const response = await axiosInstance.post<BlockClientResponse>(
+      `/api/v1/pipelines/clients/${clientId}/block`,
+      request
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Error blocking client:", error);
+    throw new Error(
+      error.response?.data?.message || "Failed to block client"
+    );
+  }
+}
+
+/**
+ * Unblock a client with a mandatory comment
+ */
+export async function unblockClient(
+  clientId: number,
+  request: UnblockClientRequest
+): Promise<BlockClientResponse> {
+  try {
+    const response = await axiosInstance.post<BlockClientResponse>(
+      `/api/v1/pipelines/clients/${clientId}/unblock`,
+      request
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Error unblocking client:", error);
+    throw new Error(
+      error.response?.data?.message || "Failed to unblock client"
+    );
+  }
+}
+
+/**
+ * Get active block for a client (if any)
+ */
+export async function getActiveBlock(
+  clientId: number
+): Promise<ActiveBlockResponse> {
+  try {
+    const response = await axiosInstance.get<ActiveBlockResponse>(
+      `/api/v1/pipelines/clients/${clientId}/active-block`
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Error getting active block:", error);
+    throw new Error(
+      error.response?.data?.message || "Failed to get active block"
+    );
+  }
+}
+
+/**
+ * Get complete block/unblock history for a client
+ */
+export async function getBlockHistory(
+  clientId: number
+): Promise<BlockHistoryResponse> {
+  try {
+    const response = await axiosInstance.get<BlockHistoryResponse>(
+      `/api/v1/pipelines/clients/${clientId}/block-history`
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Error getting block history:", error);
+    throw new Error(
+      error.response?.data?.message || "Failed to get block history"
+    );
+  }
+}
+
+/**
+ * Check if client is currently blocked
+ */
+export async function isClientBlocked(
+  clientId: number
+): Promise<{ success: boolean; isBlocked: boolean }> {
+  try {
+    const response = await axiosInstance.get<{
+      success: boolean;
+      isBlocked: boolean;
+    }>(`/api/v1/pipelines/clients/${clientId}/is-blocked`);
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Error checking if client is blocked:", error);
+    throw new Error(
+      error.response?.data?.message || "Failed to check block status"
+    );
+  }
+}
+
+/**
+ * Calculate total blocked days for SLA purposes
+ */
+export function calculateBlockedDays(
+  blockHistory: ClientBlockHistory[],
+  stageName: string
+): number {
+  const stageBlocks = blockHistory.filter(
+    (block) => block.stageName.toLowerCase() === stageName.toLowerCase()
+  );
+
+  let totalBlockedDays = 0;
+
+  stageBlocks.forEach((block) => {
+    const startDate = new Date(block.blockedDate);
+    const endDate = block.unblockedDate
+      ? new Date(block.unblockedDate)
+      : new Date(); // Use current time if still blocked
+
+    totalBlockedDays += calculateBusinessDays(startDate, endDate);
+  });
+
+  return totalBlockedDays;
+}
+
+/**
+ * Calculate business days between two dates (excluding weekends)
+ */
+function calculateBusinessDays(startDate: Date, endDate: Date): number {
+  let businessDays = 0;
+  const currentDate = new Date(startDate);
+
+  while (currentDate <= endDate) {
+    const dayOfWeek = currentDate.getDay();
+    // 0 = Sunday, 6 = Saturday
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      businessDays++;
+    }
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return businessDays;
+}
+
+/**
  * Get available actions for a client based on backend rules
  */
 export async function getAvailableActionsForClient(
@@ -746,6 +898,18 @@ export const usePipelineActions = () => {
         showLoading: true,
       }),
     getResumeConfirmationStatus: (clientId: number) =>
-      apiCall(getResumeConfirmationStatus(clientId), { showLoading: true })
+      apiCall(getResumeConfirmationStatus(clientId), { showLoading: true }),
+
+    // Client Block/Unblock Actions
+    blockClient: (clientId: number, request: BlockClientRequest) =>
+      apiCall(blockClient(clientId, request), { showLoading: true }),
+    unblockClient: (clientId: number, request: UnblockClientRequest) =>
+      apiCall(unblockClient(clientId, request), { showLoading: true }),
+    getActiveBlock: (clientId: number) =>
+      apiCall(getActiveBlock(clientId), { showLoading: false }),
+    getBlockHistory: (clientId: number) =>
+      apiCall(getBlockHistory(clientId), { showLoading: true }),
+    isClientBlocked: (clientId: number) =>
+      apiCall(isClientBlocked(clientId), { showLoading: false })
   };
 };

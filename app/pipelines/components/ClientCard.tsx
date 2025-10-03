@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -7,6 +7,8 @@ import {
   MoreHorizontal,
   ArrowRight,
   Check,
+  PauseCircle,
+  PlayCircle,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -26,8 +28,9 @@ import {
   areAllActionsCompleted,
 } from "./constants";
 import { UnifiedActionDialog } from "./UnifiedActionDialog";
-import { normalizeDepartments } from "../actions/pipelineActions";
+import { normalizeDepartments, isClientBlocked } from "../actions/pipelineActions";
 import { formatDateEST } from "../../utils/dateUtils";
+import { ClientBlockDialog } from "./ClientBlockDialog";
 
 interface ClientCardProps {
   client: Client;
@@ -55,6 +58,27 @@ export function ClientCard({
   const [isHovered, setIsHovered] = useState(false);
   const [unifiedActionDialogOpen, setUnifiedActionDialogOpen] = useState(false);
   const [selectedUnifiedAction, setSelectedUnifiedAction] = useState<string>("");
+  const [clientIsBlocked, setClientIsBlocked] = useState(false);
+  const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
+
+  // Check if client is blocked
+  useEffect(() => {
+    const checkBlockStatus = async () => {
+      const clientId = parseInt(client.id, 10);
+      if (isNaN(clientId)) return;
+
+      try {
+        const response = await isClientBlocked(clientId);
+        if (response.success) {
+          setClientIsBlocked(response.isBlocked);
+        }
+      } catch (error) {
+        console.error("Error checking block status:", error);
+      }
+    };
+
+    checkBlockStatus();
+  }, [client.id]);
 
   // Get required actions for the current stage
   const requiredActions = useMemo(() => {
@@ -163,12 +187,46 @@ export function ClientCard({
       <Card
         className={`group cursor-pointer transition-all hover:shadow-md ${
           isSelected ? "ring-2 ring-blue-500" : ""
-        } ${isHovered ? "shadow-lg" : ""}`}
+        } ${isHovered ? "shadow-lg" : ""} ${clientIsBlocked ? "ring-2 ring-orange-400" : ""}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={handleCardClick}
       >
         <div className="p-3 relative">
+          {/* Block Status Ribbon - Top Right Corner */}
+          {!["placed", "backed-out"].includes(client.status) &&
+            ["Admin", "Sales_Executive", "Resume_Writer", "Marketing_Manager"].includes(currentUserRole) && (
+              <div className="absolute top-0 right-0 z-10">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsBlockDialogOpen(true);
+                  }}
+                  className={`h-7 px-2 rounded-tl-none rounded-br-none flex items-center gap-1 transition-all ${
+                    clientIsBlocked
+                      ? "bg-orange-500 hover:bg-orange-600 text-white"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  }`}
+                  title={clientIsBlocked ? "Client is blocked - Click to unblock" : "Block client and pause SLA"}
+                  data-no-card-click="true"
+                >
+                  {clientIsBlocked ? (
+                    <>
+                      <PlayCircle className="h-3.5 w-3.5" />
+                      <span className="text-xs font-medium">Blocked</span>
+                    </>
+                  ) : (
+                    <>
+                      <PauseCircle className="h-3.5 w-3.5" />
+                      <span className="text-xs font-medium">Block</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
           {/* Header */}
           <div className="flex items-start justify-between mb-2">
             <div className="flex items-center gap-2 flex-1">
@@ -402,6 +460,27 @@ export function ClientCard({
           }}
         />
       )}
+
+      {/* Block Dialog */}
+      <ClientBlockDialog
+        client={client}
+        isOpen={isBlockDialogOpen}
+        onClose={() => setIsBlockDialogOpen(false)}
+        onSuccess={async () => {
+          // Refresh block status after block/unblock
+          const clientId = parseInt(client.id, 10);
+          if (!isNaN(clientId)) {
+            try {
+              const response = await isClientBlocked(clientId);
+              if (response.success) {
+                setClientIsBlocked(response.isBlocked);
+              }
+            } catch (error) {
+              console.error("Error refreshing block status:", error);
+            }
+          }
+        }}
+      />
     </>
   );
 }

@@ -2,7 +2,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { Client, UserRole } from "../../types/pipelines/pipeline";
 import { calculateDepartmentTime } from "./utils";
-import { getAssignedPerson } from "../actions/pipelineActions";
+import { getAssignedPerson, getBlockHistory } from "../actions/pipelineActions";
 import { getSLAStatus, getSLAStatusIcon } from "./slaConfig";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,9 @@ import {
   Star,
 } from "lucide-react";
 import { ClientDepartmentActions } from "./ClientDepartmentActions";
+import { calculateBlockedDays, isClientBlocked } from "../actions/pipelineActions";
+import { ClientBlockDialog } from "./ClientBlockDialog";
+import { PauseCircle, PlayCircle } from "lucide-react";
 
 interface ClientDetailsSidebarProps {
   client: Client | null;
@@ -38,6 +41,9 @@ export function ClientDetailsSidebar({
   currentUserRole,
 }: ClientDetailsSidebarProps) {
   const sidebarRef = React.useRef<HTMLDivElement>(null);
+  const [blockedDays, setBlockedDays] = React.useState<number>(0);
+  const [isBlockDialogOpen, setIsBlockDialogOpen] = React.useState(false);
+  const [clientIsBlocked, setClientIsBlocked] = React.useState(false);
 
   // Focus the sidebar when it opens to ensure proper scroll behavior
   React.useEffect(() => {
@@ -45,6 +51,70 @@ export function ClientDetailsSidebar({
       sidebarRef.current.focus();
     }
   }, [isOpen]);
+
+  // Fetch block history and calculate blocked days for current stage
+  React.useEffect(() => {
+    const fetchBlockedDays = async () => {
+      if (!client) return;
+
+      const clientId = parseInt(client.id, 10);
+      if (isNaN(clientId)) return;
+
+      try {
+        const [historyResponse, blockedResponse] = await Promise.all([
+          getBlockHistory(clientId),
+          isClientBlocked(clientId),
+        ]);
+
+        if (historyResponse.success && historyResponse.data) {
+          const blocked = calculateBlockedDays(historyResponse.data, client.status);
+          setBlockedDays(blocked);
+        }
+
+        if (blockedResponse.success) {
+          setClientIsBlocked(blockedResponse.isBlocked);
+        }
+      } catch (error) {
+        console.error("Error fetching block history:", error);
+        setBlockedDays(0);
+      }
+    };
+
+    if (isOpen && client) {
+      fetchBlockedDays();
+    }
+  }, [isOpen, client]);
+
+  const handleBlockDialogSuccess = () => {
+    // Refresh block data after block/unblock
+    const fetchBlockData = async () => {
+      if (!client) return;
+
+      const clientId = parseInt(client.id, 10);
+      if (isNaN(clientId)) return;
+
+      try {
+        const [historyResponse, blockedResponse] = await Promise.all([
+          getBlockHistory(clientId),
+          isClientBlocked(clientId),
+        ]);
+
+        if (historyResponse.success && historyResponse.data) {
+          const blocked = calculateBlockedDays(historyResponse.data, client.status);
+          setBlockedDays(blocked);
+        }
+
+        if (blockedResponse.success) {
+          setClientIsBlocked(blockedResponse.isBlocked);
+        }
+      } catch (error) {
+        console.error("Error refreshing block data:", error);
+      }
+    };
+
+    fetchBlockData();
+    onRefresh?.();
+  };
 
   if (!client) return null;
 
@@ -121,7 +191,7 @@ export function ClientDetailsSidebar({
     !["placed", "on-hold", "backed-out"].includes(client.status)
       ? getSLAStatus(
           client.status,
-          currentStageData.businessDays || currentStageData.days,
+          Math.max(0, (currentStageData.businessDays || currentStageData.days) - blockedDays),
           true
         )
       : null;
@@ -212,18 +282,27 @@ export function ClientDetailsSidebar({
                           <p className="text-white/90 text-sm truncate">{client.email}</p>
                         </div>
                         
-                        <div className="flex items-center gap-2 mb-3">
+                        <div className="flex items-center gap-2 mb-3 flex-wrap">
                           <div className="bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/30">
                             <span className="text-white text-xs font-medium capitalize">
                               {client.status.replace("-", " ")}
                             </span>
                           </div>
-                          
+
                           {client.priority && (
                             <div className="bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/30 flex items-center gap-1.5">
                               {getPriorityIcon(client.priority)}
                               <span className="text-white text-xs font-medium capitalize">
                                 {client.priority}
+                              </span>
+                            </div>
+                          )}
+
+                          {clientIsBlocked && (
+                            <div className="bg-orange-500/80 backdrop-blur-sm px-2.5 py-1 rounded-full border border-orange-300 flex items-center gap-1.5">
+                              <PauseCircle className="w-3 h-3 text-white" />
+                              <span className="text-white text-xs font-medium">
+                                Blocked - SLA Paused
                               </span>
                             </div>
                           )}
@@ -302,6 +381,27 @@ export function ClientDetailsSidebar({
                     </div>
                     
                     <div className="flex items-start gap-2">
+                      {/* Block/Unblock Button - only for non-terminal stages */}
+                      {!["placed", "backed-out"].includes(client.status) &&
+                        ["Admin", "Sales_Executive", "Resume_Writer", "Marketing_Manager"].includes(currentUserRole) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsBlockDialogOpen(true)}
+                            className={`h-8 w-8 p-0 backdrop-blur-sm border border-white/30 hover:bg-white/30 text-white transition-all duration-200 ${
+                              clientIsBlocked
+                                ? "bg-orange-500/30"
+                                : "bg-white/20"
+                            }`}
+                            title={clientIsBlocked ? "Client is blocked - Click to unblock" : "Block client and pause SLA"}
+                          >
+                            {clientIsBlocked ? (
+                              <PlayCircle className="h-3.5 w-3.5" />
+                            ) : (
+                              <PauseCircle className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        )}
                       {onRefresh && (
                         <Button
                           variant="ghost"
@@ -377,6 +477,14 @@ export function ClientDetailsSidebar({
           </div>
         </div>
       </div>
+
+      {/* Block Dialog */}
+      <ClientBlockDialog
+        client={client}
+        isOpen={isBlockDialogOpen}
+        onClose={() => setIsBlockDialogOpen(false)}
+        onSuccess={handleBlockDialogSuccess}
+      />
     </div>,
     document.body
   );
