@@ -28,7 +28,7 @@ import {
   areAllActionsCompleted,
 } from "./constants";
 import { UnifiedActionDialog } from "./UnifiedActionDialog";
-import { normalizeDepartments, isClientBlocked } from "../actions/pipelineActions";
+import { normalizeDepartments, isClientBlocked, getActiveBlock } from "../actions/pipelineActions";
 import { formatDateEST } from "../../utils/dateUtils";
 import { ClientBlockDialog } from "./ClientBlockDialog";
 
@@ -453,13 +453,28 @@ export function ClientCard({
         isOpen={isBlockDialogOpen}
         onClose={() => setIsBlockDialogOpen(false)}
         onSuccess={async () => {
-          // Refresh block status after block/unblock
+          // Fetch updated client data after block/unblock
           const clientId = parseInt(client.id, 10);
           if (!isNaN(clientId)) {
             try {
-              const response = await isClientBlocked(clientId);
-              if (response.success) {
-                setClientIsBlocked(response.isBlocked);
+              const [blockResponse, activeBlockResponse] = await Promise.all([
+                isClientBlocked(clientId),
+                getActiveBlock(clientId),
+              ]);
+
+              if (blockResponse.success) {
+                // Update local state immediately
+                setClientIsBlocked(blockResponse.isBlocked);
+
+                // Update parent with new block data
+                if (onClientUpdate) {
+                  onClientUpdate({
+                    ...client,
+                    isBlocked: blockResponse.isBlocked,
+                    blockedReason: activeBlockResponse.data?.blockedReason || null,
+                    blockedStageName: activeBlockResponse.data?.stageName || null,
+                  });
+                }
               }
             } catch (error) {
               console.error("Error refreshing block status:", error);

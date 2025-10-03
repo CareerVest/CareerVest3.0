@@ -43,7 +43,9 @@ export function ClientDetailsSidebar({
   const sidebarRef = React.useRef<HTMLDivElement>(null);
   const [blockedDays, setBlockedDays] = React.useState<number>(0);
   const [isBlockDialogOpen, setIsBlockDialogOpen] = React.useState(false);
-  const [clientIsBlocked, setClientIsBlocked] = React.useState(false);
+
+  // Use block status from client data (already included in API response)
+  const clientIsBlocked = client?.isBlocked ?? false;
 
   // Focus the sidebar when it opens to ensure proper scroll behavior
   React.useEffect(() => {
@@ -52,7 +54,7 @@ export function ClientDetailsSidebar({
     }
   }, [isOpen]);
 
-  // Fetch block history and calculate blocked days for current stage
+  // Fetch block history only to calculate blocked days for SLA
   React.useEffect(() => {
     const fetchBlockedDays = async () => {
       if (!client) return;
@@ -61,18 +63,11 @@ export function ClientDetailsSidebar({
       if (isNaN(clientId)) return;
 
       try {
-        const [historyResponse, blockedResponse] = await Promise.all([
-          getBlockHistory(clientId),
-          isClientBlocked(clientId),
-        ]);
+        const historyResponse = await getBlockHistory(clientId);
 
         if (historyResponse.success && historyResponse.data) {
           const blocked = calculateBlockedDays(historyResponse.data, client.status);
           setBlockedDays(blocked);
-        }
-
-        if (blockedResponse.success) {
-          setClientIsBlocked(blockedResponse.isBlocked);
         }
       } catch (error) {
         console.error("Error fetching block history:", error);
@@ -83,7 +78,7 @@ export function ClientDetailsSidebar({
     if (isOpen && client) {
       fetchBlockedDays();
     }
-  }, [isOpen, client]);
+  }, [isOpen, client, client?.isBlocked]);
 
   const handleBlockDialogSuccess = () => {
     // Refresh block data after block/unblock
@@ -94,18 +89,11 @@ export function ClientDetailsSidebar({
       if (isNaN(clientId)) return;
 
       try {
-        const [historyResponse, blockedResponse] = await Promise.all([
-          getBlockHistory(clientId),
-          isClientBlocked(clientId),
-        ]);
+        const historyResponse = await getBlockHistory(clientId);
 
         if (historyResponse.success && historyResponse.data) {
           const blocked = calculateBlockedDays(historyResponse.data, client.status);
           setBlockedDays(blocked);
-        }
-
-        if (blockedResponse.success) {
-          setClientIsBlocked(blockedResponse.isBlocked);
         }
       } catch (error) {
         console.error("Error refreshing block data:", error);
