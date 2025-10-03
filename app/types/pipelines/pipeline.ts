@@ -45,6 +45,10 @@ export interface Client {
   daysInCurrentStage: number;
   // Department-based action tracking
   departments?: Department[];
+  // Client block status (from initial load)
+  isBlocked?: boolean;
+  blockedReason?: string | null;
+  blockedStageName?: string | null;
 }
 
 // Action types for the pipeline workflow

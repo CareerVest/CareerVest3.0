@@ -58,27 +58,13 @@ export function ClientCard({
   const [isHovered, setIsHovered] = useState(false);
   const [unifiedActionDialogOpen, setUnifiedActionDialogOpen] = useState(false);
   const [selectedUnifiedAction, setSelectedUnifiedAction] = useState<string>("");
-  const [clientIsBlocked, setClientIsBlocked] = useState(false);
+  const [clientIsBlocked, setClientIsBlocked] = useState(client.isBlocked || false);
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
 
-  // Check if client is blocked
+  // Update block status when client prop changes
   useEffect(() => {
-    const checkBlockStatus = async () => {
-      const clientId = parseInt(client.id, 10);
-      if (isNaN(clientId)) return;
-
-      try {
-        const response = await isClientBlocked(clientId);
-        if (response.success) {
-          setClientIsBlocked(response.isBlocked);
-        }
-      } catch (error) {
-        console.error("Error checking block status:", error);
-      }
-    };
-
-    checkBlockStatus();
-  }, [client.id]);
+    setClientIsBlocked(client.isBlocked || false);
+  }, [client.isBlocked]);
 
   // Get required actions for the current stage
   const requiredActions = useMemo(() => {
