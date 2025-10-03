@@ -187,7 +187,7 @@ export function ClientCard({
       <Card
         className={`group cursor-pointer transition-all hover:shadow-md ${
           isSelected ? "ring-2 ring-blue-500" : ""
-        } ${isHovered ? "shadow-lg" : ""} ${clientIsBlocked ? "ring-2 ring-orange-400" : ""}`}
+        } ${isHovered ? "shadow-lg" : ""} ${clientIsBlocked ? "ring-2 ring-red-400" : ""}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={handleCardClick}
@@ -206,7 +206,7 @@ export function ClientCard({
                   }}
                   className={`h-7 px-2 rounded-tl-none rounded-br-none flex items-center gap-1 transition-all ${
                     clientIsBlocked
-                      ? "bg-orange-500 hover:bg-orange-600 text-white"
+                      ? "bg-red-500 hover:bg-red-600 text-white"
                       : "bg-gray-100 hover:bg-gray-200 text-gray-700"
                   }`}
                   title={clientIsBlocked ? "Client is blocked - Click to unblock" : "Block client and pause SLA"}

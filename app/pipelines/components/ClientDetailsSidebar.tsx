@@ -299,7 +299,7 @@ export function ClientDetailsSidebar({
                           )}
 
                           {clientIsBlocked && (
-                            <div className="bg-orange-500/80 backdrop-blur-sm px-2.5 py-1 rounded-full border border-orange-300 flex items-center gap-1.5">
+                            <div className="bg-red-500/80 backdrop-blur-sm px-2.5 py-1 rounded-full border border-red-300 flex items-center gap-1.5">
                               <PauseCircle className="w-3 h-3 text-white" />
                               <span className="text-white text-xs font-medium">
                                 Blocked - SLA Paused
@@ -390,7 +390,7 @@ export function ClientDetailsSidebar({
                             onClick={() => setIsBlockDialogOpen(true)}
                             className={`h-8 w-8 p-0 backdrop-blur-sm border border-white/30 hover:bg-white/30 text-white transition-all duration-200 ${
                               clientIsBlocked
-                                ? "bg-orange-500/30"
+                                ? "bg-red-500/30"
                                 : "bg-white/20"
                             }`}
                             title={clientIsBlocked ? "Client is blocked - Click to unblock" : "Block client and pause SLA"}

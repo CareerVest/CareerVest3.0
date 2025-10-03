@@ -184,7 +184,7 @@ export function ClientBlockDialog({
           <DialogTitle className="flex items-center gap-2">
             {isBlocked ? (
               <>
-                <PauseCircle className="w-5 h-5 text-orange-600" />
+                <PauseCircle className="w-5 h-5 text-red-600" />
                 Client Blocked - Resume SLA
               </>
             ) : (
@@ -232,9 +232,9 @@ export function ClientBlockDialog({
 
           {/* Active Block Info */}
           {isBlocked && activeBlock && (
-            <Card className="border-orange-200 bg-orange-50">
+            <Card className="border-red-200 bg-red-50">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center gap-2 text-orange-900">
+                <CardTitle className="text-sm font-medium flex items-center gap-2 text-red-900">
                   <AlertCircle className="w-4 h-4" />
                   Active Block
                 </CardTitle>
@@ -242,7 +242,7 @@ export function ClientBlockDialog({
               <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Reason:</span>
-                  <span className="font-medium text-orange-900">
+                  <span className="font-medium text-red-900">
                     {activeBlock.blockedReason}
                   </span>
                 </div>
@@ -254,13 +254,13 @@ export function ClientBlockDialog({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Blocked Since:</span>
-                  <span className="font-medium text-orange-900">
+                  <span className="font-medium text-red-900">
                     {formatDate(activeBlock.blockedDate)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Blocked By:</span>
-                  <span className="font-medium text-orange-900">
+                  <span className="font-medium text-red-900">
                     {activeBlock.blockedBy}
                   </span>
                 </div>
