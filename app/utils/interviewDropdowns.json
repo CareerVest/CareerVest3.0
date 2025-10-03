@@ -1,0 +1,44 @@
+{
+  "interviewTypes": [
+    "Screening",
+    "Technical Interview",
+    "HR Round",
+    "Behavioral round",
+    "Final Round",
+    "Assessment",
+    "On-Demand Interview"
+  ],
+  "interviewMethods": [
+    "Video Call",
+    "Phone Call",
+    "In-person",
+    "Microsoft Teams",
+    "Google Meet",
+    "WebEx",
+    "Zoom",
+    "Live Test",
+    "Amazon Chime",
+    "Asynchronous (Recorded)",
+    "Other"
+  ],
+  "interviewStatuses": [
+    "Scheduled",
+    "Pending Confirmation",
+    "Rescheduled",
+    "Candidate No Show",
+    "Client No Show",
+    "Postponed",
+    "Completed",
+    "Cancelled",
+    "Other"
+  ],
+  "interviewSupports": ["Yes", "No"],
+  "interviewOutcomes": [
+    "Next",
+    "Offer",
+    "Rejected",
+    "Pending Update",
+    "Withdrawn",
+    "No Decision"
+  ]
+}
