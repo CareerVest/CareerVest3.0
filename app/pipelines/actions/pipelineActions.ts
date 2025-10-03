@@ -346,6 +346,9 @@ export async function fetchPipelineCandidates(filters?: {
             notes: candidate.currentStageNotes || "",
           },
           daysInCurrentStage: candidate.daysInCurrentStage || 0,
+          isBlocked: candidate.isBlocked || false,
+          blockedReason: candidate.blockedReason || null,
+          blockedStageName: candidate.blockedStageName || null,
         };
       });
 
@@ -404,6 +407,9 @@ export async function getPipelineCandidate(id: string): Promise<Client | null> {
         notes: candidate.currentStageNotes || "",
       },
       daysInCurrentStage: candidate.daysInCurrentStage || 0,
+      isBlocked: candidate.isBlocked || false,
+      blockedReason: candidate.blockedReason || null,
+      blockedStageName: candidate.blockedStageName || null,
     };
 
     console.log("✅ Fetched pipeline candidate:", transformedCandidate.name);
@@ -511,6 +517,9 @@ export async function getPipelineCandidateById(id: string): Promise<Client> {
         }
         return departmentHistory;
       })(),
+      isBlocked: candidate.isBlocked || false,
+      blockedReason: candidate.blockedReason || null,
+      blockedStageName: candidate.blockedStageName || null,
     };
 
     return transformedCandidate;
