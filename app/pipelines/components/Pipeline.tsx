@@ -34,7 +34,6 @@ import {
 import {
   fetchPipelineCandidates,
 } from "../actions/pipelineActions";
-import { getClient } from "../../clients/actions/clientActions";
 import { showSuccess, showError, showInfo } from "@/lib/toastUtils";
 
 interface PipelineProps {
@@ -268,24 +267,17 @@ export function Pipeline({
     if (!client) return;
 
     // If skipBackendCall is true, it means the backend already handled the transition
-    // and we just need to update the frontend state
+    // and we just need to refresh the frontend state from the server
     if (skipBackendCall) {
       console.log(
-        `🔄 Updating frontend state for client ${clientId} to ${newStatus} (backend already handled transition)`
+        `🔄 Refreshing pipeline data after client ${clientId} moved to ${newStatus} (backend already handled transition)`
       );
 
-      // Update local state directly since backend already handled the transition
-      setClients((prev) =>
-        prev.map((client) =>
-          client.id === clientId
-            ? {
-                ...client,
-                status: newStatus,
-                lastUpdated: getCurrentDateEST(),
-              }
-            : client
-        )
-      );
+      // Refresh pipeline data to get the latest state from backend
+      // This ensures the client is removed from the current special state list
+      await refreshPipelineData();
+
+      console.log(`✅ Pipeline data refreshed after moving client to ${newStatus}`);
       return;
     }
 
@@ -444,7 +436,7 @@ export function Pipeline({
     }
   };
 
-  const handleViewDetails = async (client: Client) => {
+  const handleViewDetails = (client: Client) => {
     console.log("🔍 handleViewDetails called for client:", {
       id: client.id,
       name: client.name,
@@ -454,35 +446,9 @@ export function Pipeline({
 
     setSelectedClientId(client.id);
 
-    // Fetch detailed client data for the sidebar
-    try {
-      console.log("🔍 Fetching detailed client data for ID:", client.id);
-      const detailedClient = await getClient(Number(client.id));
-      console.log("🔍 Detailed client data received:", detailedClient);
-
-      if (detailedClient && onClientSelect) {
-        // Convert ClientDetail to Client format for the sidebar
-        const enrichedClient: Client = {
-          ...client,
-          // Add any additional fields that might be missing
-          phone: detailedClient.personalPhoneNumber || client.phone,
-          email: detailedClient.personalEmailAddress || client.email,
-          // Add any other fields that the sidebar might need
-        };
-        console.log("🔍 Enriched client data:", enrichedClient);
-        onClientSelect(enrichedClient);
-      } else if (onClientSelect) {
-        // Fallback to original client data if detailed fetch fails
-        console.log("🔍 Using fallback client data");
-        onClientSelect(client);
-      }
-    } catch (error) {
-      console.error("❌ Failed to fetch detailed client data:", error);
-      // Fallback to original client data
-      if (onClientSelect) {
-        console.log("🔍 Using fallback client data due to error");
-        onClientSelect(client);
-      }
+    // Pass client to sidebar - stage journey API will fetch all needed data
+    if (onClientSelect) {
+      onClientSelect(client);
     }
   };
 
@@ -617,25 +583,33 @@ export function Pipeline({
           actionType={unifiedActionDialog.actionType}
           currentStage={unifiedActionDialog.currentStage!}
           onSuccess={async (result?: any) => {
-            console.log("🎯 UnifiedActionDialog stage transition success:", result);
-            
+            console.log("🎯 UnifiedActionDialog action success:", result);
+
+            const clientId = unifiedActionDialog.clientId;
+            const actionType = unifiedActionDialog.actionType;
+
             // Check if stage was transitioned
             if (result?.stageTransitioned && result?.newStage) {
-              const clientId = unifiedActionDialog.clientId;
               console.log(`🔄 Processing stage transition for client ${clientId} to ${result.newStage}`);
-              
+
               // Log client status before refresh
               const clientBefore = clients.find(c => c.id === clientId);
               console.log(`📊 Client ${clientId} status before refresh: ${clientBefore?.status}`);
-              
+
               // Refresh pipeline data to get the updated state from backend
               await refreshPipelineData();
-              
+
               // Log client status after refresh
               const clientAfter = clients.find(c => c.id === clientId);
               console.log(`📊 Client ${clientId} status after refresh: ${clientAfter?.status}`);
-              
+
               console.log(`✅ Stage transition complete: Client moved to ${result.newStage}`);
+            } else {
+              // For non-stage-transition actions (like Recruiter-Checklist-Completed),
+              // also refresh to show updated action status
+              console.log(`🔄 Action completed without stage transition: ${actionType}`);
+              await refreshPipelineData();
+              console.log(`✅ Action complete: ${actionType} for client ${clientId}`);
             }
 
             // Close the dialog

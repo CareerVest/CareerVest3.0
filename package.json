@@ -54,6 +54,7 @@
     "react-infinite-scroll-component": "^6.1.0",
     "react-resizable-panels": "^3.0.5",
     "recharts": "^3.1.2",
+    "simple-spellchecker": "^1.0.2",
     "sonner": "^2.0.7",
     "tailwind-merge": "^2.0.0",
     "tailwindcss-animate": "^1.0.7",

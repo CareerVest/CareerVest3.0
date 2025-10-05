@@ -49,6 +49,7 @@ export default function InterviewChainHub({
   const [currentPage, setCurrentPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedChain, setSelectedChain] = useState<InterviewChain | null>(null);
   const itemsPerPage = 20;
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
@@ -457,11 +458,19 @@ export default function InterviewChainHub({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {(displayedChains.length > 0 ? displayedChains : filteredChains).map(
           (chain, index) => {
+            const isSelected = selectedChain?.id === chain.id;
             return (
               <Card
                 key={`${chain.id}-${index}`}
-                onClick={() => onViewChain(chain)}
-                className="rounded-xl border cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] border border-gray-200 hover:border-[#682A53]/30"
+                onClick={() => {
+                  setSelectedChain(chain);
+                  onViewChain(chain);
+                }}
+                className={`rounded-xl border cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] ${
+                  isSelected
+                    ? "border-2 border-[#682A53] bg-[#682A53]/12 hover:bg-[#682A53]/15"
+                    : "border border-gray-200 hover:border-[#682A53] hover:bg-[#682A53]/12"
+                }`}
               >
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start mb-3">
@@ -592,7 +601,7 @@ export default function InterviewChainHub({
       {/* Floating Action Button */}
       <Button
         onClick={onCreateNewChain}
-        className="fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full bg-gradient-to-r from-[#682A53] to-[#8B5A96] hover:from-[#8B5A96] hover:to-[#682A53] shadow-xl hover:shadow-2xl transition-all duration-300 text-white border-0 group flex items-center justify-center"
+        className="fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full bg-gradient-to-r from-[#682A53] to-[#FDC500] hover:from-[#FDC500] hover:to-[#682A53] shadow-xl hover:shadow-2xl transition-all duration-300 text-white border-0 group flex items-center justify-center"
         size="lg"
         style={{
           borderRadius: "50%",

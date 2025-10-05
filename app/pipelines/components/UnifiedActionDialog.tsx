@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useApiWithLoading } from "@/lib/apiWithLoading";
+import { CommentInput } from "./CommentInput";
+import { formatActionName, getActionDescription } from "./actionNameFormatter";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +24,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2,
@@ -32,6 +48,8 @@ import {
   Zap,
   Leaf,
   Circle,
+  Check,
+  ChevronsUpDown,
 } from "lucide-react";
 import {
   getActionRules,
@@ -57,6 +75,7 @@ interface ActionRule {
   targetStage?: string;
   requiresPriority: boolean;
   requiresAssignment: boolean;
+  requiresChecklist: boolean;
   validationRules: Record<string, any>;
   allowedRoles: string[];
   restrictedRoles: string[];
@@ -69,6 +88,11 @@ interface FormData {
   mainFile?: File;
   additionalFiles: File[];
   additionalFileLabels: string[];
+  // Checklist fields for Marketing acknowledgment
+  linkedInCredentialReceived?: boolean;
+  updatedLinkedInAsPerResume?: boolean;
+  updatedLinkedInHyperlinkInResume?: boolean;
+  marketingStartDate?: string;
 }
 
 interface Recruiter {
@@ -128,6 +152,7 @@ export function UnifiedActionDialog({
   const [warnings, setWarnings] = useState<string[]>([]);
   const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
   const [loadingRecruiters, setLoadingRecruiters] = useState(false);
+  const [comboboxOpen, setComboboxOpen] = useState(false);
 
   const hasLoadedRef = useRef(false);
 
@@ -250,6 +275,13 @@ export function UnifiedActionDialog({
       newErrors.push("Assignment is required for this action");
     }
 
+    // Check required checklist fields
+    if (rules.requiresChecklist) {
+      if (!formData.marketingStartDate) {
+        newErrors.push("Marketing Start Date is required");
+      }
+    }
+
     setErrors(newErrors);
     return newErrors.length === 0;
   };
@@ -266,6 +298,15 @@ export function UnifiedActionDialog({
     setWarnings([]);
 
     try {
+      // Build additional data for checklist if required
+      const additionalData: Record<string, any> = {};
+      if (rules?.requiresChecklist) {
+        additionalData.linkedInCredentialReceived = formData.linkedInCredentialReceived;
+        additionalData.updatedLinkedInAsPerResume = formData.updatedLinkedInAsPerResume;
+        additionalData.updatedLinkedInHyperlinkInResume = formData.updatedLinkedInHyperlinkInResume;
+        additionalData.marketingStartDate = formData.marketingStartDate;
+      }
+
       const result = await apiCall(
         executePipelineAction({
           clientID: clientId,
@@ -276,6 +317,7 @@ export function UnifiedActionDialog({
           mainFile: formData.mainFile,
           additionalFiles: formData.additionalFiles,
           additionalFileLabels: formData.additionalFileLabels,
+          additionalData: Object.keys(additionalData).length > 0 ? additionalData : undefined,
         })
       );
 
@@ -357,6 +399,7 @@ export function UnifiedActionDialog({
     setRules(null);
     setRecruiters([]);
     setLoadingRecruiters(false);
+    setComboboxOpen(false); // Reset combobox open state
     hasLoadedRef.current = false; // Reset the loading ref for next time dialog opens
   };
 
@@ -387,9 +430,9 @@ export function UnifiedActionDialog({
         onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         <DialogHeader>
-          <DialogTitle>{actionType}</DialogTitle>
+          <DialogTitle>{formatActionName(actionType)}</DialogTitle>
           <DialogDescription>
-            Complete the {actionType} action for this client.
+            {getActionDescription(actionType, currentStage)}
           </DialogDescription>
         </DialogHeader>
 
@@ -400,46 +443,6 @@ export function UnifiedActionDialog({
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Error Messages */}
-            {errors.length > 0 && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  <ul className="list-disc list-inside">
-                    {errors.map((error, index) => (
-                      <li key={index}>{error}</li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Warning Messages */}
-            {warnings.length > 0 && (
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  <ul className="list-disc list-inside">
-                    {warnings.map((warning, index) => (
-                      <li key={index}>{warning}</li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Success Message */}
-            {isSubmitting && errors.length === 0 && (
-              <Alert className="border-green-500 bg-green-50">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                <AlertDescription className="text-green-700">
-                  Action completed successfully!
-                  {rules?.targetStage &&
-                    ` Client will be automatically moved to ${rules.targetStage}.`}
-                </AlertDescription>
-              </Alert>
-            )}
-
             {rules && (
               <>
                 {/* Priority Selection */}
@@ -506,41 +509,54 @@ export function UnifiedActionDialog({
                         </span>
                       </div>
                     ) : (
-                      <Select
-                        value={formData.assignedToID?.toString() || ""}
-                        onValueChange={(value) => {
-                          setFormData((prev) => ({
-                            ...prev,
-                            assignedToID: value ? parseInt(value) : undefined,
-                          }));
-                        }}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select a recruiter to assign..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {recruiters.map((recruiter) => (
-                            <SelectItem
-                              key={recruiter.id}
-                              value={recruiter.id.toString()}
-                            >
-                              <div className="flex items-center justify-between w-full">
-                                <span className="font-medium">
-                                  {recruiter.name}
-                                </span>
-                                <span className="text-sm text-gray-500 ml-2">
-                                  {recruiter.role}
-                                </span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                          {recruiters.length === 0 && (
-                            <SelectItem value="" disabled>
-                              No recruiters available
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
+                      <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={comboboxOpen}
+                            className="w-full justify-between"
+                          >
+                            {formData.assignedToID
+                              ? recruiters.find((recruiter) => recruiter.id === formData.assignedToID)?.name
+                              : "Search and select a recruiter..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                          <Command className="overflow-hidden">
+                            <CommandInput placeholder="Type to search recruiters..." className="border-0 focus:ring-0 focus:outline-none" />
+                            <CommandList className="max-h-[300px] overflow-y-auto">
+                              <CommandEmpty>No recruiter found.</CommandEmpty>
+                              <CommandGroup>
+                                {recruiters.map((recruiter) => (
+                                  <CommandItem
+                                    key={recruiter.id}
+                                    value={recruiter.name}
+                                    onSelect={() => {
+                                      setFormData((prev) => ({
+                                        ...prev,
+                                        assignedToID: recruiter.id,
+                                      }));
+                                      setComboboxOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={`mr-2 h-4 w-4 ${
+                                        formData.assignedToID === recruiter.id ? "opacity-100" : "opacity-0"
+                                      }`}
+                                    />
+                                    <div className="flex items-center justify-between flex-1">
+                                      <span className="font-medium">{recruiter.name}</span>
+                                      <span className="text-sm text-gray-500 ml-2">{recruiter.role}</span>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     )}
                     {formData.assignedToID && (
                       <p className="text-sm text-green-600">
@@ -551,6 +567,97 @@ export function UnifiedActionDialog({
                         }
                       </p>
                     )}
+                  </div>
+                )}
+
+                {/* Marketing Checklist for Recruiter Acknowledgment */}
+                {rules.requiresChecklist && (
+                  <div className="space-y-4 border rounded-lg p-4 bg-blue-50">
+                    <Label className="text-lg font-semibold text-blue-900">
+                      Marketing Checklist <span className="text-red-500">*</span>
+                    </Label>
+                    <p className="text-sm text-blue-700 mb-4">
+                      Please complete the checklist after your initial call with the candidate
+                    </p>
+
+                    {/* LinkedIn Credential Received */}
+                    <div className="flex items-center space-x-3 p-3 bg-white rounded border">
+                      <Checkbox
+                        id="linkedInCredentialReceived"
+                        checked={formData.linkedInCredentialReceived || false}
+                        onCheckedChange={(checked) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            linkedInCredentialReceived: checked === true,
+                          }))
+                        }
+                      />
+                      <Label
+                        htmlFor="linkedInCredentialReceived"
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        LinkedIn Credential Received?
+                      </Label>
+                    </div>
+
+                    {/* Updated LinkedIn as per Resume */}
+                    <div className="flex items-center space-x-3 p-3 bg-white rounded border">
+                      <Checkbox
+                        id="updatedLinkedInAsPerResume"
+                        checked={formData.updatedLinkedInAsPerResume || false}
+                        onCheckedChange={(checked) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            updatedLinkedInAsPerResume: checked === true,
+                          }))
+                        }
+                      />
+                      <Label
+                        htmlFor="updatedLinkedInAsPerResume"
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        Updated LinkedIn as per Resume?
+                      </Label>
+                    </div>
+
+                    {/* Updated LinkedIn Hyperlink in Resume */}
+                    <div className="flex items-center space-x-3 p-3 bg-white rounded border">
+                      <Checkbox
+                        id="updatedLinkedInHyperlinkInResume"
+                        checked={formData.updatedLinkedInHyperlinkInResume || false}
+                        onCheckedChange={(checked) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            updatedLinkedInHyperlinkInResume: checked === true,
+                          }))
+                        }
+                      />
+                      <Label
+                        htmlFor="updatedLinkedInHyperlinkInResume"
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        Updated LinkedIn hyperlink in Resume?
+                      </Label>
+                    </div>
+
+                    {/* Marketing Start Date */}
+                    <div className="space-y-2">
+                      <Label htmlFor="marketingStartDate" className="text-sm font-medium">
+                        Marketing Start Date <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="marketingStartDate"
+                        type="date"
+                        value={formData.marketingStartDate || ""}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            marketingStartDate: e.target.value,
+                          }))
+                        }
+                        className="w-full"
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -603,76 +710,28 @@ export function UnifiedActionDialog({
                   </div>
                 )}
 
-                {/* Comments/Notes - Moved to last before submit */}
+                {/* Comments/Notes with Templates and Validation */}
                 {(rules.requiresComment ||
                   actionType !== "AssignRecruiter") && (
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">
-                      Notes{" "}
-                      {rules.requiresComment && (
-                        <span className="text-red-500">*</span>
-                      )}
-                      {rules.validationRules && (
-                        <span className="text-sm text-gray-500 ml-2">
-                          ({rules.validationRules.minCommentLength || 0} -{" "}
-                          {rules.validationRules.maxCommentLength || 500}{" "}
-                          characters)
-                        </span>
-                      )}
-                    </Label>
-                    <Textarea
-                      id="notes"
-                      placeholder={
-                        rules.requiresComment
-                          ? "Required comment for this action..."
-                          : "Optional notes..."
-                      }
-                      value={formData.notes}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setFormData((prev) => ({
-                          ...prev,
-                          notes: value,
-                        }));
-                      }}
-                      className={`${
-                        rules.requiresComment ? "border-blue-300" : ""
-                      } ${
-                        rules.validationRules &&
-                        ((rules.validationRules.minCommentLength &&
-                          formData.notes.length <
-                            rules.validationRules.minCommentLength) ||
-                          (rules.validationRules.maxCommentLength &&
-                            formData.notes.length >
-                              rules.validationRules.maxCommentLength))
-                          ? "border-red-300"
-                          : ""
-                      }`}
-                    />
-                    {rules.validationRules && (
-                      <div className="text-sm text-gray-500">
-                        {formData.notes.length}/
-                        {rules.validationRules.maxCommentLength || 500}{" "}
-                        characters
-                        {rules.validationRules.minCommentLength &&
-                          formData.notes.length <
-                            rules.validationRules.minCommentLength && (
-                            <span className="text-red-500 ml-2">
-                              (Minimum {rules.validationRules.minCommentLength}{" "}
-                              characters required)
-                            </span>
-                          )}
-                        {rules.validationRules.maxCommentLength &&
-                          formData.notes.length >
-                            rules.validationRules.maxCommentLength && (
-                            <span className="text-red-500 ml-2">
-                              (Maximum {rules.validationRules.maxCommentLength}{" "}
-                              characters exceeded)
-                            </span>
-                          )}
-                      </div>
-                    )}
-                  </div>
+                  <CommentInput
+                    actionType={actionType}
+                    value={formData.notes}
+                    onChange={(value) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        notes: value,
+                      }));
+                    }}
+                    minLength={rules.validationRules?.minCommentLength || 15}
+                    maxLength={rules.validationRules?.maxCommentLength || 1000}
+                    label="Notes"
+                    placeholder={
+                      rules.requiresComment
+                        ? "Required comment for this action..."
+                        : "Optional notes..."
+                    }
+                    required={rules.requiresComment}
+                  />
                 )}
               </>
             )}
@@ -694,13 +753,7 @@ export function UnifiedActionDialog({
                 Processing...
               </>
             ) : (
-              (() => {
-                const displayName = actionType
-                  .split(/[-_]/)
-                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                  .join(" ");
-                return `Complete ${displayName}`;
-              })()
+              `Submit`
             )}
           </Button>
         </DialogFooter>

@@ -222,16 +222,13 @@ export default function Sidebar({
             {/* Always show logo, even when collapsed */}
             <div className="flex items-center space-x-3">
               <div className="relative group cursor-pointer" onClick={() => isCollapsed && setIsCollapsed(false)}>
-                <div className="absolute inset-0 rounded-lg blur group-hover:blur-sm transition-all duration-300" style={{background: 'linear-gradient(to right, rgba(255, 193, 5, 0.2), rgba(255, 193, 5, 0.15))'}} />
-                <div className="relative bg-white/10 backdrop-blur-sm rounded-lg p-1.5 border border-white/20 group-hover:scale-110 transition-all duration-300">
-                  <Image
-                    src="/careerVest-logo.jpeg"
-                    alt="CareerVest"
-                    width={28}
-                    height={28}
-                    className="rounded-md object-contain"
-                  />
-                </div>
+                <Image
+                  src="/logo profile only.png"
+                  alt="CareerVest"
+                  width={40}
+                  height={40}
+                  className="object-contain group-hover:scale-110 transition-all duration-300"
+                />
               </div>
               
               {(!isCollapsed || isHovered) && (
@@ -403,22 +400,35 @@ export default function Sidebar({
 
             {/* Logout Button */}
             <li className="mt-8 pt-4 border-t border-white/10 animate-in slide-in-from-bottom duration-300 delay-500">
-              <Button
-                variant="ghost"
+              <button
                 onClick={handleLogoutClick}
-                className="w-full justify-start text-white/80 hover:text-red-400 hover:bg-red-500/10 h-[48px] transition-all duration-300 group hover:scale-105 px-4 py-3 rounded-xl"
+                className="relative w-full flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 h-[48px] group overflow-hidden hover:scale-105 hover:shadow-lg text-white/80 hover:text-white"
                 title={isCollapsed && !isHovered ? "Logout" : undefined}
+                onMouseEnter={() => setHoveredItem("Logout")}
+                onMouseLeave={() => setHoveredItem(null)}
               >
-                <LogOut className="h-5 w-5 mr-4 flex-shrink-0 group-hover:rotate-12 transition-transform duration-300" />
+                <LogOut className="h-5 w-5 mr-4 flex-shrink-0 group-hover:rotate-12 transition-all duration-300 relative z-10" />
                 <span
                   className={cn(
-                    "transition-all duration-300 font-medium",
+                    "transition-all duration-300 font-medium relative z-10",
                     !isCollapsed || isHovered ? "opacity-100" : "opacity-0"
                   )}
                 >
                   Logout
                 </span>
-              </Button>
+
+                {/* Hover Effect Gradient - Same as menu items */}
+                <div
+                  className={cn(
+                    "absolute inset-0 transition-all duration-300 rounded-xl",
+                    hoveredItem === "Logout" ? "opacity-100" : "opacity-0"
+                  )}
+                  style={{
+                    background: 'linear-gradient(to right, rgba(255, 193, 5, 0.6), rgba(255, 193, 5, 0.4))',
+                    zIndex: 0
+                  }}
+                />
+              </button>
             </li>
           </ul>
         </nav>
@@ -429,24 +439,24 @@ export default function Sidebar({
 
       {/* Logout Confirmation Dialog */}
       <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-        <DialogContent className="bg-slate-900 border-slate-700">
+        <DialogContent className="bg-white border-[#682A53]/20">
           <DialogHeader>
-            <DialogTitle className="text-white">Confirm Logout</DialogTitle>
+            <DialogTitle className="text-[#682A53] text-xl font-bold">Confirm Logout</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-slate-300">Are you sure you want to logout?</p>
+            <p className="text-gray-600">Are you sure you want to logout?</p>
           </div>
-          <div className="flex justify-end space-x-2">
-            <Button 
-              variant="outline" 
+          <div className="flex justify-end space-x-3">
+            <Button
+              variant="outline"
               onClick={() => setLogoutDialogOpen(false)}
-              className="border-slate-600 text-slate-300 hover:bg-slate-800"
+              className="border-[#682A53] text-[#682A53] hover:bg-[#682A53]/10"
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleLogout}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-[#682A53] hover:bg-[#682A53]/90 text-white"
             >
               Logout
             </Button>

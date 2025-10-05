@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -251,12 +251,12 @@ export default function CreateInterviewChainForm({
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">
+          <div className="space-y-4 sm:space-y-5">
+            <div className="space-y-2">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                 Basic Information
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-xs sm:text-sm text-gray-600">
                 Select the recruiter, client, and technology for this interview
                 chain.
               </p>
@@ -343,12 +343,12 @@ export default function CreateInterviewChainForm({
 
       case 2:
         return (
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">
+          <div className="space-y-4 sm:space-y-5">
+            <div className="space-y-2">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                 Interview Details
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-xs sm:text-sm text-gray-600">
                 Schedule the interview and select the type and method.
               </p>
             </div>
@@ -499,12 +499,12 @@ export default function CreateInterviewChainForm({
 
       case 3:
         return (
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">
+          <div className="space-y-4 sm:space-y-5">
+            <div className="space-y-2">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                 End Client Information
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-xs sm:text-sm text-gray-600">
                 Provide the end client and recruiter contact details.
               </p>
             </div>
@@ -618,43 +618,46 @@ export default function CreateInterviewChainForm({
               </div>
             </div>
 
-            {/* Job Board Name */}
-            <div className="field-container">
-              <Label htmlFor="jobBoardName" className="text-sm font-medium text-gray-700">Job Board Name *</Label>
-              <Input
-                id="jobBoardName"
-                value={newInterview.JobBoardName || ""}
-                onChange={(e) =>
-                  handleInputChange("JobBoardName", e.target.value)
-                }
-                placeholder="Enter job board name"
-                disabled={isSubmitting || loading}
-              />
-              {errors.JobBoardName && (
-                <p className="text-sm text-red-500 mt-1">
-                  Job Board Name is required
-                </p>
-              )}
-            </div>
+            {/* Job Board Name and URL - Same Line */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Job Board Name */}
+              <div className="field-container">
+                <Label htmlFor="jobBoardName" className="text-sm font-medium text-gray-700">Job Board Name *</Label>
+                <Input
+                  id="jobBoardName"
+                  value={newInterview.JobBoardName || ""}
+                  onChange={(e) =>
+                    handleInputChange("JobBoardName", e.target.value)
+                  }
+                  placeholder="Enter job board name"
+                  disabled={isSubmitting || loading}
+                />
+                {errors.JobBoardName && (
+                  <p className="text-sm text-red-500 mt-1">
+                    Job Board Name is required
+                  </p>
+                )}
+              </div>
 
-            {/* Job Board URL */}
-            <div className="field-container">
-              <Label htmlFor="jobBoardUrl" className="text-sm font-medium text-gray-700">Job Board URL *</Label>
-              <Input
-                id="jobBoardUrl"
-                type="url"
-                value={newInterview.JobBoardUrl || ""}
-                onChange={(e) =>
-                  handleInputChange("JobBoardUrl", e.target.value)
-                }
-                placeholder="https://example.com/job-posting"
-                disabled={isSubmitting || loading}
-              />
-              {errors.JobBoardUrl && (
-                <p className="text-sm text-red-500 mt-1">
-                  Job Board URL is required
-                </p>
-              )}
+              {/* Job Board URL */}
+              <div className="field-container">
+                <Label htmlFor="jobBoardUrl" className="text-sm font-medium text-gray-700">Job Board URL *</Label>
+                <Input
+                  id="jobBoardUrl"
+                  type="url"
+                  value={newInterview.JobBoardUrl || ""}
+                  onChange={(e) =>
+                    handleInputChange("JobBoardUrl", e.target.value)
+                  }
+                  placeholder="https://example.com/job-posting"
+                  disabled={isSubmitting || loading}
+                />
+                {errors.JobBoardUrl && (
+                  <p className="text-sm text-red-500 mt-1">
+                    Job Board URL is required
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Comments */}
@@ -674,18 +677,18 @@ export default function CreateInterviewChainForm({
 
       case 4:
         return (
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">
+          <div className="space-y-4 sm:space-y-5">
+            <div className="space-y-2">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                 Review & Submit
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-xs sm:text-sm text-gray-600">
                 Please review all the information before creating the interview
                 chain.
               </p>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+            <div className="bg-gray-50 rounded-lg p-3 sm:p-4 space-y-3 sm:space-y-4">
               {/* Basic Info Review */}
               <div>
                 <h4 className="font-medium text-gray-900 mb-2">
@@ -836,58 +839,58 @@ export default function CreateInterviewChainForm({
       open={open}
       onOpenChange={isSubmitting || loading ? undefined : onClose}
     >
-      <DialogContent className="max-w-full sm:max-w-2xl lg:max-w-4xl max-h-[95vh] mx-2 sm:mx-4 lg:mx-auto overflow-y-auto client-form">
-        <DialogHeader className="pb-4">
-          <DialogTitle className="text-2xl font-bold text-[#682A53]">
+      <DialogContent className="max-w-full sm:max-w-2xl lg:max-w-4xl max-h-[90vh] mx-2 sm:mx-4 lg:mx-auto overflow-y-auto client-form p-4 sm:p-6">
+        <DialogHeader className="pb-3">
+          <DialogTitle className="text-xl sm:text-2xl font-bold text-[#682A53]">
             Create New Interview Chain
           </DialogTitle>
         </DialogHeader>
 
         {/* Progress Steps */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between">
+        <div className="mb-4">
+          <div className="flex items-start">
             {steps.map((step, index) => (
-              <div key={step.id} className="flex items-center">
+              <React.Fragment key={step.id}>
                 <div className="flex flex-col items-center">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
+                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium flex-shrink-0 ${
                       currentStep >= step.id
                         ? "bg-[#682A53] text-white"
                         : "bg-gray-200 text-gray-600"
                     }`}
                   >
                     {currentStep > step.id ? (
-                      <Check className="w-5 h-5" />
+                      <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                     ) : (
                       step.id
                     )}
                   </div>
-                  <div className="mt-2 text-center">
-                    <div className="text-xs font-medium text-gray-900">
+                  <div className="mt-1 sm:mt-2 text-center px-1">
+                    <div className="text-[10px] sm:text-xs font-medium text-gray-900 whitespace-nowrap">
                       {step.title}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="hidden sm:block text-[10px] text-gray-500 whitespace-nowrap">
                       {step.description}
                     </div>
                   </div>
                 </div>
                 {index < steps.length - 1 && (
                   <div
-                    className={`w-16 h-0.5 mx-4 ${
+                    className={`flex-1 h-0.5 self-start mt-4 sm:mt-5 ${
                       currentStep > step.id ? "bg-[#682A53]" : "bg-gray-200"
                     }`}
                   />
                 )}
-              </div>
+              </React.Fragment>
             ))}
           </div>
         </div>
 
         {/* Step Content */}
-        <div className="min-h-[400px]">{renderStepContent()}</div>
+        <div className="min-h-[300px] sm:min-h-[350px]">{renderStepContent()}</div>
 
         {/* Navigation Buttons */}
-        <div className="flex justify-between pt-6 border-t">
+        <div className="flex justify-between pt-4 border-t">
           <Button
             variant="outline"
             onClick={prevStep}

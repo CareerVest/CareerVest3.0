@@ -9,6 +9,7 @@ import {
   Check,
   PauseCircle,
   PlayCircle,
+  Info,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -16,6 +17,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Client,
   ClientStatus,
@@ -26,6 +33,7 @@ import {
   stageConfig,
   getRequiredActions,
   areAllActionsCompleted,
+  isOptionalAction,
 } from "./constants";
 import { UnifiedActionDialog } from "./UnifiedActionDialog";
 import { normalizeDepartments, isClientBlocked, getActiveBlock } from "../actions/pipelineActions";
@@ -201,7 +209,7 @@ export function ClientCard({
                   {clientIsBlocked ? (
                     <>
                       <PlayCircle className="h-3.5 w-3.5" />
-                      <span className="text-xs font-medium">Blocked</span>
+                      <span className="text-xs font-medium">Unblock</span>
                     </>
                   ) : (
                     <>
@@ -238,7 +246,7 @@ export function ClientCard({
           {/* Assigned Person */}
           <div className="mb-2">
             <p className="text-xs text-muted-foreground break-words leading-tight">
-              {client.status === "sales" || client.status === "resume"
+              {client.status === "Sales" || client.status === "Resume"
                 ? "Sales Person"
                 : "Recruiter"}
               : <span className="font-medium text-gray-700">{client.assignedTo || "Unassigned"}</span>
@@ -269,23 +277,247 @@ export function ClientCard({
             data-actions="true"
             data-ignore-card-click="true"
           >
-            <div className="text-xs text-muted-foreground mb-1 font-medium">
-              Required Actions{" "}
-              {!allActionsCompleted ? "(click to complete)" : "(all completed)"}:
-            </div>
-            {requiredActions.map((action: string, index: number) => {
+            {/* Required Actions Section */}
+            {requiredActions.filter(action => !isOptionalAction(action)).length > 0 && (
+              <>
+                <div className="text-xs text-muted-foreground mb-1 font-medium">
+                  Required Actions{" "}
+                  {!allActionsCompleted ? "(click to complete)" : "(all completed)"}:
+                </div>
+                {requiredActions.filter(action => !isOptionalAction(action)).map((action: string, index: number) => {
+                  const requiredActionsOnly = requiredActions.filter(a => !isOptionalAction(a));
+                  const isCompleted = isActionCompleted(action);
+                  const previousActionsCompleted = requiredActionsOnly
+                    .slice(0, index)
+                    .every((prevAction) => isActionCompleted(prevAction));
+                  const isSystemAction = action === "Resume Confirmed by Client";
+                  const isDisabled = client.isBlocked || isCompleted || !previousActionsCompleted || isSystemAction;
+                  const disabledReason = client.isBlocked
+                    ? `Client is blocked: ${client.blockedReason || 'No reason provided'}`
+                    : isSystemAction && isCompleted
+                    ? "Confirmed by client via email"
+                    : isSystemAction
+                    ? "Waiting for client to confirm via email"
+                    : isCompleted
+                    ? "Action already completed"
+                    : !previousActionsCompleted
+                    ? "Complete previous actions first"
+                    : "";
+
+                  const actionDisplayName = action === "Recruiter-Checklist-Completed"
+                    ? "Recruiter Checklist"
+                    : action.includes("-")
+                    ? action.split("-")[0]
+                    : action;
+
+                  return (
+                    <Button
+                      key={action}
+                      variant="ghost"
+                      size="sm"
+                      className={`flex items-center gap-2 text-xs h-6 p-1 w-full justify-start ${
+                        client.isBlocked
+                          ? "opacity-50 bg-red-50 cursor-not-allowed"
+                          : isSystemAction && isCompleted
+                          ? "opacity-75 bg-purple-50 cursor-default"
+                          : isSystemAction
+                          ? "opacity-50 bg-yellow-50 cursor-default"
+                          : isCompleted
+                          ? "opacity-75 bg-green-50 hover:bg-green-100"
+                          : !previousActionsCompleted
+                          ? "opacity-50 bg-gray-50 cursor-not-allowed"
+                          : "hover:bg-blue-50 border border-dashed border-blue-200"
+                      }`}
+                      onClick={(e: React.MouseEvent) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!isDisabled && !isSystemAction) {
+                          handleActionClick(action);
+                        }
+                      }}
+                      disabled={isDisabled}
+                      title={disabledReason}
+                      data-no-card-click="true"
+                    >
+                      <div
+                        className={`w-3 h-3 rounded flex items-center justify-center ${
+                          isCompleted
+                            ? "bg-green-500"
+                            : !previousActionsCompleted
+                            ? "border border-gray-200 bg-gray-100"
+                            : "border border-gray-300"
+                        }`}
+                      >
+                        {isCompleted && <Check className="w-2 h-2 text-white" />}
+                      </div>
+                      <span
+                        className={`break-words leading-tight ${
+                          isCompleted
+                            ? "line-through text-green-700"
+                            : !previousActionsCompleted
+                            ? "text-gray-400"
+                            : "text-blue-700"
+                        }`}
+                      >
+                        {actionDisplayName === "RateCandidate"
+                          ? "Rate Candidate"
+                          : actionDisplayName
+                              .replace("-", " ")
+                              .replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                      </span>
+                    </Button>
+                  );
+                })}
+              </>
+            )}
+
+            {/* Optional Actions Section */}
+            {(requiredActions.filter(action => isOptionalAction(action)).length > 0 ||
+              (client.status === "Marketing" &&
+               (currentUserRole === "Marketing_Manager" || currentUserRole === "Admin") &&
+               isActionCompleted("Recruiter-Checklist-Completed"))) && (
+              <>
+                <div className="text-xs text-muted-foreground mb-1 font-medium mt-2">
+                  Optional:
+                </div>
+
+                {/* Show Recruiter Checklist as read-only optional action for Marketing Manager */}
+                {client.status === "Marketing" &&
+                 (currentUserRole === "Marketing_Manager" || currentUserRole === "Admin") &&
+                 isActionCompleted("Recruiter-Checklist-Completed") && (
+                  <TooltipProvider key="recruiter-checklist-readonly">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className="flex items-center gap-2 text-xs h-6 p-1 w-full justify-start opacity-75 bg-green-50 rounded cursor-default"
+                          data-no-card-click="true"
+                        >
+                          <div className="w-3 h-3 rounded flex items-center justify-center bg-green-500">
+                            <Check className="w-2 h-2 text-white" />
+                          </div>
+                          <span className="line-through text-green-700 flex-1">
+                            Recruiter Acknowledged
+                          </span>
+                          <Info className="w-3 h-3 text-green-600" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <div className="text-xs space-y-1">
+                          <div className="font-semibold mb-2">Recruiter Checklist Details:</div>
+                          {(() => {
+                            const departments = normalizeDepartments(client.departments);
+                            const checklistData = departments.reduce((acc, dept) => {
+                              if (!dept || !dept.actions) return acc;
+                              let actions = dept.actions;
+                              if (
+                                dept.actions &&
+                                typeof dept.actions === "object" &&
+                                (dept.actions as any).$values &&
+                                Array.isArray((dept.actions as any).$values)
+                              ) {
+                                actions = (dept.actions as any).$values;
+                              }
+                              const recruiterAction = actions.find(
+                                (act: any) =>
+                                  act &&
+                                  act.actionType === "Recruiter-Checklist-Completed" &&
+                                  act.status === "completed"
+                              );
+                              if (recruiterAction) {
+                                try {
+                                  const parsedNotes = recruiterAction.notes ? JSON.parse(recruiterAction.notes) : null;
+                                  return {
+                                    ...acc,
+                                    ...parsedNotes,
+                                    completedBy: recruiterAction.performedBy || "Unknown",
+                                    completedDate: recruiterAction.timestamp || "Unknown",
+                                  };
+                                } catch (e) {
+                                  // Notes is plain text, not JSON - return basic data
+                                  return {
+                                    ...acc,
+                                    notes: recruiterAction.notes || "",
+                                    completedBy: recruiterAction.performedBy || "Unknown",
+                                    completedDate: recruiterAction.timestamp || "Unknown",
+                                  };
+                                }
+                              }
+                              return acc;
+                            }, {} as any);
+
+                            return (
+                              <>
+                                <div>
+                                  <strong>LinkedIn Credential:</strong>{" "}
+                                  {checklistData.linkedInCredentialReceived === true || checklistData.linkedInCredentialReceived === "true"
+                                    ? "Yes"
+                                    : checklistData.linkedInCredentialReceived === false || checklistData.linkedInCredentialReceived === "false"
+                                    ? "No"
+                                    : "Not specified"}
+                                </div>
+                                <div>
+                                  <strong>Updated LinkedIn as per Resume:</strong>{" "}
+                                  {checklistData.updatedLinkedInAsPerResume === true || checklistData.updatedLinkedInAsPerResume === "true"
+                                    ? "Yes"
+                                    : checklistData.updatedLinkedInAsPerResume === false || checklistData.updatedLinkedInAsPerResume === "false"
+                                    ? "No"
+                                    : "Not specified"}
+                                </div>
+                                <div>
+                                  <strong>LinkedIn Hyperlink in Resume:</strong>{" "}
+                                  {checklistData.updatedLinkedInHyperlinkInResume === true || checklistData.updatedLinkedInHyperlinkInResume === "true"
+                                    ? "Yes"
+                                    : checklistData.updatedLinkedInHyperlinkInResume === false || checklistData.updatedLinkedInHyperlinkInResume === "false"
+                                    ? "No"
+                                    : "Not specified"}
+                                </div>
+                                <div>
+                                  <strong>Marketing Start Date:</strong>{" "}
+                                  {checklistData.marketingStartDate
+                                    ? new Date(checklistData.marketingStartDate).toLocaleDateString()
+                                    : "Not specified"}
+                                </div>
+                                {checklistData.notes && (
+                                  <div className="pt-2 border-t mt-2">
+                                    <strong>Notes:</strong> {checklistData.notes}
+                                  </div>
+                                )}
+                                <div className="pt-2 border-t mt-2">
+                                  <strong>Completed by:</strong> {checklistData.completedBy}
+                                </div>
+                                <div>
+                                  <strong>On:</strong>{" "}
+                                  {checklistData.completedDate !== "Unknown"
+                                    ? formatDateEST(checklistData.completedDate)
+                                    : "Unknown"}
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+
+                {requiredActions.filter(action => isOptionalAction(action)).map((action: string) => {
               const isCompleted = isActionCompleted(action);
-              const previousActionsCompleted = requiredActions
-                .slice(0, index)
+              // Optional actions only require that all required (non-optional) actions are completed
+              const requiredActionsCompleted = requiredActions
+                .filter((a) => !isOptionalAction(a))
                 .every((prevAction) => isActionCompleted(prevAction));
-              const isDisabled = isCompleted || !previousActionsCompleted;
-              const disabledReason = isCompleted
+              const isDisabled = client.isBlocked || isCompleted || !requiredActionsCompleted;
+              const disabledReason = client.isBlocked
+                ? `Client is blocked: ${client.blockedReason || 'No reason provided'}`
+                : isCompleted
                 ? "Action already completed"
-                : !previousActionsCompleted
-                ? "Complete previous actions first"
+                : !requiredActionsCompleted
+                ? "Complete all required actions first"
                 : "";
 
-              const actionDisplayName = action.includes("-")
+              const actionDisplayName = action === "Recruiter-Checklist-Completed"
+                ? "Recruiter Checklist"
+                : action.includes("-")
                 ? action.split("-")[0]
                 : action;
 
@@ -295,9 +527,11 @@ export function ClientCard({
                   variant="ghost"
                   size="sm"
                   className={`flex items-center gap-2 text-xs h-6 p-1 w-full justify-start ${
-                    isCompleted
+                    client.isBlocked
+                      ? "opacity-50 bg-red-50 cursor-not-allowed"
+                      : isCompleted
                       ? "opacity-75 bg-green-50 hover:bg-green-100"
-                      : !previousActionsCompleted
+                      : !requiredActionsCompleted
                       ? "opacity-50 bg-gray-50 cursor-not-allowed"
                       : "hover:bg-blue-50 border border-dashed border-blue-200"
                   }`}
@@ -316,7 +550,7 @@ export function ClientCard({
                     className={`w-3 h-3 rounded flex items-center justify-center ${
                       isCompleted
                         ? "bg-green-500"
-                        : !previousActionsCompleted
+                        : !requiredActionsCompleted
                         ? "border border-gray-200 bg-gray-100"
                         : "border border-gray-300"
                     }`}
@@ -327,7 +561,7 @@ export function ClientCard({
                     className={`break-words leading-tight ${
                       isCompleted
                         ? "line-through text-green-700"
-                        : !previousActionsCompleted
+                        : !requiredActionsCompleted
                         ? "text-gray-400"
                         : "text-blue-700"
                     }`}
@@ -341,6 +575,8 @@ export function ClientCard({
                 </Button>
               );
             })}
+              </>
+            )}
           </div>
 
           {/* Last Updated */}
@@ -363,7 +599,7 @@ export function ClientCard({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2"
+                  className="h-8 w-8 p-0 absolute top-10 right-2"
                   data-no-card-click="true"
                 >
                   <MoreHorizontal className="w-3 h-3" />
@@ -373,6 +609,11 @@ export function ClientCard({
                 align="end"
                 onClick={(e: React.MouseEvent) => e.stopPropagation()}
               >
+                {client.isBlocked && (
+                  <div className="px-2 py-1.5 text-xs text-red-600 font-medium border-b">
+                    ⚠️ Client is blocked - Cannot move
+                  </div>
+                )}
                 {canMoveClient(client, currentUserRole) &&
                   getAvailableStages(client.status, currentUserRole).map(
                     (stage) => {

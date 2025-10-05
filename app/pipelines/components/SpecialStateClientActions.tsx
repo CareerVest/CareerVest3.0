@@ -24,6 +24,7 @@ interface SpecialStateClientActionsProps {
     action: string,
     data: { comment: string; file?: File; additionalFiles?: File[] }
   ) => void;
+  onDialogClose?: () => void;
 }
 
 export function SpecialStateClientActions({
@@ -31,6 +32,7 @@ export function SpecialStateClientActions({
   currentUserRole,
   onMoveClient,
   onActionComplete,
+  onDialogClose,
 }: SpecialStateClientActionsProps) {
   const [unifiedActionDialogOpen, setUnifiedActionDialogOpen] = useState(false);
   const [selectedActionType, setSelectedActionType] = useState<string>("");
@@ -50,7 +52,7 @@ export function SpecialStateClientActions({
     // Build actions based on available stages
     const actions = [];
 
-    if (availableStages.includes("remarketing")) {
+    if (availableStages.includes("Remarketing")) {
       actions.push({
         id: "move-to-remarketing",
         label: "Move to ReMarketing",
@@ -64,7 +66,7 @@ export function SpecialStateClientActions({
       });
     }
 
-    if (availableStages.includes("on-hold")) {
+    if (availableStages.includes("OnHold")) {
       actions.push({
         id: "move-to-on-hold",
         label: "Move to On Hold",
@@ -78,7 +80,7 @@ export function SpecialStateClientActions({
       });
     }
 
-    if (availableStages.includes("sales")) {
+    if (availableStages.includes("Sales")) {
       actions.push({
         id: "move-to-sales",
         label: "Restart in Sales",
@@ -92,7 +94,7 @@ export function SpecialStateClientActions({
       });
     }
 
-    if (availableStages.includes("resume")) {
+    if (availableStages.includes("Resume")) {
       actions.push({
         id: "move-to-resume",
         label: "Restart in Resume",
@@ -106,7 +108,7 @@ export function SpecialStateClientActions({
       });
     }
 
-    if (availableStages.includes("marketing")) {
+    if (availableStages.includes("Marketing")) {
       actions.push({
         id: "move-to-marketing",
         label: "Resume in Marketing",
@@ -177,16 +179,22 @@ export function SpecialStateClientActions({
           currentStage={client.status}
           onSuccess={async (result?: any) => {
             console.log("🎯 UnifiedActionDialog onSuccess called with result:", result);
-            
+
             // Check if this is a stage transition
             const isStageTransition = selectedActionType.startsWith("Move to ");
-            
+
             if (isStageTransition && result?.stageTransitioned && result?.newStage) {
               console.log("🔄 SpecialStateClientActions: Stage transition detected, calling onMoveClient...");
-              
+
               // For stage transitions, use onMoveClient which handles the state properly
               // Skip backend call since UnifiedActionDialog already handled it
               onMoveClient(client.id, result.newStage, true);
+
+              // Close the parent dialog (special state dialog) after successful transition
+              if (onDialogClose) {
+                console.log("🚪 Closing special state dialog after successful transition");
+                onDialogClose();
+              }
             } else {
               // For regular actions, call onActionComplete to update local state
               if (onActionComplete) {
@@ -195,7 +203,7 @@ export function SpecialStateClientActions({
                 });
               }
             }
-            
+
             // Reset dialog state
             setUnifiedActionDialogOpen(false);
             setSelectedActionType("");

@@ -2,30 +2,35 @@ import { Client, ClientStatus, UserRole } from "../../types/pipelines/pipeline";
 import { areAllActionsCompleted } from "./constants";
 
 export const canMoveClient = (client: Client, userRole: UserRole): boolean => {
+  // If client is blocked, no one can move them (except admins can unblock first)
+  if (client.isBlocked) {
+    return false;
+  }
+
   switch (userRole) {
     case "Admin":
       // Admin can move clients regardless of action completion, but with restrictions for placed stage
-      if (client.status === "placed") {
+      if (client.status === "Placed") {
         // From placed stage, admin can only move to remarketing
         return true; // Allow movement, but getAvailableStages will restrict destinations
       }
       return true;
     case "Marketing_Manager":
       // Marketing manager can move clients regardless of action completion, but NOT from sales or placed
-      if (client.status === "sales" || client.status === "placed") {
+      if (client.status === "Sales" || client.status === "Placed") {
         return false;
       }
       // Only allow movement from marketing and remarketing stages
-      return client.status === "marketing" || client.status === "remarketing";
+      return client.status === "Marketing" || client.status === "Remarketing";
     case "Sales_Executive":
       // Sales people can move clients from sales stage
-      return client.status === "sales";
+      return client.status === "Sales";
     case "Resume_Writer":
       // Resume people can only move if all actions are completed
       if (!areAllActionsCompleted(client, client.status, userRole)) {
         return false;
       }
-      return client.status === "resume";
+      return client.status === "Resume";
     case "Senior_Recruiter":
     case "Recruiter":
       // Senior recruiters and recruiters have no access to marketing stage
@@ -40,31 +45,39 @@ export const getAvailableStages = (
   userRole: UserRole
 ): ClientStatus[] => {
   const allStages: ClientStatus[] = [
-    "sales",
-    "resume",
-    "marketing",
-    "placed",
-    "backed-out",
-    "remarketing",
-    "on-hold",
+    "Sales",
+    "Resume",
+    "Marketing",
+    "Placed",
+    "BackedOut",
+    "Remarketing",
+    "OnHold",
   ];
 
   // Admin can move to any stage except current, but with restrictions for placed and completed stages
   if (userRole === "Admin") {
-    if (currentStatus === "placed") {
+    if (currentStatus === "Placed") {
       // From placed stage, admin can only move to remarketing or completed
-      return ["remarketing"];
+      return ["Remarketing"];
+    }
+    if (currentStatus === "BackedOut") {
+      // From backed out stage, admin can only move to remarketing
+      return ["Remarketing"];
     }
     return allStages.filter((stage) => stage !== currentStatus);
   }
 
   // Marketing Manager can only move clients from marketing to specific stages
   if (userRole === "Marketing_Manager") {
-    if (currentStatus === "marketing") {
-      return ["placed", "backed-out", "on-hold"];
+    if (currentStatus === "Marketing") {
+      return ["Placed", "BackedOut", "OnHold"];
     }
-    if (currentStatus === "remarketing") {
-      return ["placed", "backed-out", "on-hold"];
+    if (currentStatus === "Remarketing") {
+      return ["Placed", "BackedOut", "OnHold"];
+    }
+    if (currentStatus === "BackedOut") {
+      // From backed out stage, marketing manager can only move to remarketing
+      return ["Remarketing"];
     }
     // For other stages, marketing manager has limited access
     return [];
@@ -75,29 +88,29 @@ export const getAvailableStages = (
   const moves: ClientStatus[] = [];
 
   switch (currentStatus) {
-    case "sales":
+    case "Sales":
       if (userRole === "Sales_Executive") {
         // Sales people can only move to resume, backed-out, or on-hold
-        moves.push("resume", "backed-out", "on-hold");
+        moves.push("Resume", "BackedOut", "OnHold");
       }
       break;
-    case "resume":
+    case "Resume":
       if (userRole === "Resume_Writer") {
         // Resume people can only move to marketing, backed-out, or on-hold
-        moves.push("marketing", "backed-out", "on-hold");
+        moves.push("Marketing", "BackedOut", "OnHold");
       }
       break;
-    case "marketing":
+    case "Marketing":
       // Marketing Manager access handled above
       break;
 
-    case "backed-out":
+    case "BackedOut":
       // Only admin/marketing-manager can move from backed-out
       break;
-    case "on-hold":
+    case "OnHold":
       // Only admin/marketing-manager can move from on-hold
       break;
-    case "remarketing":
+    case "Remarketing":
       // Marketing Manager access handled above
       break;
   }
@@ -209,7 +222,7 @@ export const shouldResetActions = (
   toStage: ClientStatus
 ): boolean => {
   // Define the normal forward progression
-  const stageOrder = ["sales", "resume", "marketing", "placed"];
+  const stageOrder = ["Sales", "Resume", "Marketing", "Placed"];
 
   const fromIndex = stageOrder.indexOf(fromStage);
   const toIndex = stageOrder.indexOf(toStage);
@@ -221,9 +234,9 @@ export const shouldResetActions = (
 
   // Special cases: moving to special states doesn't reset actions
   if (
-    toStage === "backed-out" ||
-    toStage === "on-hold" ||
-    toStage === "remarketing"
+    toStage === "BackedOut" ||
+    toStage === "OnHold" ||
+    toStage === "Remarketing"
   ) {
     return false;
   }
@@ -241,18 +254,18 @@ export const getActionsToReset = (
 
   // Return actions that should be reset based on the target stage
   switch (toStage) {
-    case "sales":
+    case "Sales":
       return ["RateCandidate", "Upload Required Docs - Sales"];
-    case "resume":
+    case "Resume":
       return [
         "Acknowledged",
         "Initial Call Done",
         "Resume Completed",
         "Upload Required Docs - Resume",
       ];
-    case "marketing":
+    case "Marketing":
       return ["Acknowledged-Marketing"];
-    case "remarketing":
+    case "Remarketing":
       return ["Acknowledged-Remarketing", "AssignRecruiter"];
     default:
       return [];

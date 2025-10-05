@@ -1,11 +1,11 @@
 export type ClientStatus =
-  | "sales"
-  | "resume"
-  | "marketing"
-  | "placed"
-  | "backed-out"
-  | "remarketing"
-  | "on-hold";
+  | "Sales"
+  | "Resume"
+  | "Marketing"
+  | "Placed"
+  | "BackedOut"
+  | "Remarketing"
+  | "OnHold";
 
 export type UserRole =
   | "Admin"
@@ -23,6 +23,9 @@ export interface Client {
   status: ClientStatus;
   assignedTo: string;
   assignedRecruiterID?: number | null;
+  assignedRecruiterName?: string | null;
+  assignedSalesPersonID?: number | null;
+  assignedSalesPersonName?: string | null;
   createdAt: string;
   lastUpdated: string;
   priority: "exceptional" | "real-time" | "fresher" | "standard";

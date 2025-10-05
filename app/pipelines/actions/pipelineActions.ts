@@ -1,5 +1,6 @@
 import axiosInstance from "../../../lib/axiosInstance";
 import { useApiWithLoading } from "../../../lib/apiWithLoading";
+import { showSuccess, showError, showWarning, showInfo } from "../../../lib/toastUtils";
 import {
   Client,
   ClientStatus,
@@ -18,6 +19,23 @@ import type {
   BlockHistoryResponse,
   ClientBlockHistory,
 } from "../../types/pipelines/clientBlock";
+import type {
+  RecruiterHistoryResponse,
+  ActiveRecruiterResponse,
+  RecruiterTenureDaysResponse,
+  LastRecruiterChangeResponse,
+  RecruiterAssignmentCountResponse,
+  AllAssignedRecruitersResponse,
+  RecruiterAssignmentHistory,
+} from "../../types/pipelines/recruiterHistory";
+import type {
+  ClientDocumentsResponse,
+  PipelineDocument,
+} from "../../types/pipelines/pipelineDocuments";
+import type {
+  StageJourneyResponse,
+  StageVisit,
+} from "../../types/pipelines/stageJourney";
 
 // Helper function to normalize departments data (handle Entity Framework serialization)
 export const normalizeDepartments = (departments: any): Department[] => {
@@ -54,8 +72,8 @@ export const normalizeDepartments = (departments: any): Department[] => {
 const getAssignedPerson = (candidate: any, status: string) => {
   // For sales and resume stages, show sales person first
   if (
-    status === "sales" ||
-    status === "resume" ||
+    status === "Sales" ||
+    status === "Resume" ||
     candidate.clientStatus === "In Sales"
   ) {
     return (
@@ -206,6 +224,8 @@ export async function fetchRecruiters(): Promise<
       statusText: error.response?.statusText,
     });
 
+    showError("Failed to load recruiters. Using fallback data.");
+
     // Return mock data as fallback
     const fallbackData = [
       { id: 1, name: "John Smith", role: "Senior Recruiter" },
@@ -278,26 +298,28 @@ export async function fetchPipelineCandidates(filters?: {
         case "sales":
         case "in sales":
         case "in-sales":
-          return "sales";
+          return "Sales";
         case "resume":
         case "resume preparation":
         case "resume-preparation":
-          return "resume";
+          return "Resume";
         case "marketing":
-          return "marketing";
+          return "Marketing";
         case "placed":
         case "completed":
-          return "placed";
+          return "Placed";
         case "backed out":
         case "backed-out":
-          return "backed-out";
+        case "backedout":
+          return "BackedOut";
         case "remarketing":
-          return "remarketing";
+          return "Remarketing";
         case "on hold":
         case "on-hold":
-          return "on-hold";
+        case "onhold":
+          return "OnHold";
         default:
-          return "sales"; // safe default
+          return "Sales"; // safe default
       }
     };
 
@@ -368,6 +390,7 @@ export async function fetchPipelineCandidates(filters?: {
     return candidates;
   } catch (error: any) {
     console.error("Error fetching pipeline candidates:", error);
+    showError("Failed to load pipeline candidates. Please try again.");
     throw new Error(
       `Failed to fetch pipeline candidates: ${
         error.response?.data?.message || error.message
@@ -416,6 +439,7 @@ export async function getPipelineCandidate(id: string): Promise<Client | null> {
     return transformedCandidate;
   } catch (error: any) {
     console.error("Error fetching pipeline candidate:", error);
+    showError("Failed to load client details. Please try again.");
     throw new Error(
       `Failed to fetch pipeline candidate: ${
         error.response?.data?.message || error.message
@@ -429,7 +453,8 @@ export async function getPipelineCandidate(id: string): Promise<Client | null> {
 // ============================================================================
 
 /**
- * Get a single pipeline candidate by ID with fresh data
+ * Get a single pipeline candidate by ID with minimal data (optimized for sidebar)
+ * Timeline/actions data is fetched separately via stage journey API
  */
 export async function getPipelineCandidateById(id: string): Promise<Client> {
   try {
@@ -439,91 +464,39 @@ export async function getPipelineCandidateById(id: string): Promise<Client> {
 
     const candidate = response.data;
 
-    // Transform backend data to frontend format
+    // Determine assigned person based on status
+    const assignedTo = candidate.clientStatus === "Sales" || candidate.clientStatus === "Resume"
+      ? candidate.assignedSalesPersonName || "Unassigned"
+      : candidate.assignedRecruiterName || "Unassigned";
+
+    // Transform minimal backend data to frontend format
     const transformedCandidate: Client = {
       id: candidate.clientID.toString(),
-      name: candidate.clientName,
+      name: candidate.clientName || "Unknown",
       email: candidate.personalEmailAddress || "",
-      phone: candidate.personalPhoneNumber || "",
+      phone: "", // Not included in minimal response
       status: candidate.clientStatus as ClientStatus,
-      priority: (() => {
-        const backendPriority = candidate.priority?.toLowerCase();
-        if (
-          backendPriority === "exceptional" ||
-          backendPriority === "⭐ exceptional"
-        ) {
-          return "exceptional";
-        } else if (
-          backendPriority === "real-time" ||
-          backendPriority === "⚡ real-time"
-        ) {
-          return "real-time";
-        } else if (
-          backendPriority === "fresher" ||
-          backendPriority === "🌱 fresher"
-        ) {
-          return "fresher";
-        } else if (backendPriority === "standard") {
-          return "standard";
-        }
-        return "standard";
-      })(),
-      assignedRecruiterID: candidate.assignedRecruiterID || null,
-      assignedTo: getAssignedPerson(candidate, candidate.clientStatus),
-      createdAt: candidate.enrollmentDate || new Date().toISOString(),
+      priority: (candidate.priority?.toLowerCase() || "standard") as "exceptional" | "real-time" | "fresher" | "standard",
+      assignedRecruiterID: null, // Not needed in sidebar
+      assignedTo: assignedTo,
+      createdAt: new Date().toISOString(), // Not included in minimal response
       lastUpdated: new Date().toISOString(),
       actions: {},
-      notes: candidate.notes || "",
-      departments: normalizeDepartments(candidate.departments),
+      notes: "", // Not included in minimal response
+      departments: [], // Now fetched via stage journey API - empty array to avoid errors
       currentStage: {
         department: candidate.clientStatus as ClientStatus,
-        startDate: candidate.currentStageStartDate || new Date().toISOString(),
-        notes: candidate.currentStageNotes || "",
+        startDate: new Date().toISOString(), // Not included in minimal response
+        notes: "", // Not included in minimal response
       },
-      daysInCurrentStage: candidate.daysInCurrentStage || 0,
-      departmentHistory: (() => {
-        // Convert stageTransitions to departmentHistory format
-        const stageTransitions =
-          candidate.stageTransitions?.$values ||
-          candidate.stageTransitions ||
-          [];
-        const departmentHistory = [];
-
-        // Add all completed stages from transitions
-        stageTransitions.forEach((transition: any) => {
-          departmentHistory.push({
-            department: transition.fromStage,
-            startDate: transition.transitionedAt,
-            endDate: transition.transitionedAt, // End date is when they moved to next stage
-          });
-        });
-
-        // Add current stage (the last "toStage" from transitions, or currentStageDepartment if no transitions)
-        if (stageTransitions.length > 0) {
-          const lastTransition = stageTransitions[stageTransitions.length - 1];
-          departmentHistory.push({
-            department: lastTransition.toStage,
-            startDate: lastTransition.transitionedAt,
-            endDate: undefined, // Current stage has no end date
-          });
-        } else {
-          // If no transitions, use current stage
-          departmentHistory.push({
-            department: candidate.clientStatus,
-            startDate:
-              candidate.currentStageStartDate || candidate.enrollmentDate,
-            endDate: undefined,
-          });
-        }
-        return departmentHistory;
-      })(),
+      daysInCurrentStage: 0, // Not included in minimal response
+      departmentHistory: [], // Not included in minimal response
       isBlocked: candidate.isBlocked || false,
-      blockedReason: candidate.blockedReason || null,
-      blockedStageName: candidate.blockedStageName || null,
     };
 
     return transformedCandidate;
   } catch (error: any) {
+    showError("Failed to load client data. Please try again.");
     throw new Error(`Failed to fetch client data: ${error.message}`);
   }
 }
@@ -554,9 +527,11 @@ export async function generateResumeConfirmationToken(
     );
 
     console.log("✅ Resume confirmation token generated:", response.data);
+    showSuccess("Resume confirmation token generated successfully");
     return response.data.token;
   } catch (error: any) {
     console.error("❌ Error generating resume confirmation token:", error);
+    showError("Failed to generate resume confirmation token. Please try again.");
     throw new Error(`Failed to generate confirmation token: ${error.message}`);
   }
 }
@@ -578,6 +553,7 @@ export async function getResumeConfirmationStatus(
     return response.data.status;
   } catch (error: any) {
     console.error("❌ Error getting resume confirmation status:", error);
+    showError("Failed to get resume confirmation status. Please try again.");
     throw new Error(`Failed to get confirmation status: ${error.message}`);
   }
 }
@@ -634,10 +610,12 @@ export async function executePipelineAction(data: {
       });
     }
 
-    // Add additional data as JSON
+    // Add additional data - ASP.NET Core expects simple values, not JSON stringified
     if (data.additionalData) {
       Object.entries(data.additionalData).forEach(([key, value]) => {
-        formData.append(`AdditionalData[${key}]`, JSON.stringify(value));
+        if (value !== null && value !== undefined) {
+          formData.append(`AdditionalData[${key}]`, String(value));
+        }
       });
     }
 
@@ -658,9 +636,19 @@ export async function executePipelineAction(data: {
     );
 
     console.log("✅ Unified pipeline action completed:", response.data);
+
+    // Show success toast with appropriate message
+    if (response.data.stageTransitioned && response.data.newStage) {
+      showSuccess(`Client successfully moved to ${response.data.newStage}`);
+    } else if (response.data.success) {
+      showSuccess(response.data.message || "Action completed successfully");
+    }
+
     return response.data;
   } catch (error: any) {
     console.error("❌ Error executing pipeline action:", error);
+    const errorMessage = error.response?.data?.message || error.message || "Action failed";
+    showError(`Failed to execute action: ${errorMessage}`);
     throw new Error(
       `Failed to execute pipeline action: ${
         error.response?.data?.message || error.message
@@ -678,6 +666,7 @@ export async function getPipelineActionRules(): Promise<Record<string, any>> {
     return response.data;
   } catch (error: any) {
     console.error("❌ Error fetching pipeline rules:", error);
+    showError("Failed to load pipeline rules. Please try again.");
     throw new Error(
       `Failed to fetch pipeline rules: ${
         error.response?.data?.message || error.message
@@ -698,9 +687,11 @@ export async function blockClient(
       `/api/v1/pipelines/clients/${clientId}/block`,
       request
     );
+    showSuccess("Client blocked successfully");
     return response.data;
   } catch (error: any) {
     console.error("❌ Error blocking client:", error);
+    showError(error.response?.data?.message || "Failed to block client. Please try again.");
     throw new Error(
       error.response?.data?.message || "Failed to block client"
     );
@@ -719,9 +710,11 @@ export async function unblockClient(
       `/api/v1/pipelines/clients/${clientId}/unblock`,
       request
     );
+    showSuccess("Client unblocked successfully");
     return response.data;
   } catch (error: any) {
     console.error("❌ Error unblocking client:", error);
+    showError(error.response?.data?.message || "Failed to unblock client. Please try again.");
     throw new Error(
       error.response?.data?.message || "Failed to unblock client"
     );
@@ -741,6 +734,7 @@ export async function getActiveBlock(
     return response.data;
   } catch (error: any) {
     console.error("❌ Error getting active block:", error);
+    showError("Failed to load block information. Please try again.");
     throw new Error(
       error.response?.data?.message || "Failed to get active block"
     );
@@ -760,6 +754,7 @@ export async function getBlockHistory(
     return response.data;
   } catch (error: any) {
     console.error("❌ Error getting block history:", error);
+    showError("Failed to load block history. Please try again.");
     throw new Error(
       error.response?.data?.message || "Failed to get block history"
     );
@@ -780,6 +775,7 @@ export async function isClientBlocked(
     return response.data;
   } catch (error: any) {
     console.error("❌ Error checking if client is blocked:", error);
+    showError("Failed to check block status. Please try again.");
     throw new Error(
       error.response?.data?.message || "Failed to check block status"
     );
@@ -830,6 +826,210 @@ function calculateBusinessDays(startDate: Date, endDate: Date): number {
   return businessDays;
 }
 
+// ============================================================================
+// RECRUITER ASSIGNMENT HISTORY ACTIONS
+// ============================================================================
+
+/**
+ * Get complete recruiter assignment history for a client.
+ * Returns all recruiter assignments and changes in chronological order.
+ */
+export async function getRecruiterHistory(clientId: number): Promise<RecruiterHistoryResponse> {
+  try {
+    console.log(`🔍 Fetching recruiter history for client ${clientId}`);
+
+    const response = await axiosInstance.get(
+      `/api/v1/pipelines/clients/${clientId}/recruiter-history`
+    );
+
+    console.log("✅ Recruiter history fetched successfully:", response.data);
+    return response.data as RecruiterHistoryResponse;
+  } catch (error: any) {
+    console.error("❌ Error fetching recruiter history:", error);
+    showError("Failed to load recruiter history. Please try again.");
+    return {
+      success: false,
+      data: [],
+      count: 0,
+    };
+  }
+}
+
+/**
+ * Get current active recruiter assignment for a client.
+ */
+export async function getActiveRecruiter(clientId: number): Promise<ActiveRecruiterResponse> {
+  try {
+    console.log(`🔍 Fetching active recruiter for client ${clientId}`);
+
+    const response = await axiosInstance.get(
+      `/api/v1/pipelines/clients/${clientId}/active-recruiter`
+    );
+
+    console.log("✅ Active recruiter fetched successfully:", response.data);
+    return response.data as ActiveRecruiterResponse;
+  } catch (error: any) {
+    console.error("❌ Error fetching active recruiter:", error);
+    showError("Failed to load active recruiter. Please try again.");
+    return {
+      success: false,
+      data: null,
+      message: "Failed to fetch active recruiter",
+    };
+  }
+}
+
+/**
+ * Get current recruiter tenure in business days.
+ */
+export async function getRecruiterTenureDays(clientId: number): Promise<RecruiterTenureDaysResponse> {
+  try {
+    console.log(`🔍 Fetching recruiter tenure days for client ${clientId}`);
+
+    const response = await axiosInstance.get(
+      `/api/v1/pipelines/clients/${clientId}/recruiter-tenure-days`
+    );
+
+    console.log("✅ Recruiter tenure days fetched successfully:", response.data);
+    return response.data as RecruiterTenureDaysResponse;
+  } catch (error: any) {
+    console.error("❌ Error fetching recruiter tenure days:", error);
+    showError("Failed to load recruiter tenure. Please try again.");
+    return {
+      success: false,
+      durationInBusinessDays: 0,
+    };
+  }
+}
+
+/**
+ * Get the last recruiter change event for a client.
+ */
+export async function getLastRecruiterChange(clientId: number): Promise<LastRecruiterChangeResponse> {
+  try {
+    console.log(`🔍 Fetching last recruiter change for client ${clientId}`);
+
+    const response = await axiosInstance.get(
+      `/api/v1/pipelines/clients/${clientId}/last-recruiter-change`
+    );
+
+    console.log("✅ Last recruiter change fetched successfully:", response.data);
+    return response.data as LastRecruiterChangeResponse;
+  } catch (error: any) {
+    console.error("❌ Error fetching last recruiter change:", error);
+    showError("Failed to load recruiter change history. Please try again.");
+    return {
+      success: false,
+      data: null,
+      message: "Failed to fetch last recruiter change",
+    };
+  }
+}
+
+/**
+ * Get count of recruiter assignments for this client.
+ */
+export async function getRecruiterAssignmentCount(clientId: number): Promise<RecruiterAssignmentCountResponse> {
+  try {
+    console.log(`🔍 Fetching recruiter assignment count for client ${clientId}`);
+
+    const response = await axiosInstance.get(
+      `/api/v1/pipelines/clients/${clientId}/recruiter-assignment-count`
+    );
+
+    console.log("✅ Recruiter assignment count fetched successfully:", response.data);
+    return response.data as RecruiterAssignmentCountResponse;
+  } catch (error: any) {
+    console.error("❌ Error fetching recruiter assignment count:", error);
+    showError("Failed to load recruiter assignment count. Please try again.");
+    return {
+      success: false,
+      count: 0,
+    };
+  }
+}
+
+/**
+ * Get all unique recruiter IDs who have ever been assigned to this client.
+ */
+export async function getAllAssignedRecruiters(clientId: number): Promise<AllAssignedRecruitersResponse> {
+  try {
+    console.log(`🔍 Fetching all assigned recruiters for client ${clientId}`);
+
+    const response = await axiosInstance.get(
+      `/api/v1/pipelines/clients/${clientId}/all-assigned-recruiters`
+    );
+
+    console.log("✅ All assigned recruiters fetched successfully:", response.data);
+    return response.data as AllAssignedRecruitersResponse;
+  } catch (error: any) {
+    console.error("❌ Error fetching all assigned recruiters:", error);
+    showError("Failed to load assigned recruiters. Please try again.");
+    return {
+      success: false,
+      data: [],
+      count: 0,
+    };
+  }
+}
+
+/**
+ * Get all documents for a client
+ */
+export async function getClientDocuments(
+  clientId: number
+): Promise<ClientDocumentsResponse> {
+  try {
+    console.log(`🔍 Fetching documents for client ${clientId}`);
+
+    const response = await axiosInstance.get(
+      `/api/v1/pipelines/clients/${clientId}/documents`
+    );
+
+    console.log("✅ Documents fetched successfully:", response.data);
+    return response.data as ClientDocumentsResponse;
+  } catch (error: any) {
+    console.error("❌ Error fetching documents:", error);
+    showError("Failed to load client documents. Please try again.");
+    return {
+      success: false,
+      message: "Failed to fetch documents",
+      documents: [],
+      totalCount: 0,
+    };
+  }
+}
+
+/**
+ * Get chronological stage journey for a client showing all stage visits
+ */
+export async function getClientStageJourney(
+  clientId: number
+): Promise<StageJourneyResponse> {
+  try {
+    console.log(`🔍 Fetching stage journey for client ${clientId}`);
+
+    const response = await axiosInstance.get(
+      `/api/v1/pipelines/clients/${clientId}/stage-journey`
+    );
+
+    console.log("✅ Stage journey fetched successfully:", response.data);
+    return response.data as StageJourneyResponse;
+  } catch (error: any) {
+    console.error("❌ Error fetching stage journey:", error);
+    showError("Failed to load client stage journey. Please try again.");
+    return {
+      success: false,
+      client: null,
+      data: [],
+      totalVisits: 0,
+      totalDays: 0,
+      totalBusinessDays: 0,
+      message: "Failed to fetch stage journey",
+    };
+  }
+}
+
 /**
  * Get available actions for a client based on backend rules
  */
@@ -843,6 +1043,7 @@ export async function getAvailableActionsForClient(
     return response.data;
   } catch (error: any) {
     console.error("❌ Error fetching available actions:", error);
+    showError("Failed to load available actions. Please try again.");
     throw new Error(
       `Failed to fetch available actions: ${
         error.response?.data?.message || error.message
@@ -865,6 +1066,7 @@ export async function getActionRules(
     return response.data;
   } catch (error: any) {
     console.error("❌ Error fetching action rules:", error);
+    showError("Failed to load action rules. Please try again.");
     throw new Error(
       `Failed to fetch action rules: ${
         error.response?.data?.message || error.message
@@ -919,6 +1121,14 @@ export const usePipelineActions = () => {
     getBlockHistory: (clientId: number) =>
       apiCall(getBlockHistory(clientId), { showLoading: true }),
     isClientBlocked: (clientId: number) =>
-      apiCall(isClientBlocked(clientId), { showLoading: false })
+      apiCall(isClientBlocked(clientId), { showLoading: false }),
+
+    // Stage Journey
+    getClientStageJourney: (clientId: number) =>
+      apiCall(getClientStageJourney(clientId), { showLoading: false }),
+
+    // Pipeline Documents
+    getClientDocuments: (clientId: number) =>
+      apiCall(getClientDocuments(clientId), { showLoading: false })
   };
 };

@@ -10,14 +10,13 @@ import { useAuth } from "../../contexts/authContext";
 export default function PipelinesPage() {
   console.log("PipelinesPage rendered");
   const { roles } = useAuth();
-  const { getPipelineCandidateById } = usePipelineActions();
-  
+
   // Determine user role from auth context
-  const currentUserRole: UserRole = roles.length > 0 
-    ? (roles.includes("Admin") 
+  const currentUserRole: UserRole = roles.length > 0
+    ? (roles.includes("Admin")
         ? "Admin"
         : roles.includes("Sales_Executive")
-        ? "Sales_Executive" 
+        ? "Sales_Executive"
         : roles.includes("Senior_Recruiter")
         ? "Senior_Recruiter"
         : roles.includes("Recruiter")
@@ -37,22 +36,10 @@ export default function PipelinesPage() {
     setSelectedClient(updatedClient);
   };
 
-  const handleClientSelect = async (client: Client) => {
-    try {
-      // Fetch fresh client data from the API using our action
-      console.log("🔄 Fetching fresh data for client:", client.id);
-      const freshClientData = await getPipelineCandidateById(client.id);
-
-      console.log("✅ Fresh client data received:", freshClientData);
-
-      setSelectedClient(freshClientData);
-      setIsClientDetailsOpen(true);
-    } catch (error) {
-      console.error("❌ Error fetching fresh client data:", error);
-      // Fallback to the original client data if API call fails
-      setSelectedClient(client);
-      setIsClientDetailsOpen(true);
-    }
+  const handleClientSelect = (client: Client) => {
+    // Just pass the client - sidebar will fetch fresh data from merged API
+    setSelectedClient(client);
+    setIsClientDetailsOpen(true);
   };
 
   const handleCloseSidebar = () => {

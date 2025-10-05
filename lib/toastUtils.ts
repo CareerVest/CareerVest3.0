@@ -9,6 +9,12 @@ export const showSuccess = (message: string, description?: string) => {
   toast.success(message, {
     description,
     duration: 4000,
+    style: {
+      background: '#f0fdf4',
+      color: '#14532d',
+      border: '2px solid #16a34a',
+      fontWeight: 500,
+    },
   });
 };
 
@@ -16,6 +22,12 @@ export const showError = (message: string, description?: string) => {
   toast.error(message, {
     description,
     duration: 6000,
+    style: {
+      background: '#fef2f2',
+      color: '#7f1d1d',
+      border: '2px solid #dc2626',
+      fontWeight: 500,
+    },
   });
 };
 
@@ -23,6 +35,12 @@ export const showWarning = (message: string, description?: string) => {
   toast.warning(message, {
     description,
     duration: 5000,
+    style: {
+      background: '#fefce8',
+      color: '#713f12',
+      border: '2px solid #ca8a04',
+      fontWeight: 500,
+    },
   });
 };
 
@@ -30,6 +48,12 @@ export const showInfo = (message: string, description?: string) => {
   toast.info(message, {
     description,
     duration: 4000,
+    style: {
+      background: '#eff6ff',
+      color: '#1e3a8a',
+      border: '2px solid #2563eb',
+      fontWeight: 500,
+    },
   });
 };
 

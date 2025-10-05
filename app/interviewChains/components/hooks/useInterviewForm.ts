@@ -210,12 +210,24 @@ export const useInterviewForm = (
     setNewInterview((prev) => {
       const updated = { ...prev, [field]: value };
       if (field === "ClientID" && value !== null) {
-        const selectedClient = clients.find((c) => c.clientID === value);
+        // Convert value to number for comparison since Select passes string
+        const clientId = typeof value === "string" ? parseInt(value) : value;
+        const selectedClient = clients.find((c) => c.clientID === clientId);
+
+        console.log("Selected Client:", selectedClient);
+        console.log("Client Tech Stack:", selectedClient?.techStack);
+
         updated.clientName = selectedClient?.clientName || prev.clientName;
+        // Auto-populate technology/position from client's tech stack
+        if (selectedClient?.techStack) {
+          updated.position = selectedClient.techStack;
+          console.log("Auto-populated position with:", selectedClient.techStack);
+        }
       }
       if (field === "RecruiterID" && value !== null) {
+        const recruiterId = typeof value === "string" ? parseInt(value) : value;
         const selectedRecruiter = recruiters.find(
-          (r) => r.employeeID === value
+          (r) => r.employeeID === recruiterId
         );
         updated.recruiterName = selectedRecruiter
           ? `${selectedRecruiter.firstName} ${selectedRecruiter.lastName}`

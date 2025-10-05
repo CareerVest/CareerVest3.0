@@ -62,69 +62,69 @@ export function DepartmentCounts({
 
   // Group clients by department
   const departments: Record<ClientStatus, DepartmentData> = {
-    sales: {
+    Sales: {
       title: "Sales",
       icon: User,
       color: "bg-blue-500",
       bgColor: "bg-blue-50",
       textColor: "text-blue-700",
-      clients: clients.filter((c) => c.status === "sales"),
+      clients: clients.filter((c) => c.status === "Sales"),
     },
-    resume: {
+    Resume: {
       title: "Resume",
       icon: FileText,
       color: "bg-orange-500",
       bgColor: "bg-orange-50",
       textColor: "text-orange-700",
-      clients: clients.filter((c) => c.status === "resume"),
+      clients: clients.filter((c) => c.status === "Resume"),
     },
-    marketing: {
+    Marketing: {
       title: "Marketing",
       icon: Target,
       color: "bg-green-500",
       bgColor: "bg-green-50",
       textColor: "text-green-700",
-      clients: clients.filter((c) => c.status === "marketing"),
+      clients: clients.filter((c) => c.status === "Marketing"),
     },
-    remarketing: {
+    Remarketing: {
       title: "ReMarketing",
       icon: RotateCcw,
       color: "bg-yellow-500",
       bgColor: "bg-yellow-50",
       textColor: "text-yellow-700",
-      clients: clients.filter((c) => c.status === "remarketing"),
+      clients: clients.filter((c) => c.status === "Remarketing"),
     },
-    placed: {
+    Placed: {
       title: "Placed",
       icon: CheckCircle2,
       color: "bg-purple-500",
       bgColor: "bg-purple-50",
       textColor: "text-purple-700",
-      clients: clients.filter((c) => c.status === "placed"),
+      clients: clients.filter((c) => c.status === "Placed"),
     },
-    "backed-out": {
+    BackedOut: {
       title: "Backed Out",
       icon: AlertTriangle,
       color: "bg-red-500",
       bgColor: "bg-red-50",
       textColor: "text-red-700",
-      clients: clients.filter((c) => c.status === "backed-out"),
+      clients: clients.filter((c) => c.status === "BackedOut"),
     },
-    "on-hold": {
+    OnHold: {
       title: "On Hold",
       icon: Pause,
       color: "bg-gray-500",
       bgColor: "bg-gray-50",
       textColor: "text-gray-700",
-      clients: clients.filter((c) => c.status === "on-hold"),
+      clients: clients.filter((c) => c.status === "OnHold"),
     },
   };
 
   // Define which departments are clickable (only special states)
   const clickableDepartments: ClientStatus[] = [
-    "placed",
-    "backed-out",
-    "on-hold",
+    "Placed",
+    "BackedOut",
+    "OnHold",
   ];
 
   const handleDepartmentClick = (department: DepartmentData) => {
@@ -287,6 +287,7 @@ export function DepartmentCounts({
                           currentUserRole={currentUserRole}
                           onMoveClient={onMoveClient}
                           onActionComplete={onActionComplete}
+                          onDialogClose={() => setIsDialogOpen(false)}
                         />
                       </div>
                     )}

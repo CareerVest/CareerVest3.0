@@ -185,7 +185,7 @@ export default function ChainExploration({
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Modern Header with Prominent Status */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-[#682A53] to-[#8B3D6B] text-white">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-[#682A53] to-[#682A53] text-white">
         <div className="flex items-center space-x-3">
           <Button
             variant="ghost"

@@ -19,16 +19,21 @@ export const InactivityWarning: React.FC<InactivityWarningProps> = ({
 }) => {
   return (
     <Dialog open={isOpen}>
-      <DialogContent>
+      <DialogContent className="bg-white border-[#682A53]/20">
         <DialogHeader>
-          <DialogTitle>Session Timeout Warning</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-[#682A53] text-xl font-bold">Session Timeout Warning</DialogTitle>
+          <DialogDescription className="text-gray-600">
             Your session is about to expire due to inactivity. Please click
             "Stay Logged In" to continue your session.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button onClick={onStayLoggedIn}>Stay Logged In</Button>
+          <Button
+            onClick={onStayLoggedIn}
+            className="bg-[#682A53] hover:bg-[#682A53]/90 text-white"
+          >
+            Stay Logged In
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

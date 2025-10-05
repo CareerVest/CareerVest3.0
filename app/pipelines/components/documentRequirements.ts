@@ -23,8 +23,8 @@ export interface TransitionRequirement {
 // Define all department transition requirements
 export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
   {
-    fromStage: "sales",
-    toStage: "resume",
+    fromStage: "Sales",
+    toStage: "Resume",
     actionName: "Upload Required Docs - Sales",
     title: "Upload Required Documents for Resume Stage",
     description:
@@ -58,8 +58,8 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
     requiresComments: true,
   },
   {
-    fromStage: "resume",
-    toStage: "marketing",
+    fromStage: "Resume",
+    toStage: "Marketing",
     actionName: "Upload Required Docs - Resume",
     title: "Upload Required Documents for Marketing Stage",
     description:
@@ -102,8 +102,8 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
     requiresComments: true,
   },
   {
-    fromStage: "remarketing",
-    toStage: "placed",
+    fromStage: "Remarketing",
+    toStage: "Placed",
     actionName: "RemarketingToPlacedTransition",
     title: "Move Client to Placed Stage",
     description:
@@ -130,8 +130,8 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
     requiresComments: true,
   },
   {
-    fromStage: "marketing",
-    toStage: "placed",
+    fromStage: "Marketing",
+    toStage: "Placed",
     actionName: "MarketingToPlacedTransition",
     title: "Move Client to Placed Stage",
     description:
@@ -166,8 +166,8 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
     requiresComments: true,
   },
   {
-    fromStage: "marketing",
-    toStage: "backed-out",
+    fromStage: "Marketing",
+    toStage: "BackedOut",
     actionName: "MarketingToBackedOutTransition",
     title: "Move Client to Backed Out Stage",
     description:
@@ -193,8 +193,8 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
     requiresComments: true,
   },
   {
-    fromStage: "resume",
-    toStage: "backed-out",
+    fromStage: "Resume",
+    toStage: "BackedOut",
     actionName: "ResumeToBackedOutTransition",
     title: "Move Client to Backed Out Stage",
     description:
@@ -221,8 +221,8 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
   },
 
   {
-    fromStage: "sales",
-    toStage: "backed-out",
+    fromStage: "Sales",
+    toStage: "BackedOut",
     actionName: "SalesToBackedOutTransition",
     title: "Move Client to Backed Out Stage",
     description:
@@ -248,8 +248,8 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
     requiresComments: true,
   },
   {
-    fromStage: "sales",
-    toStage: "placed",
+    fromStage: "Sales",
+    toStage: "Placed",
     actionName: "SalesToPlacedTransition",
     title: "Move Client to Placed Stage",
     description:
@@ -276,8 +276,8 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
     requiresComments: true,
   },
   {
-    fromStage: "resume",
-    toStage: "placed",
+    fromStage: "Resume",
+    toStage: "Placed",
     actionName: "ResumeToPlacedTransition",
     title: "Move Client to Placed Stage",
     description:
@@ -304,8 +304,8 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
     requiresComments: true,
   },
   {
-    fromStage: "on-hold",
-    toStage: "placed",
+    fromStage: "OnHold",
+    toStage: "Placed",
     actionName: "OnHoldToPlacedTransition",
     title: "Move Client to Placed Stage",
     description:
@@ -332,8 +332,8 @@ export const TRANSITION_REQUIREMENTS: TransitionRequirement[] = [
     requiresComments: true,
   },
   {
-    fromStage: "backed-out",
-    toStage: "placed",
+    fromStage: "BackedOut",
+    toStage: "Placed",
     actionName: "BackedOutToPlacedTransition",
     title: "Move Client to Placed Stage",
     description:

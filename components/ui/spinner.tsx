@@ -1,5 +1,6 @@
 import React from "react";
 import { cn } from "../../lib/utils";
+import Image from "next/image";
 
 interface SpinnerProps {
   size?: "sm" | "md" | "lg" | "xl";
@@ -29,7 +30,7 @@ const Spinner: React.FC<SpinnerProps> = ({
         return (
           <div
             className={cn(
-              "animate-pulse rounded-full bg-gradient-to-r from-[#682A53] to-[#8B5CF6]",
+              "animate-pulse rounded-full bg-gradient-to-r from-[#682A53] to-[#FDC500]",
               sizeClasses[size],
               className
             )}
@@ -83,12 +84,24 @@ const Spinner: React.FC<SpinnerProps> = ({
       case "ripple":
         return (
           <div className={cn("relative", sizeClasses[size], className)}>
+            {/* Outer ripple rings */}
             <div className="absolute inset-0 border-2 border-[#682A53] rounded-full animate-ping opacity-75" />
             <div
-              className="absolute inset-0 border-2 border-[#8B5CF6] rounded-full animate-ping opacity-50"
+              className="absolute inset-0 border-2 border-[#FDC500] rounded-full animate-ping opacity-50"
               style={{ animationDelay: "0.2s" }}
             />
-            <div className="absolute inset-2 bg-[#682A53] rounded-full animate-pulse" />
+            {/* CareerVest Logo in center with pulse animation */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="animate-pulse">
+                <Image
+                  src="/logo profile only.png"
+                  alt="Loading..."
+                  width={size === "xl" ? 40 : size === "lg" ? 32 : size === "md" ? 24 : 16}
+                  height={size === "xl" ? 40 : size === "lg" ? 32 : size === "md" ? 24 : 16}
+                  className="object-contain"
+                />
+              </div>
+            </div>
           </div>
         );
 

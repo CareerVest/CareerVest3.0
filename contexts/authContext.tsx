@@ -190,23 +190,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const login = useCallback(async (): Promise<boolean> => {
     try {
-      const loginResponse = await msalInstance.loginPopup({
-        scopes: tokenRequest.scopes,
-        prompt: "select_account",
-      });
+      // Detect if user is on mobile device
+      const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|Windows Phone/i.test(
+        navigator.userAgent
+      );
 
-      const account = loginResponse.account;
-      msalInstance.setActiveAccount(account);
-      const accessToken = await acquireTokenSilently(account);
+      if (isMobile) {
+        // Use redirect flow for mobile devices
+        console.log("🔹 Mobile device detected - using redirect flow");
+        await msalInstance.loginRedirect({
+          scopes: tokenRequest.scopes,
+          prompt: "select_account",
+        });
+        // loginRedirect doesn't return - user will be redirected away
+        // The redirect will be handled by handleRedirectPromise in useEffect
+        return true;
+      } else {
+        // Use popup flow for desktop devices
+        console.log("🔹 Desktop device detected - using popup flow");
+        const loginResponse = await msalInstance.loginPopup({
+          scopes: tokenRequest.scopes,
+          prompt: "select_account",
+        });
 
-      setUser(account);
-      setTokenWithStorage(accessToken);
-      extractRoles(accessToken);
-      setIsAuthenticated(true);
-      setError(null);
-      router.push("/dashboard");
-      return true;
+        const account = loginResponse.account;
+        msalInstance.setActiveAccount(account);
+        const accessToken = await acquireTokenSilently(account);
+
+        setUser(account);
+        setTokenWithStorage(accessToken);
+        extractRoles(accessToken);
+        setIsAuthenticated(true);
+        setError(null);
+        router.push("/dashboard");
+        return true;
+      }
     } catch (err) {
+      console.error("🔸 Login error:", err);
       setError("Login failed. Please try again.");
       return false;
     }
