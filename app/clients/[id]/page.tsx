@@ -588,7 +588,8 @@ export default function ClientView({ params }: { params: { id: string } }) {
           </Card>
 
           {/* Card 4: Post-Placement (if applicable) */}
-          {client.clientStatus === "Placed" ? (
+          {client.clientStatus === "Placed" &&
+           permissions.clients[userRole]?.postPlacementInfo?.view ? (
             <Card className="lg:col-span-1">
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-3">

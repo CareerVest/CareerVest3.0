@@ -55,6 +55,7 @@ import {
 } from "../../employees/actions/employeeActions";
 import { Recruiter } from "../../types/employees/recruiter";
 import { formatDateForInput, parseDateForState } from "../../utils/dateUtils";
+import { PLAN_TEMPLATES, generatePlanName, getPlanDetails } from "../constants/subscriptionPlans";
 
 
 export default function CreateClientForm() {
@@ -116,6 +117,98 @@ export default function CreateClientForm() {
   const [subscriptionPaymentSchedule, setSubscriptionPaymentSchedule] =
     useState<PaymentSchedule[]>([]);
 
+  // Plan template states
+  const [planTemplate, setPlanTemplate] = useState<string>("");
+  const [customMonthlyAmount, setCustomMonthlyAmount] = useState<number>(0);
+  const [customDurationMonths, setCustomDurationMonths] = useState<number>(0);
+  const [customPercentageAfterJob, setCustomPercentageAfterJob] = useState<number>(0);
+
+  // Handle plan template selection
+  const handlePlanTemplateChange = (template: string) => {
+    setPlanTemplate(template);
+
+    if (template === "Custom") {
+      // Reset custom fields but keep plan name editable
+      setCustomMonthlyAmount(0);
+      setCustomDurationMonths(0);
+      setCustomPercentageAfterJob(0);
+      handleInputChange("subscriptionPlan.planName", "");
+    } else if (template) {
+      // Auto-generate plan name for predefined templates using utility function
+      const planName = generatePlanName(template);
+      handleInputChange("subscriptionPlan.planName", planName);
+    } else {
+      // No template selected
+      handleInputChange("subscriptionPlan.planName", "");
+    }
+  };
+
+  // Generate payment schedule based on template
+  const generatePaymentSchedule = () => {
+    const startDate = clientData.subscriptionPlan?.subscriptionPlanPaymentStartDate;
+    if (!startDate) {
+      alert("Please select a payment start date first");
+      return;
+    }
+
+    if (!planTemplate) {
+      alert("Please select a plan template");
+      return;
+    }
+
+    // Get plan details using utility function
+    const planDetails = getPlanDetails(
+      planTemplate,
+      customMonthlyAmount,
+      customDurationMonths,
+      customPercentageAfterJob
+    );
+
+    if (!planDetails) {
+      alert("Please fill in all custom plan fields");
+      return;
+    }
+
+    // Update plan name using utility function
+    const planName = generatePlanName(
+      planTemplate,
+      customMonthlyAmount,
+      customDurationMonths,
+      customPercentageAfterJob
+    );
+    handleInputChange("subscriptionPlan.planName", planName);
+
+    // Generate payment schedule
+    const payments: PaymentSchedule[] = [];
+    const startDateObj = new Date(startDate);
+
+    for (let i = 0; i < planDetails.durationMonths; i++) {
+      const paymentDate = new Date(startDateObj);
+      paymentDate.setMonth(paymentDate.getMonth() + i);
+
+      payments.push({
+        paymentDate: parseDateForState(paymentDate.toISOString().split("T")[0]),
+        amount: planDetails.monthlyAmount,
+        paymentType: "Subscription",
+        paymentScheduleID: 0,
+        clientID: 0,
+        subscriptionPlanID: null,
+        postPlacementPlanID: null,
+        createdTS: null,
+        createdBy: null,
+        updatedTS: null,
+        updatedBy: null,
+        isPaid: false,
+      });
+    }
+
+    setSubscriptionPaymentSchedule(payments);
+  };
+
+  // Clear payment schedule
+  const clearPaymentSchedule = () => {
+    setSubscriptionPaymentSchedule([]);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -169,23 +262,6 @@ export default function CreateClientForm() {
       ],
     }));
   }, [subscriptionPaymentSchedule]);
-
-  // Auto-populate payment start dates from first payment in schedule
-  useEffect(() => {
-    if (subscriptionPaymentSchedule.length > 0) {
-      const firstPaymentDate = subscriptionPaymentSchedule
-        .filter(p => p.paymentDate)
-        .sort((a, b) => new Date(a.paymentDate!).getTime() - new Date(b.paymentDate!).getTime())[0]?.paymentDate;
-      
-      if (firstPaymentDate && !clientData.subscriptionPlan?.subscriptionPlanPaymentStartDate) {
-        handleInputChange(
-          "subscriptionPlan.subscriptionPlanPaymentStartDate",
-          firstPaymentDate
-        );
-      }
-    }
-  }, [subscriptionPaymentSchedule, clientData.subscriptionPlan?.subscriptionPlanPaymentStartDate]);
-
 
   const handleInputChange = (field: string, value: any) => {
     if (field.includes(".")) {
@@ -282,18 +358,6 @@ export default function CreateClientForm() {
       );
 
     setSubscriptionPaymentSchedule(updater(subscriptionPaymentSchedule));
-
-    // Auto-set payment start date to the first payment date
-    if (field === "paymentDate" && index === 0) {
-      const newDate = parseDateForState(value as string);
-      setClientData((prevData) => ({
-        ...prevData,
-        subscriptionPlan: {
-          ...prevData.subscriptionPlan!,
-          subscriptionPlanPaymentStartDate: newDate,
-        },
-      }));
-    }
   };
 
   const validateForm = (): boolean => {
@@ -413,12 +477,12 @@ export default function CreateClientForm() {
 
 
   return (
-    <div className="p-6 w-full">
+    <div className="p-4 md:p-6 w-full max-w-full overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-4">
           <div>
-            <h1 className="text-3xl font-semibold text-[#682A53]">
+            <h1 className="text-2xl md:text-3xl font-semibold text-[#682A53]">
               Create New Client
             </h1>
           </div>
@@ -429,7 +493,7 @@ export default function CreateClientForm() {
         {/* Horizontal Dashboard Layout */}
         <div className="space-y-6">
           {/* Cards Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             {/* Card 1: Basic Information */}
             <Card>
               <CardHeader className="pb-4">
@@ -627,27 +691,139 @@ export default function CreateClientForm() {
                 <div className="space-y-6">
                   {/* Plan Details */}
                   <div className="space-y-4">
-                    {/* Plan Name - Full width */}
+                    {/* Plan Template Selection */}
+                    <div>
+                      <Label
+                        htmlFor="planTemplate"
+                        className="text-sm font-medium text-gray-700"
+                      >
+                        Plan Template *
+                      </Label>
+                      <Select
+                        value={planTemplate}
+                        onValueChange={handlePlanTemplateChange}
+                      >
+                        <SelectTrigger className="mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20">
+                          <SelectValue placeholder="Select a plan template" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Basic">
+                            Basic Plan - $500/month × 3 months (14% after job)
+                          </SelectItem>
+                          <SelectItem value="Standard">
+                            Standard Plan - $750/month × 3 months (12% after job)
+                          </SelectItem>
+                          <SelectItem value="Premium">
+                            Premium Plan - $1000/month × 3 months (10% after job)
+                          </SelectItem>
+                          <SelectItem value="Custom">
+                            Custom Plan
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Custom Plan Fields - Only show when Custom is selected */}
+                    {planTemplate === "Custom" && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span className="text-sm font-semibold text-blue-900">
+                            Custom Plan Configuration
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <Label
+                              htmlFor="customMonthlyAmount"
+                              className="text-sm font-medium text-gray-700"
+                            >
+                              Monthly Amount ($)
+                            </Label>
+                            <div className="relative mt-1">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium text-sm">
+                                $
+                              </span>
+                              <Input
+                                id="customMonthlyAmount"
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                value={customMonthlyAmount || ""}
+                                onChange={(e) =>
+                                  setCustomMonthlyAmount(parseFloat(e.target.value) || 0)
+                                }
+                                className="h-11 pl-8 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                                placeholder="0.00"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label
+                              htmlFor="customDurationMonths"
+                              className="text-sm font-medium text-gray-700"
+                            >
+                              Duration (Months)
+                            </Label>
+                            <Input
+                              id="customDurationMonths"
+                              type="number"
+                              min="1"
+                              value={customDurationMonths || ""}
+                              onChange={(e) =>
+                                setCustomDurationMonths(parseInt(e.target.value) || 0)
+                              }
+                              className="mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                              placeholder="0"
+                            />
+                          </div>
+                          <div>
+                            <Label
+                              htmlFor="customPercentageAfterJob"
+                              className="text-sm font-medium text-gray-700"
+                            >
+                              % After Job
+                            </Label>
+                            <div className="relative mt-1">
+                              <Input
+                                id="customPercentageAfterJob"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                max="100"
+                                value={customPercentageAfterJob || ""}
+                                onChange={(e) =>
+                                  setCustomPercentageAfterJob(parseFloat(e.target.value) || 0)
+                                }
+                                className="h-11 pr-8 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                                placeholder="0"
+                              />
+                              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium text-sm">
+                                %
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Plan Name - Auto-filled, read-only */}
                     <div>
                       <Label
                         htmlFor="subscriptionPlanName"
                         className="text-sm font-medium text-gray-700"
                       >
                         Plan Name *
+                        <span className="text-xs text-gray-500 ml-1">
+                          (auto-generated from template)
+                        </span>
                       </Label>
                       <Input
                         id="subscriptionPlanName"
                         value={clientData.subscriptionPlan?.planName || ""}
-                        onChange={(e) =>
-                          handleInputChange(
-                            "subscriptionPlan.planName",
-                            e.target.value
-                          )
-                        }
-                        className={
-                          errors.subscriptionPlanName ? "border-red-500 mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20" : "mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
-                        }
-                        placeholder="Enter subscription plan name"
+                        readOnly
+                        className="mt-1 h-11 border-gray-200 bg-gray-50 cursor-not-allowed"
+                        placeholder="Select a plan template to auto-fill"
                       />
                       {errors.subscriptionPlanName && (
                         <p className="text-sm text-red-500 mt-1">
@@ -663,10 +839,7 @@ export default function CreateClientForm() {
                           htmlFor="subscriptionPlanPaymentStartDate"
                           className="text-sm font-medium text-gray-700"
                         >
-                          Payment Start Date
-                          <span className="text-xs text-gray-500 ml-1">
-                            (auto-filled from first payment)
-                          </span>
+                          Payment Start Date *
                         </Label>
                         <Input
                           id="subscriptionPlanPaymentStartDate"
@@ -675,8 +848,13 @@ export default function CreateClientForm() {
                             clientData.subscriptionPlan
                               ?.subscriptionPlanPaymentStartDate || null
                           )}
-                          readOnly
-                          className="mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20 bg-gray-50"
+                          onChange={(e) =>
+                            handleInputChange(
+                              "subscriptionPlan.subscriptionPlanPaymentStartDate",
+                              e.target.value
+                            )
+                          }
+                          className="mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
                         />
                       </div>
                       <div>
@@ -702,6 +880,29 @@ export default function CreateClientForm() {
                           />
                         </div>
                       </div>
+                    </div>
+
+                    {/* Generate and Clear Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-2 w-full">
+                      <Button
+                        type="button"
+                        onClick={generatePaymentSchedule}
+                        className="w-full sm:flex-1 bg-[#682A53] hover:bg-[#682A53]/90 text-white h-11 text-xs sm:text-sm whitespace-nowrap"
+                      >
+                        <Plus className="h-4 w-4 mr-1 flex-shrink-0" />
+                        <span className="hidden sm:inline">Generate Schedule</span>
+                        <span className="sm:hidden">Generate</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={clearPaymentSchedule}
+                        variant="outline"
+                        className="w-full sm:w-auto border-red-500 text-red-600 hover:bg-red-50 h-11 text-xs sm:text-sm px-4 whitespace-nowrap"
+                        disabled={subscriptionPaymentSchedule.length === 0}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1 flex-shrink-0" />
+                        Clear
+                      </Button>
                     </div>
                   </div>
 
@@ -901,20 +1102,23 @@ export default function CreateClientForm() {
           </div>
 
           {/* Submit Button */}
-          <div className="flex justify-end mt-8">
-            <div className="flex space-x-4">
-              <Button type="button" variant="outline" onClick={handleBack}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="bg-[#682A53] hover:bg-[#682A53]/90 text-white"
-              >
-                {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Create Client
-              </Button>
-            </div>
+          <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 mt-8">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleBack}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="bg-[#682A53] hover:bg-[#682A53]/90 text-white w-full sm:w-auto"
+            >
+              {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Create Client
+            </Button>
           </div>
         </div>
       </form>

@@ -57,6 +57,7 @@ import {
 } from "../../employees/actions/employeeActions";
 import { Recruiter } from "../../types/employees/recruiter";
 import { formatDateForInput, parseDateForState } from "../../utils/dateUtils";
+import { PLAN_TEMPLATES, generatePlanName, getPlanDetails } from "../constants/subscriptionPlans";
 
 interface EditClientFormProps {
   client: ClientDetail;
@@ -95,6 +96,17 @@ export default function EditClientForm({
   const [showAllPostPlacementPayments, setShowAllPostPlacementPayments] =
     useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Plan template states (Subscription)
+  const [planTemplate, setPlanTemplate] = useState<string>("");
+  const [customMonthlyAmount, setCustomMonthlyAmount] = useState<number>(0);
+  const [customDurationMonths, setCustomDurationMonths] = useState<number>(0);
+  const [customPercentageAfterJob, setCustomPercentageAfterJob] = useState<number>(0);
+
+  // Post-placement plan states
+  const [postPlacementTotalAmount, setPostPlacementTotalAmount] = useState<number>(0);
+  const [postPlacementDurationMonths, setPostPlacementDurationMonths] = useState<number>(0);
+  const [postPlacementStartDate, setPostPlacementStartDate] = useState<Date | null>(null);
 
   const initialClientData: ClientDetail = {
     ...client,
@@ -268,6 +280,153 @@ export default function EditClientForm({
         [field]: newValue,
       }));
     }
+  };
+
+  // Handle plan template selection
+  const handlePlanTemplateChange = (template: string) => {
+    setPlanTemplate(template);
+
+    if (template === "Custom") {
+      // Reset custom fields but keep plan name editable
+      setCustomMonthlyAmount(0);
+      setCustomDurationMonths(0);
+      setCustomPercentageAfterJob(0);
+      handleInputChange("subscriptionPlan.planName", "");
+    } else if (template) {
+      // Auto-generate plan name for predefined templates using utility function
+      const planName = generatePlanName(template);
+      handleInputChange("subscriptionPlan.planName", planName);
+    } else {
+      // No template selected
+      handleInputChange("subscriptionPlan.planName", "");
+    }
+  };
+
+  // Generate payment schedule based on template
+  const generatePaymentSchedule = () => {
+    const startDate = clientData.subscriptionPlan?.subscriptionPlanPaymentStartDate;
+    if (!startDate) {
+      alert("Please select a payment start date first");
+      return;
+    }
+
+    if (!planTemplate) {
+      alert("Please select a plan template");
+      return;
+    }
+
+    // Get plan details using utility function
+    const planDetails = getPlanDetails(
+      planTemplate,
+      customMonthlyAmount,
+      customDurationMonths,
+      customPercentageAfterJob
+    );
+
+    if (!planDetails) {
+      alert("Please fill in all custom plan fields");
+      return;
+    }
+
+    // Update plan name using utility function
+    const planName = generatePlanName(
+      planTemplate,
+      customMonthlyAmount,
+      customDurationMonths,
+      customPercentageAfterJob
+    );
+    handleInputChange("subscriptionPlan.planName", planName);
+
+    // Generate payment schedule
+    const payments: PaymentSchedule[] = [];
+    const startDateObj = new Date(startDate);
+
+    for (let i = 0; i < planDetails.durationMonths; i++) {
+      const paymentDate = new Date(startDateObj);
+      paymentDate.setMonth(paymentDate.getMonth() + i);
+
+      payments.push({
+        paymentDate: parseDateForState(paymentDate.toISOString().split("T")[0]),
+        amount: planDetails.monthlyAmount,
+        paymentType: "Subscription",
+        paymentScheduleID: 0,
+        clientID: clientData.clientID,
+        subscriptionPlanID: clientData.subscriptionPlanID,
+        postPlacementPlanID: null,
+        createdTS: null,
+        createdBy: null,
+        updatedTS: null,
+        updatedBy: null,
+        isPaid: false,
+      });
+    }
+
+    setSubscriptionPaymentSchedule(payments);
+  };
+
+  // Clear payment schedule
+  const clearPaymentSchedule = () => {
+    setSubscriptionPaymentSchedule([]);
+  };
+
+  // Generate post-placement payment schedule
+  const generatePostPlacementSchedule = () => {
+    if (!postPlacementStartDate) {
+      alert("Please select a payment start date first");
+      return;
+    }
+
+    if (!postPlacementDurationMonths || postPlacementDurationMonths < 1) {
+      alert("Please enter the number of months");
+      return;
+    }
+
+    // Validate required fields
+    if (!postPlacementTotalAmount || postPlacementTotalAmount <= 0) {
+      alert("Please enter a valid total amount");
+      return;
+    }
+
+    const totalAmount = postPlacementTotalAmount;
+    const monthlyAmount = Math.round((totalAmount / postPlacementDurationMonths) * 100) / 100;
+    const planName = `Post-Placement - $${totalAmount.toFixed(2)} over ${postPlacementDurationMonths} months`;
+
+    // Update plan name
+    handleInputChange("postPlacementPlan.planName", planName);
+
+    // Update payment start date
+    handleInputChange("postPlacementPlan.postPlacementPlanPaymentStartDate", postPlacementStartDate);
+
+    // Generate payment schedule
+    const payments: PaymentSchedule[] = [];
+    const startDateObj = new Date(postPlacementStartDate);
+
+    for (let i = 0; i < postPlacementDurationMonths; i++) {
+      const paymentDate = new Date(startDateObj);
+      paymentDate.setMonth(paymentDate.getMonth() + i);
+
+      payments.push({
+        paymentDate: parseDateForState(paymentDate.toISOString().split("T")[0]),
+        amount: monthlyAmount,
+        paymentType: "PostPlacement",
+        paymentScheduleID: 0,
+        clientID: clientData.clientID,
+        subscriptionPlanID: null,
+        postPlacementPlanID: clientData.postPlacementPlanID,
+        createdTS: null,
+        createdBy: null,
+        updatedTS: null,
+        updatedBy: null,
+        isPaid: false,
+      });
+    }
+
+    setPostPlacementPaymentSchedule(payments);
+  };
+
+  // Clear post-placement payment schedule
+  const clearPostPlacementSchedule = () => {
+    setPostPlacementPaymentSchedule([]);
   };
 
   const handleFileChange = (
@@ -581,7 +740,7 @@ export default function EditClientForm({
   );
 
   return (
-    <div className="p-6 w-full">
+    <div className="p-4 md:p-6 w-full max-w-full overflow-x-hidden">
       {/* Modern Header */}
       <div className="mb-8">
         {/* Navigation Bar */}
@@ -596,18 +755,18 @@ export default function EditClientForm({
         </div>
 
         {/* Client Info Header */}
-        <div className="bg-white rounded-lg border p-6 shadow-sm">
-          <div className="flex items-center justify-between">
+        <div className="bg-white rounded-lg border p-4 md:p-6 shadow-sm">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-[#682A53] rounded-full flex items-center justify-center">
+              <div className="w-12 h-12 bg-[#682A53] rounded-full flex items-center justify-center flex-shrink-0">
                 <User className="h-6 w-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl md:text-2xl font-semibold text-gray-900">
                   Edit Client
                 </h1>
-                <div className="flex items-center space-x-2 mt-1">
-                  <span className="text-sm text-gray-600">
+                <div className="flex items-center space-x-2 mt-1 flex-wrap">
+                  <span className="text-sm text-gray-600 truncate">
                     {client.clientName}
                   </span>
                   <Badge
@@ -621,17 +780,17 @@ export default function EditClientForm({
                 </div>
               </div>
             </div>
-            <div className="text-right">
+            <div className="w-full md:w-auto">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <div className="text-sm text-gray-500">Total Due</div>
-                  <div className="text-lg font-semibold text-[#682A53]">
+                  <div className="text-base md:text-lg font-semibold text-[#682A53]">
                     {formatCurrency(totalDue)}
                   </div>
                 </div>
                 <div>
                   <div className="text-sm text-gray-500">Total Paid</div>
-                  <div className="text-lg font-semibold text-green-600">
+                  <div className="text-base md:text-lg font-semibold text-green-600">
                     {formatCurrency(totalPaid)}
                   </div>
                 </div>
@@ -645,7 +804,7 @@ export default function EditClientForm({
         {/* Horizontal Dashboard Layout */}
         <div className="space-y-6">
           {/* Cards Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
             {/* Card 1: Basic Information */}
             <Card>
               <CardHeader className="pb-4">
@@ -817,11 +976,14 @@ export default function EditClientForm({
                         <SelectValue placeholder="Select client status" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="sales">Sales</SelectItem>
                         <SelectItem value="Active">Active</SelectItem>
-                        <SelectItem value="marketing">Marketing</SelectItem>
-                        <SelectItem value="placed">Placed</SelectItem>
-                        <SelectItem value="backed_out">Backed Out</SelectItem>
+                        <SelectItem value="Sales">Sales</SelectItem>
+                        <SelectItem value="Resume">Resume</SelectItem>
+                        <SelectItem value="Marketing">Marketing</SelectItem>
+                        <SelectItem value="Remarketing">Remarketing</SelectItem>
+                        <SelectItem value="Placed">Placed</SelectItem>
+                        <SelectItem value="BackedOut">Backed Out</SelectItem>
+                        <SelectItem value="OnHold">On Hold</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -957,26 +1119,143 @@ export default function EditClientForm({
                 <div className="space-y-6">
                   {/* Plan Details */}
                   <div className="space-y-4">
-                    {/* Plan Name - Full width */}
+                    {/* Plan Template Selection */}
+                    <div>
+                      <Label
+                        htmlFor="planTemplate"
+                        className="text-sm font-medium text-gray-700"
+                      >
+                        Plan Template *
+                      </Label>
+                      <Select
+                        value={planTemplate}
+                        onValueChange={handlePlanTemplateChange}
+                        disabled={!canEdit}
+                      >
+                        <SelectTrigger className="mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20">
+                          <SelectValue placeholder="Select a plan template" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Basic">
+                            Basic Plan - $500/month × 3 months (14% after job)
+                          </SelectItem>
+                          <SelectItem value="Standard">
+                            Standard Plan - $750/month × 3 months (12% after job)
+                          </SelectItem>
+                          <SelectItem value="Premium">
+                            Premium Plan - $1000/month × 3 months (10% after job)
+                          </SelectItem>
+                          <SelectItem value="Custom">
+                            Custom Plan
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Custom Plan Fields - Only show when Custom is selected */}
+                    {planTemplate === "Custom" && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span className="text-sm font-semibold text-blue-900">
+                            Custom Plan Configuration
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <Label
+                              htmlFor="customMonthlyAmount"
+                              className="text-sm font-medium text-gray-700"
+                            >
+                              Monthly Amount ($)
+                            </Label>
+                            <div className="relative mt-1">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium text-sm">
+                                $
+                              </span>
+                              <Input
+                                id="customMonthlyAmount"
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                value={customMonthlyAmount || ""}
+                                onChange={(e) =>
+                                  setCustomMonthlyAmount(parseFloat(e.target.value) || 0)
+                                }
+                                disabled={!canEdit}
+                                className="h-11 pl-8 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                                placeholder="0.00"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label
+                              htmlFor="customDurationMonths"
+                              className="text-sm font-medium text-gray-700"
+                            >
+                              Duration (Months)
+                            </Label>
+                            <Input
+                              id="customDurationMonths"
+                              type="number"
+                              min="1"
+                              value={customDurationMonths || ""}
+                              onChange={(e) =>
+                                setCustomDurationMonths(parseInt(e.target.value) || 0)
+                              }
+                              disabled={!canEdit}
+                              className="mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                              placeholder="0"
+                            />
+                          </div>
+                          <div>
+                            <Label
+                              htmlFor="customPercentageAfterJob"
+                              className="text-sm font-medium text-gray-700"
+                            >
+                              % After Job
+                            </Label>
+                            <div className="relative mt-1">
+                              <Input
+                                id="customPercentageAfterJob"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                max="100"
+                                value={customPercentageAfterJob || ""}
+                                onChange={(e) =>
+                                  setCustomPercentageAfterJob(parseFloat(e.target.value) || 0)
+                                }
+                                disabled={!canEdit}
+                                className="h-11 pr-8 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                                placeholder="0"
+                              />
+                              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium text-sm">
+                                %
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Plan Name - Auto-filled, read-only */}
                     <div>
                       <Label
                         htmlFor="subscriptionPlanName"
                         className="text-sm font-medium text-gray-700"
                       >
                         Plan Name *
+                        <span className="text-xs text-gray-500 ml-1">
+                          (auto-generated from template)
+                        </span>
                       </Label>
                       <Input
                         id="subscriptionPlanName"
                         value={clientData.subscriptionPlan?.planName || ""}
-                        onChange={(e) =>
-                          handleInputChange(
-                            "subscriptionPlan.planName",
-                            e.target.value
-                          )
-                        }
-                        disabled={!canEdit}
-                        className="mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
-                        placeholder="Enter subscription plan name"
+                        readOnly
+                        className="mt-1 h-11 border-gray-200 bg-gray-50 cursor-not-allowed"
+                        placeholder="Select a plan template to auto-fill"
                       />
                       {errors.subscriptionPlanName && (
                         <p className="text-sm text-red-500 mt-1">
@@ -992,10 +1271,7 @@ export default function EditClientForm({
                           htmlFor="subscriptionPlanPaymentStartDate"
                           className="text-sm font-medium text-gray-700"
                         >
-                          Payment Start Date
-                          <span className="text-xs text-gray-500 ml-1">
-                            (auto-filled from first payment)
-                          </span>
+                          Payment Start Date *
                         </Label>
                         <Input
                           id="subscriptionPlanPaymentStartDate"
@@ -1011,8 +1287,7 @@ export default function EditClientForm({
                             )
                           }
                           disabled={!canEdit}
-                          className="mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20 bg-gray-50"
-                          readOnly
+                          className="mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
                         />
                       </div>
                       <div>
@@ -1039,6 +1314,31 @@ export default function EditClientForm({
                         </div>
                       </div>
                     </div>
+
+                    {/* Generate and Clear Buttons */}
+                    {canEdit && (
+                      <div className="flex flex-col sm:flex-row gap-2 w-full">
+                        <Button
+                          type="button"
+                          onClick={generatePaymentSchedule}
+                          className="w-full sm:flex-1 bg-[#682A53] hover:bg-[#682A53]/90 text-white h-11 text-xs sm:text-sm whitespace-nowrap"
+                        >
+                          <Plus className="h-4 w-4 mr-1 flex-shrink-0" />
+                          <span className="hidden sm:inline">Generate Schedule</span>
+                          <span className="sm:hidden">Generate</span>
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={clearPaymentSchedule}
+                          variant="outline"
+                          className="w-full sm:w-auto border-red-500 text-red-600 hover:bg-red-50 h-11 text-xs sm:text-sm px-4 whitespace-nowrap"
+                          disabled={subscriptionPaymentSchedule.length === 0}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1 flex-shrink-0" />
+                          Clear
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Service Agreement */}
@@ -1281,7 +1581,9 @@ export default function EditClientForm({
               </CardContent>
             </Card>
 
-            {/* Card 4: Post-Placement */}
+            {/* Card 4: Post-Placement - Only show for Admins with Placed status */}
+            {clientData.clientStatus === "Placed" &&
+             permissions.clients[userRole]?.postPlacementInfo?.view && (
               <Card>
                 <CardHeader className="pb-4">
                   <div className="flex items-center space-x-3">
@@ -1295,83 +1597,188 @@ export default function EditClientForm({
                   <div className="space-y-6">
                     {/* Plan Details */}
                     <div className="space-y-4">
-                      {/* Plan Name - Full width */}
+                      {/* Plan Configuration */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span className="text-sm font-semibold text-blue-900">
+                            Post-Placement Plan Configuration
+                          </span>
+                        </div>
+
+                        {/* Row 1: Total Amount and Duration */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label
+                              htmlFor="postPlacementTotalAmount"
+                              className="text-sm font-medium text-gray-700"
+                            >
+                              Total Amount ($)
+                            </Label>
+                            <div className="relative mt-1">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium text-sm">
+                                $
+                              </span>
+                              <Input
+                                id="postPlacementTotalAmount"
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                value={postPlacementTotalAmount || ""}
+                                onChange={(e) =>
+                                  setPostPlacementTotalAmount(parseFloat(e.target.value) || 0)
+                                }
+                                disabled={!canEdit}
+                                className="h-11 pl-8 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                                placeholder="0.00"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Duration */}
+                          <div>
+                            <Label
+                              htmlFor="postPlacementDurationMonths"
+                              className="text-sm font-medium text-gray-700"
+                            >
+                              Duration (Months)
+                            </Label>
+                            <Input
+                              id="postPlacementDurationMonths"
+                              type="number"
+                              min="1"
+                              value={postPlacementDurationMonths || ""}
+                              onChange={(e) =>
+                                setPostPlacementDurationMonths(parseInt(e.target.value) || 0)
+                              }
+                              disabled={!canEdit}
+                              className="mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                              placeholder="0"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Row 2: Payment Start Date (Full Width) */}
+                        <div>
+                            <Label
+                              htmlFor="postPlacementStartDate"
+                              className="text-sm font-medium text-gray-700"
+                            >
+                              Payment Start Date
+                            </Label>
+                            <div className="relative mt-1">
+                              <Input
+                                id="postPlacementStartDate"
+                                type="date"
+                                value={postPlacementStartDate ? formatDateForInput(postPlacementStartDate) : ""}
+                                onChange={(e) =>
+                                  setPostPlacementStartDate(parseDateForState(e.target.value))
+                                }
+                                disabled={!canEdit}
+                                className="h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
+                                style={{
+                                  paddingRight: '2.5rem',
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const input = document.getElementById('postPlacementStartDate') as HTMLInputElement;
+                                  if (input && input.showPicker) {
+                                    input.showPicker();
+                                  }
+                                }}
+                                disabled={!canEdit}
+                                className="absolute inset-y-0 right-0 flex items-center pr-3 hover:bg-gray-50 rounded-r-md transition-colors"
+                                tabIndex={-1}
+                              >
+                                <svg
+                                  className="w-5 h-5 text-gray-400"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                        </div>
+                      </div>
+
+                      {/* Plan Name - Auto-filled, read-only */}
                       <div>
                         <Label
                           htmlFor="postPlacementPlanName"
                           className="text-sm font-medium text-gray-700"
                         >
                           Plan Name
+                          <span className="text-xs text-gray-500 ml-1">
+                            (auto-generated)
+                          </span>
                         </Label>
                         <Input
                           id="postPlacementPlanName"
                           value={clientData.postPlacementPlan?.planName || ""}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "postPlacementPlan.planName",
-                              e.target.value
-                            )
-                          }
-                          disabled={!canEdit}
-                          className="mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
-                          placeholder="Enter post-placement plan name"
+                          readOnly
+                          className="mt-1 h-11 border-gray-200 bg-gray-50 cursor-not-allowed"
+                          placeholder="Configure plan above to auto-fill"
                         />
                       </div>
 
-                      {/* Payment Start Date and Total Amount - Side by side */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label
-                            htmlFor="postPlacementPlanPaymentStartDate"
-                            className="text-sm font-medium text-gray-700"
-                          >
-                            Payment Start Date
-                            <span className="text-xs text-gray-500 ml-1">
-                              (auto-filled from first payment)
-                            </span>
-                          </Label>
+                      {/* Total Amount Display */}
+                      <div>
+                        <Label
+                          htmlFor="totalPostPlacementAmount"
+                          className="text-sm font-medium text-gray-700"
+                        >
+                          Total Amount
+                        </Label>
+                        <div className="relative mt-1">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium text-sm">
+                            $
+                          </span>
                           <Input
-                            id="postPlacementPlanPaymentStartDate"
-                            type="date"
-                            value={formatDateForInput(
-                              clientData.postPlacementPlan
-                                ?.postPlacementPlanPaymentStartDate || null
+                            id="totalPostPlacementAmount"
+                            type="number"
+                            value={postPlacementPaymentSchedule.reduce(
+                              (sum, payment) => sum + (payment.amount || 0),
+                              0
                             )}
-                            onChange={(e) =>
-                              handleInputChange(
-                                "postPlacementPlan.postPlacementPlanPaymentStartDate",
-                                e.target.value
-                              )
-                            }
-                            disabled={!canEdit}
-                            className="mt-1 h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20 bg-gray-50"
-                            readOnly
+                            disabled={true}
+                            className="h-11 pl-8 bg-gray-50 border-gray-200"
                           />
                         </div>
-                        <div>
-                          <Label
-                            htmlFor="totalPostPlacementAmount"
-                            className="text-sm font-medium text-gray-700"
-                          >
-                            Total Amount
-                          </Label>
-                          <div className="relative mt-1">
-                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium text-sm">
-                              $
-                            </span>
-                            <Input
-                              id="totalPostPlacementAmount"
-                              type="number"
-                              value={postPlacementPaymentSchedule.reduce(
-                                (sum, payment) => sum + (payment.amount || 0),
-                                0
-                              )}
-                              disabled={true}
-                              className="h-11 pl-8 bg-gray-50 border-gray-200"
-                            />
-                          </div>
-                        </div>
                       </div>
+
+                      {/* Generate and Clear Buttons */}
+                      {canEdit && (
+                        <div className="flex flex-col sm:flex-row gap-2 w-full">
+                          <Button
+                            type="button"
+                            onClick={generatePostPlacementSchedule}
+                            className="w-full sm:flex-1 bg-[#682A53] hover:bg-[#682A53]/90 text-white h-11 text-xs sm:text-sm whitespace-nowrap"
+                          >
+                            <Plus className="h-4 w-4 mr-1 flex-shrink-0" />
+                            <span className="hidden sm:inline">Generate Schedule</span>
+                            <span className="sm:hidden">Generate</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={clearPostPlacementSchedule}
+                            variant="outline"
+                            className="w-full sm:w-auto border-red-500 text-red-600 hover:bg-red-50 h-11 text-xs sm:text-sm px-4 whitespace-nowrap"
+                            disabled={postPlacementPaymentSchedule.length === 0}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1 flex-shrink-0" />
+                            Clear
+                          </Button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Promissory Note */}
@@ -1619,23 +2026,27 @@ export default function EditClientForm({
                   </div>
                 </CardContent>
               </Card>
+            )}
           </div>
 
           {/* Submit Button */}
-          <div className="flex justify-end mt-8">
-            <div className="flex space-x-4">
-              <Button type="button" variant="outline" onClick={handleBack}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isLoading || !canEdit}
-                className="bg-[#682A53] hover:bg-[#682A53]/90 text-white"
-              >
-                {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Update Client
-              </Button>
-            </div>
+          <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 mt-8">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleBack}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isLoading || !canEdit}
+              className="bg-[#682A53] hover:bg-[#682A53]/90 text-white w-full sm:w-auto"
+            >
+              {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Update Client
+            </Button>
           </div>
         </div>
       </form>
