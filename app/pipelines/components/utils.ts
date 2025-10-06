@@ -20,8 +20,8 @@ export const canMoveClient = (client: Client, userRole: UserRole): boolean => {
       if (client.status === "Sales" || client.status === "Placed") {
         return false;
       }
-      // Only allow movement from marketing and remarketing stages
-      return client.status === "Marketing" || client.status === "Remarketing";
+      // Allow movement from marketing, remarketing, on-hold, and backed-out stages
+      return client.status === "Marketing" || client.status === "Remarketing" || client.status === "OnHold" || client.status === "BackedOut";
     case "Sales_Executive":
       // Sales people can move clients from sales stage
       return client.status === "Sales";
@@ -78,6 +78,10 @@ export const getAvailableStages = (
     if (currentStatus === "BackedOut") {
       // From backed out stage, marketing manager can only move to remarketing
       return ["Remarketing"];
+    }
+    if (currentStatus === "OnHold") {
+      // From on hold stage, marketing manager can move to remarketing, marketing, or backed out
+      return ["Remarketing", "Marketing", "BackedOut"];
     }
     // For other stages, marketing manager has limited access
     return [];
