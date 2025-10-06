@@ -1016,50 +1016,55 @@ export default function EditClientForm({
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="marketingEmailID">Marketing Email ID</Label>
-                    <Input
-                      id="marketingEmailID"
-                      value={clientData.marketingEmailID || ""}
-                      onChange={(e) =>
-                        handleInputChange("marketingEmailID", e.target.value)
-                      }
-                      disabled={!canEdit}
-                    />
-                  </div>
+                  {/* Marketing Credentials - Admin Only */}
+                  {userRole === "Admin" && (
+                    <>
+                      <div>
+                        <Label htmlFor="marketingEmailID">Marketing Email ID</Label>
+                        <Input
+                          id="marketingEmailID"
+                          value={clientData.marketingEmailID || ""}
+                          onChange={(e) =>
+                            handleInputChange("marketingEmailID", e.target.value)
+                          }
+                          disabled={!canEdit}
+                        />
+                      </div>
 
-                  <div>
-                    <Label htmlFor="marketingEmailPassword">
-                      Marketing Email Password
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="marketingEmailPassword"
-                        type={showPassword ? "text" : "password"}
-                        value={clientData.marketingEmailPassword || ""}
-                        onChange={(e) =>
-                          handleInputChange(
-                            "marketingEmailPassword",
-                            e.target.value
-                          )
-                        }
-                        disabled={!canEdit}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
+                      <div>
+                        <Label htmlFor="marketingEmailPassword">
+                          Marketing Email Password
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            id="marketingEmailPassword"
+                            type={showPassword ? "text" : "password"}
+                            value={clientData.marketingEmailPassword || ""}
+                            onChange={(e) =>
+                              handleInputChange(
+                                "marketingEmailPassword",
+                                e.target.value
+                              )
+                            }
+                            disabled={!canEdit}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <div>
                     <Label htmlFor="assignedRecruiterID">

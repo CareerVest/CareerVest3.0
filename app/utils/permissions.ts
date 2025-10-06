@@ -223,7 +223,7 @@ const permissions: AppPermissions = {
       deleteEmployee: true,
     },
     Senior_Recruiter: {
-      viewEmployeesMenu: true,
+      viewEmployeesMenu: false,
       basicInfo: { view: true, edit: { self: true } },
       addEmployee: false,
       viewEmployee: true,
@@ -231,7 +231,7 @@ const permissions: AppPermissions = {
       deleteEmployee: false,
     },
     Sales_Executive: {
-      viewEmployeesMenu: true,
+      viewEmployeesMenu: false,
       basicInfo: { view: true, edit: { self: true } },
       addEmployee: false,
       viewEmployee: true,
@@ -239,7 +239,7 @@ const permissions: AppPermissions = {
       deleteEmployee: false,
     },
     Recruiter: {
-      viewEmployeesMenu: true,
+      viewEmployeesMenu: false,
       basicInfo: { view: true, edit: { self: true } },
       addEmployee: false,
       viewEmployee: true,
@@ -247,7 +247,7 @@ const permissions: AppPermissions = {
       deleteEmployee: false,
     },
     Resume_Writer: {
-      viewEmployeesMenu: true,
+      viewEmployeesMenu: false,
       basicInfo: { view: true, edit: { self: true } },
       addEmployee: false,
       viewEmployee: true,
@@ -263,7 +263,7 @@ const permissions: AppPermissions = {
       deleteEmployee: false,
     },
     default: {
-      viewEmployeesMenu: true,
+      viewEmployeesMenu: false,
       basicInfo: { view: false, edit: false },
       addEmployee: false,
       viewEmployee: false,

@@ -6,17 +6,26 @@ import { InactivityWarning } from "../sharedComponents/inactivityWarning";
 import { useInactivity } from "../../hooks/useInactivityTimeout";
 import { useAuth } from "../../contexts/authContext";
 import permissions from "../utils/permissions";
+import { mapAzureRoleToAppRole } from "../utils/roleMapping";
 
 export default function MarketingActivityLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(true); // Start collapsed by default
   const [sidebarWidth, setSidebarWidth] = useState(80); // Default collapsed width
-  const [userRole, setUserRole] = useState<string>("Admin"); // Default to Admin for demo
+  const [userRole, setUserRole] = useState<string>("default");
   const [isLoading, setIsLoading] = useState(true); // Add loading state
+
+  // Extract role from Azure AD
+  useEffect(() => {
+    if (roles && roles.length > 0) {
+      const mappedRole = mapAzureRoleToAppRole(roles);
+      setUserRole(mappedRole);
+    }
+  }, [roles]);
 
   // Inactivity timeout hook
   const { isInactive, handleExtendSession } = useInactivity(30, 60); // 30 minutes timeout, 60 seconds countdown
