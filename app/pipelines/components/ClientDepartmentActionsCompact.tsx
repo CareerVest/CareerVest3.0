@@ -256,17 +256,37 @@ export function ClientDepartmentActionsCompact({
                         </div>
 
                         {/* Action Notes/Comment */}
-                        {action.notes && (
-                          <div className="px-2 pb-1.5 text-xs">
-                            <div className="bg-amber-50 border border-amber-200 rounded px-2 py-1 flex items-start gap-1.5">
-                              <MessageSquare className="w-3 h-3 text-amber-600 flex-shrink-0 mt-0.5" />
-                              <div className="flex-1">
-                                <span className="text-amber-900 font-medium text-[10px] uppercase tracking-wide block mb-0.5">Comment:</span>
-                                <span className="text-gray-700">{action.notes}</span>
+                        {action.notes && (() => {
+                          // Try to parse JSON notes (for actions like Recruiter-Checklist-Completed, Resume Completed)
+                          let displayNote = action.notes;
+                          try {
+                            const parsedNotes = JSON.parse(action.notes);
+                            // If it's JSON with a notes field, extract just that field
+                            if (parsedNotes && typeof parsedNotes === 'object' && parsedNotes.notes) {
+                              displayNote = parsedNotes.notes;
+                            }
+                          } catch (e) {
+                            // Not JSON or parsing failed, use original notes
+                            displayNote = action.notes;
+                          }
+
+                          // Only show if displayNote is not empty
+                          if (!displayNote || !displayNote.trim()) {
+                            return null;
+                          }
+
+                          return (
+                            <div className="px-2 pb-1.5 text-xs">
+                              <div className="bg-amber-50 border border-amber-200 rounded px-2 py-1 flex items-start gap-1.5">
+                                <MessageSquare className="w-3 h-3 text-amber-600 flex-shrink-0 mt-0.5" />
+                                <div className="flex-1">
+                                  <span className="text-amber-900 font-medium text-[10px] uppercase tracking-wide block mb-0.5">Comment:</span>
+                                  <span className="text-gray-700">{displayNote}</span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>

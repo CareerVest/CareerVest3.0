@@ -230,13 +230,29 @@ function NotesTabContent({ client, isActive }: { client: Client; isActive: boole
         const actions = dept.actions?.$values || dept.actions || [];
         actions.forEach((action: any) => {
           if (action.notes && action.notes.trim()) {
-            notes.push({
-              note: action.notes,
-              departmentName: dept.displayName,
-              actionLabel: action.actionLabel,
-              performedBy: action.performedBy,
-              timestamp: action.timestamp,
-            });
+            // Try to parse JSON notes (for actions like Recruiter-Checklist-Completed, Resume Completed)
+            let displayNote = action.notes;
+            try {
+              const parsedNotes = JSON.parse(action.notes);
+              // If it's JSON with a notes field, extract just that field
+              if (parsedNotes && typeof parsedNotes === 'object' && parsedNotes.notes) {
+                displayNote = parsedNotes.notes;
+              }
+            } catch (e) {
+              // Not JSON or parsing failed, use original notes
+              displayNote = action.notes;
+            }
+
+            // Only add if displayNote is not empty after parsing
+            if (displayNote && displayNote.trim()) {
+              notes.push({
+                note: displayNote,
+                departmentName: dept.displayName,
+                actionLabel: action.actionLabel,
+                performedBy: action.performedBy,
+                timestamp: action.timestamp,
+              });
+            }
           }
         });
       });

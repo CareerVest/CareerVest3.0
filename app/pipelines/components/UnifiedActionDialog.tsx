@@ -93,6 +93,8 @@ interface FormData {
   updatedLinkedInAsPerResume?: boolean;
   updatedLinkedInHyperlinkInResume?: boolean;
   marketingStartDate?: string;
+  marketingEmailID?: string;
+  marketingEmailPassword?: string;
 }
 
 interface Recruiter {
@@ -305,6 +307,8 @@ export function UnifiedActionDialog({
         additionalData.updatedLinkedInAsPerResume = formData.updatedLinkedInAsPerResume;
         additionalData.updatedLinkedInHyperlinkInResume = formData.updatedLinkedInHyperlinkInResume;
         additionalData.marketingStartDate = formData.marketingStartDate;
+        additionalData.marketingEmailID = formData.marketingEmailID;
+        additionalData.marketingEmailPassword = formData.marketingEmailPassword;
       }
 
       const result = await apiCall(
@@ -656,6 +660,46 @@ export function UnifiedActionDialog({
                           }))
                         }
                         className="w-full"
+                      />
+                    </div>
+
+                    {/* Marketing Email ID */}
+                    <div className="space-y-2">
+                      <Label htmlFor="marketingEmailID" className="text-sm font-medium">
+                        Marketing Email ID
+                      </Label>
+                      <Input
+                        id="marketingEmailID"
+                        type="email"
+                        value={formData.marketingEmailID || ""}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            marketingEmailID: e.target.value,
+                          }))
+                        }
+                        className="w-full"
+                        placeholder="marketing@example.com"
+                      />
+                    </div>
+
+                    {/* Marketing Email Password */}
+                    <div className="space-y-2">
+                      <Label htmlFor="marketingEmailPassword" className="text-sm font-medium">
+                        Marketing Email Password
+                      </Label>
+                      <Input
+                        id="marketingEmailPassword"
+                        type="password"
+                        value={formData.marketingEmailPassword || ""}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            marketingEmailPassword: e.target.value,
+                          }))
+                        }
+                        className="w-full"
+                        placeholder="••••••••"
                       />
                     </div>
                   </div>
