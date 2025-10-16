@@ -1,10 +1,81 @@
-// Enhanced data types for Accounting module
+// ================================================================================
+// ACCOUNTING MODULE - TYPE DEFINITIONS
+// Backend API Integration Types
+// ================================================================================
+
+// Payment/PaymentSchedule Types
+export interface PaymentDto {
+  id: number;
+  clientId: number;
+  clientName: string;
+  clientEmail: string;
+  originalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  status: "paid" | "pending" | "partially_paid" | "cancelled";
+  dueDate: string | null;
+  date: string;
+  type: "subscription" | "placement";
+  assignedTo: string | null;
+  transactions: PaymentTransactionDto[];
+}
+
+export interface PaymentTransactionDto {
+  id: string;
+  paymentId: number;
+  amount: number;
+  paidDate: string;
+  comment: string | null;
+  recordedBy: string;
+  recordedAt: string;
+  type: "payment" | "adjustment";
+}
+
+// Metrics Types
+export interface AccountingMetricsDto {
+  totalRevenue: number;
+  totalOutstanding: number;
+  totalClientCredits: number;
+  pendingCount: number;
+  partialPaymentsCount: number;
+  clientsWithCredits: number;
+}
+
+// Client Balance Types
+export interface ClientBalanceDto {
+  clientId: string;
+  clientName: string;
+  creditBalance: number;
+  totalOutstanding: number;
+  lastUpdated: string;
+}
+
+// Request/Filter Types
+export interface AccountingFilterDto {
+  timePeriod?: string; // "this_month", "last_month", "this_quarter", etc.
+  customStartDate?: string;
+  customEndDate?: string;
+  status?: string; // "all", "paid", "pending", "partially_paid", "cancelled"
+  searchQuery?: string;
+}
+
+export interface RecordPaymentRequestDto {
+  amount: number;
+  paidDate: string;
+  comment?: string;
+  externalTransactionID?: string;
+}
+
+// ================================================================================
+// LEGACY UI TYPES (for backwards compatibility with existing components)
+// ================================================================================
+
 export interface Transaction {
   id: string;
-  studentName: string;
-  studentEmail: string;
+  clientName: string;
+  clientEmail: string;
   amount: number;
-  originalAmount?: number; // For adjustments
+  originalAmount?: number;
   type: "subscription" | "placement";
   status:
     | "paid"

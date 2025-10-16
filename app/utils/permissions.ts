@@ -72,6 +72,16 @@ interface SettingsPermissions {
   [key: string]: boolean | PermissionSection;
 }
 
+interface JobsPermissions {
+  viewJobsMenu: boolean;
+  viewBatches: boolean;
+  applyToJobs: boolean;
+  skipJobs: boolean;
+  viewJobDetails: boolean;
+  switchClients: boolean;
+  [key: string]: boolean | PermissionSection;
+}
+
 export interface AppPermissions {
   dashboard: Record<string, DashboardPermissions>;
   clients: Record<string, ClientPermissions>;
@@ -79,6 +89,7 @@ export interface AppPermissions {
   interviews: Record<string, InterviewPermissions>;
   interviewChains: Record<string, InterviewChainPermissions>;
   pipelines: Record<string, PipelinePermissions>;
+  jobs?: Record<string, JobsPermissions>;
   accounting?: Record<string, any>;
   supervisorsMenu?: Record<string, any>;
   settings: Record<string, SettingsPermissions>;
@@ -480,40 +491,98 @@ const permissions: AppPermissions = {
       assignRecruiter: false,
     },
   },
+  jobs: {
+    Admin: {
+      viewJobsMenu: false,
+      viewBatches: false,
+      applyToJobs: false,
+      skipJobs: false,
+      viewJobDetails: false,
+      switchClients: false,
+    },
+    Marketing_Manager: {
+      viewJobsMenu: false,
+      viewBatches: false,
+      applyToJobs: false,
+      skipJobs: false,
+      viewJobDetails: false,
+      switchClients: false,
+    },
+    Senior_Recruiter: {
+      viewJobsMenu: false,
+      viewBatches: false,
+      applyToJobs: false,
+      skipJobs: false,
+      viewJobDetails: false,
+      switchClients: false,
+    },
+    Recruiter: {
+      viewJobsMenu: false,
+      viewBatches: false,
+      applyToJobs: false,
+      skipJobs: false,
+      viewJobDetails: false,
+      switchClients: false,
+    },
+    Sales_Executive: {
+      viewJobsMenu: false,
+      viewBatches: false,
+      applyToJobs: false,
+      skipJobs: false,
+      viewJobDetails: false,
+      switchClients: false,
+    },
+    Resume_Writer: {
+      viewJobsMenu: false,
+      viewBatches: false,
+      applyToJobs: false,
+      skipJobs: false,
+      viewJobDetails: false,
+      switchClients: false,
+    },
+    default: {
+      viewJobsMenu: false,
+      viewBatches: false,
+      applyToJobs: false,
+      skipJobs: false,
+      viewJobDetails: false,
+      switchClients: false,
+    },
+  },
   accounting: {
     Admin: {
-      viewAccountingMenu: true,
-      edit: true,
-      viewDashboard: true,
-      viewTransactions: true,
-      viewStudents: true,
-      viewReports: true,
-      viewAudit: true,
-      addTransaction: true,
-      editTransaction: true,
-      deleteTransaction: true,
-      addStudent: true,
-      editStudent: true,
-      deleteStudent: true,
-      runReconciliation: true,
-      exportReports: true,
+      viewAccountingMenu: false,
+      edit: false,
+      viewDashboard: false,
+      viewTransactions: false,
+      viewStudents: false,
+      viewReports: false,
+      viewAudit: false,
+      addTransaction: false,
+      editTransaction: false,
+      deleteTransaction: false,
+      addStudent: false,
+      editStudent: false,
+      deleteStudent: false,
+      runReconciliation: false,
+      exportReports: false,
     },
     Accounting: {
-      viewAccountingMenu: true,
-      edit: true,
-      viewDashboard: true,
-      viewTransactions: true,
-      viewStudents: true,
-      viewReports: true,
-      viewAudit: true,
-      addTransaction: true,
-      editTransaction: true,
+      viewAccountingMenu: false,
+      edit: false,
+      viewDashboard: false,
+      viewTransactions: false,
+      viewStudents: false,
+      viewReports: false,
+      viewAudit: false,
+      addTransaction: false,
+      editTransaction: false,
       deleteTransaction: false,
-      addStudent: true,
-      editStudent: true,
+      addStudent: false,
+      editStudent: false,
       deleteStudent: false,
-      runReconciliation: true,
-      exportReports: true,
+      runReconciliation: false,
+      exportReports: false,
     },
     Marketing_Manager: {
       viewAccountingMenu: false,

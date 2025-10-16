@@ -29,6 +29,7 @@ import {
   DollarSign,
   GitPullRequest,
   Sparkles,
+  Briefcase,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -99,6 +100,14 @@ const menuItems = [
     permissionKey: "viewPipelinesMenu",
     module: "pipelines",
     color: "from-green-500 to-emerald-500",
+  },
+  {
+    title: "Jobs",
+    icon: Briefcase,
+    path: "/jobs",
+    permissionKey: "viewJobsMenu",
+    module: "jobs",
+    color: "from-indigo-500 to-purple-500",
   },
   {
     title: "Team Hierarchy",

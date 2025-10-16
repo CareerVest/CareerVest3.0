@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/authContext";
 import { useRouter } from "next/navigation";
-import { AccountingHub } from "./components/AccountingHub";
+import { NewAccountingHub } from "./components/NewAccountingHub";
 
 export default function AccountingPage() {
   const { isAuthenticated, isInitialized, login, roles } = useAuth();
@@ -65,8 +65,8 @@ export default function AccountingPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 w-full max-w-full overflow-x-hidden box-border ml-0">
-      <AccountingHub />
+    <div className="p-6">
+      <NewAccountingHub />
     </div>
   );
 }

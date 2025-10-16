@@ -102,8 +102,8 @@ export async function getClient(id: number): Promise<ClientDetail | null> {
         paymentScheduleID: ps.paymentScheduleID,
         clientID: ps.clientID,
         paymentDate: parseDate(ps.paymentDate),
-        amount: ps.amount,
-        isPaid: ps.isPaid,
+        amount: ps.originalAmount || ps.amount || 0, // Backend uses 'originalAmount', fallback to 'amount'
+        isPaid: ps.paymentStatus === "Paid" || ps.isPaid === true, // Backend uses 'paymentStatus', fallback to 'isPaid'
         paymentType: ps.paymentType,
         subscriptionPlanID: ps.subscriptionPlanID,
         postPlacementPlanID: ps.postPlacementPlanID,
@@ -178,9 +178,32 @@ export async function updateClient(
   promissoryNoteFile?: File | null
 ): Promise<boolean> {
   try {
+    // Transform payment schedules: frontend uses 'amount' and 'isPaid', backend uses 'originalAmount' and 'paymentStatus'
+    const transformedClient = {
+      ...updatedClient,
+      paymentSchedules: updatedClient.paymentSchedules?.map((ps: any) => ({
+        paymentScheduleID: ps.paymentScheduleID || 0,
+        clientID: ps.clientID,
+        paymentDate: ps.paymentDate,
+        originalAmount: ps.amount || ps.originalAmount || 0, // Transform 'amount' to 'originalAmount'
+        paidAmount: ps.paidAmount || 0,
+        remainingAmount: ps.remainingAmount || ps.amount || ps.originalAmount || 0,
+        dueDate: ps.dueDate || ps.paymentDate,
+        paymentType: ps.paymentType,
+        paymentStatus: ps.isPaid === true ? "Paid" : (ps.paymentStatus || "Pending"), // Transform 'isPaid' to 'paymentStatus'
+        assignedTo: ps.assignedTo || null,
+        subscriptionPlanID: ps.subscriptionPlanID,
+        postPlacementPlanID: ps.postPlacementPlanID,
+        createdTS: ps.createdTS,
+        createdBy: ps.createdBy,
+        updatedTS: ps.updatedTS,
+        updatedBy: ps.updatedBy,
+      })),
+    };
+
     const formData = new FormData();
     formData.append("clientID", id.toString());
-    formData.append("clientDto", JSON.stringify(updatedClient));
+    formData.append("clientDto", JSON.stringify(transformedClient));
     if (serviceAgreementFile) {
       formData.append("ServiceAgreement", serviceAgreementFile);
     }
@@ -189,7 +212,8 @@ export async function updateClient(
     }
 
     console.log("🔹 Data to Update Client:", {
-      updatedClient,
+      original: updatedClient,
+      transformed: transformedClient,
       serviceAgreementFile,
       promissoryNoteFile,
     });
@@ -346,18 +370,19 @@ export async function createClient(
       paymentSchedules:
         createClientData.paymentSchedules &&
         createClientData.paymentSchedules.length > 0
-          ? createClientData.paymentSchedules.map((ps) => ({
+          ? createClientData.paymentSchedules.map((ps: any) => ({
               paymentScheduleID: ps.paymentScheduleID || 0,
               clientID: ps.clientID || 0,
               paymentDate: ps.paymentDate
                 ? new Date(ps.paymentDate).toISOString()
                 : null,
-              amount:
-                ps.amount !== undefined && ps.amount !== null
-                  ? Number(ps.amount) || 0.0
-                  : 0.0,
-              paymentType: ps.paymentType || "Subscription", // Add missing paymentType field
-              isPaid: ps.isPaid || false, // Add missing isPaid field
+              originalAmount: ps.amount || ps.originalAmount || 0, // Transform 'amount' to 'originalAmount'
+              paidAmount: ps.paidAmount || 0,
+              remainingAmount: ps.remainingAmount || ps.amount || ps.originalAmount || 0,
+              dueDate: ps.dueDate || ps.paymentDate ? new Date(ps.dueDate || ps.paymentDate).toISOString() : null,
+              paymentType: ps.paymentType || "Subscription",
+              paymentStatus: ps.isPaid === true ? "Paid" : (ps.paymentStatus || "Pending"), // Transform 'isPaid' to 'paymentStatus'
+              assignedTo: ps.assignedTo || null,
               subscriptionPlanID: ps.subscriptionPlanID || null,
               postPlacementPlanID: ps.postPlacementPlanID || null,
               createdTS: ps.createdTS

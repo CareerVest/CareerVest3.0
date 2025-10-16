@@ -529,7 +529,16 @@ export default function EditClientForm({
   const validateFinancialData = () => {
     const newErrors: Record<string, string> = {};
 
-    // Subscription validation
+    // Check if subscription plan has an amount configured
+    const hasSubscriptionAmount = clientData.subscriptionPlan?.planName?.trim();
+
+    // SMART VALIDATION: Only require payment schedules if a plan with amount is configured
+    if (hasSubscriptionAmount && subscriptionPaymentSchedule.length === 0) {
+      newErrors.subscriptionPaymentSchedule =
+        "Please click 'Generate Schedule' to create payment schedule for the subscription plan";
+    }
+
+    // Subscription validation - only if schedules exist
     if (subscriptionPaymentSchedule.length > 0) {
       subscriptionPaymentSchedule.forEach((payment, index) => {
         if (!payment.paymentDate) {
@@ -559,7 +568,18 @@ export default function EditClientForm({
       }
     }
 
-    // Post-placement validation
+    // Check if post placement plan has an amount configured
+    const hasPostPlacementAmount =
+      clientData.clientStatus === "Placed" &&
+      (postPlacementTotalAmount > 0 || clientData.postPlacementPlan?.totalPostPlacementAmount);
+
+    // SMART VALIDATION: Only require payment schedules if post placement plan has amount
+    if (hasPostPlacementAmount && postPlacementPaymentSchedule.length === 0) {
+      newErrors.postPlacementPaymentSchedule =
+        "Please click 'Generate Schedule' to create payment schedule for the post-placement plan";
+    }
+
+    // Post-placement validation - only if schedules exist
     if (postPlacementPaymentSchedule.length > 0) {
       postPlacementPaymentSchedule.forEach((payment, index) => {
         if (!payment.paymentDate) {
@@ -622,11 +642,33 @@ export default function EditClientForm({
     setIsLoading(true);
 
     try {
+      // Build post placement plan object from local state if client status is "Placed"
+      // This ensures data is saved even if admin didn't click "Generate Schedule" button
+      let updatedPostPlacementPlan = clientData.postPlacementPlan;
+
+      if (clientData.clientStatus === "Placed" && (postPlacementTotalAmount > 0 || postPlacementDurationMonths > 0 || postPlacementStartDate)) {
+        const postPlacementPlanName = postPlacementTotalAmount && postPlacementDurationMonths
+          ? `Post-Placement - $${postPlacementTotalAmount.toFixed(2)} over ${postPlacementDurationMonths} months`
+          : clientData.postPlacementPlan?.planName || "";
+
+        updatedPostPlacementPlan = {
+          ...clientData.postPlacementPlan,
+          planName: postPlacementPlanName,
+          totalPostPlacementAmount: postPlacementTotalAmount || clientData.postPlacementPlan?.totalPostPlacementAmount || 0,
+          postPlacementPlanPaymentStartDate: postPlacementStartDate || clientData.postPlacementPlan?.postPlacementPlanPaymentStartDate,
+        } as any;
+      }
+
       const hasPostPlacementData =
-        clientData.postPlacementPlan?.planName?.trim() ||
-        clientData.postPlacementPlan?.postPlacementPlanPaymentStartDate ||
-        clientData.postPlacementPlan?.totalPostPlacementAmount ||
-        postPlacementPaymentSchedule.length > 0;
+        clientData.clientStatus === "Placed" && (
+          postPlacementTotalAmount > 0 ||
+          postPlacementDurationMonths > 0 ||
+          postPlacementStartDate != null ||
+          updatedPostPlacementPlan?.planName?.trim() ||
+          updatedPostPlacementPlan?.postPlacementPlanPaymentStartDate ||
+          updatedPostPlacementPlan?.totalPostPlacementAmount ||
+          postPlacementPaymentSchedule.length > 0
+        );
 
       const submitData: ClientDetail = {
         ...clientData,
@@ -646,7 +688,7 @@ export default function EditClientForm({
           ? new Date(clientData.backedOutDate)
           : null,
         postPlacementPlan: hasPostPlacementData
-          ? clientData.postPlacementPlan
+          ? updatedPostPlacementPlan
           : null,
         postPlacementPlanID: hasPostPlacementData
           ? clientData.postPlacementPlanID
@@ -658,6 +700,8 @@ export default function EditClientForm({
           ...ps,
           paymentScheduleID: ps.paymentScheduleID || 0,
           clientID: client.clientID,
+          subscriptionPlanID: ps.paymentType === "Subscription" ? (clientData.subscriptionPlanID || client.subscriptionPlanID) : null,
+          postPlacementPlanID: ps.paymentType === "PostPlacement" ? (clientData.postPlacementPlanID || client.postPlacementPlanID) : null,
           createdTS: ps.createdTS || null,
           createdBy: ps.createdBy || null,
           updatedTS: ps.updatedTS || null,
@@ -948,8 +992,8 @@ export default function EditClientForm({
               </CardContent>
             </Card>
 
-            {/* Card 2: Marketing & Assignment - Admin Only */}
-            {userRole === "Admin" && (
+            {/* Card 2: Marketing & Assignment - Admin and Marketing Manager Only */}
+            {(userRole === "Admin" || userRole === "Marketing_Manager") && (
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-3">

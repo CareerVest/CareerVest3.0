@@ -1,285 +1,180 @@
 import axiosInstance from "../../../lib/axiosInstance";
-import {
-  Transaction,
-  Client,
-  AuditEntry,
+import type {
+  PaymentDto,
+  PaymentTransactionDto,
+  AccountingMetricsDto,
+  ClientBalanceDto,
+  AccountingFilterDto,
+  RecordPaymentRequestDto,
 } from "../../types/accounting/accounting";
 
-// Transaction Actions
-export async function fetchTransactions(): Promise<Transaction[]> {
+// ================================================================================
+// PAYMENT ACTIONS
+// ================================================================================
+
+export async function fetchPayments(
+  filters?: AccountingFilterDto
+): Promise<PaymentDto[]> {
   try {
-    const response = await axiosInstance.get("/api/v1/accounting/transactions");
-    console.log("🔹 Raw API Response:", response.data);
-    const transactions = response.data?.$values || response.data;
-    console.log("✅ Extracted Transactions Array:", transactions);
-    return transactions;
+    const params = new URLSearchParams();
+    if (filters?.timePeriod) params.append("timePeriod", filters.timePeriod);
+    if (filters?.customStartDate) params.append("customStartDate", filters.customStartDate);
+    if (filters?.customEndDate) params.append("customEndDate", filters.customEndDate);
+    if (filters?.status) params.append("status", filters.status);
+    if (filters?.searchQuery) params.append("searchQuery", filters.searchQuery);
+
+    const response = await axiosInstance.get(`/api/v1/accounting/payments?${params.toString()}`);
+    console.log("🔹 Raw Payments API Response:", response.data);
+    const payments = response.data?.$values || response.data;
+    console.log("✅ Extracted Payments Array:", payments);
+    return payments;
   } catch (error: any) {
-    console.error("Error fetching transactions:", error);
+    console.error("Error fetching payments:", error);
     throw new Error(
-      `Failed to fetch transactions: ${
+      `Failed to fetch payments: ${
         error.response?.data?.message || error.message
       }`
     );
   }
 }
 
-export async function createTransaction(
-  transaction: Omit<Transaction, "id">
-): Promise<boolean> {
+export async function getPaymentById(id: number): Promise<PaymentDto | null> {
+  try {
+    const response = await axiosInstance.get(`/api/v1/accounting/payments/${id}`);
+    console.log("🔹 Raw Payment Data:", response.data);
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      return null;
+    }
+    console.error("Error fetching payment:", error);
+    throw new Error(
+      `Failed to fetch payment: ${
+        error.response?.data?.message || error.message
+      }`
+    );
+  }
+}
+
+export async function recordPayment(
+  paymentId: number,
+  request: RecordPaymentRequestDto
+): Promise<PaymentDto> {
   try {
     const response = await axiosInstance.post(
-      "/api/v1/accounting/transactions",
-      transaction
+      `/api/v1/accounting/payments/${paymentId}/record-payment`,
+      request
     );
-    console.log("✅ Transaction Created Successfully");
-    return response.status === 200 || response.status === 201;
+    console.log("✅ Payment Recorded Successfully");
+    return response.data;
   } catch (error: any) {
-    console.error("Error creating transaction:", error);
+    console.error("Error recording payment:", error);
     throw new Error(
-      `Failed to create transaction: ${
+      `Failed to record payment: ${
         error.response?.data?.message || error.message
       }`
     );
   }
 }
 
-export async function updateTransaction(
-  id: string,
-  transaction: Partial<Transaction>
-): Promise<boolean> {
+export async function markPaymentAsPaid(
+  paymentId: number,
+  comment?: string
+): Promise<PaymentDto> {
   try {
     const response = await axiosInstance.put(
-      `/api/v1/accounting/transactions/${id}`,
-      transaction
+      `/api/v1/accounting/payments/${paymentId}/mark-paid`,
+      { comment }
     );
-    console.log("✅ Transaction Updated Successfully");
-    return response.status === 200 || response.status === 204;
+    console.log("✅ Payment Marked as Paid Successfully");
+    return response.data;
   } catch (error: any) {
-    console.error("Error updating transaction:", error);
+    console.error("Error marking payment as paid:", error);
     throw new Error(
-      `Failed to update transaction: ${
+      `Failed to mark payment as paid: ${
         error.response?.data?.message || error.message
       }`
     );
   }
 }
 
-export async function deleteTransaction(id: string): Promise<boolean> {
-  try {
-    const response = await axiosInstance.delete(
-      `/api/v1/accounting/transactions/${id}`
-    );
-    console.log("✅ Transaction Deleted Successfully");
-    return response.status === 204;
-  } catch (error: any) {
-    console.error("Error deleting transaction:", error);
-    throw new Error(
-      `Failed to delete transaction: ${
-        error.response?.data?.message || error.message
-      }`
-    );
-  }
-}
-
-// Client/Student Actions
-export async function fetchClients(): Promise<Client[]> {
-  try {
-    const response = await axiosInstance.get("/api/v1/accounting/clients");
-    console.log("🔹 Raw API Response:", response.data);
-    const clients = response.data?.$values || response.data;
-    console.log("✅ Extracted Clients Array:", clients);
-    return clients;
-  } catch (error: any) {
-    console.error("Error fetching clients:", error);
-    throw new Error(
-      `Failed to fetch clients: ${
-        error.response?.data?.message || error.message
-      }`
-    );
-  }
-}
-
-export async function createClient(
-  client: Omit<Client, "id">
-): Promise<boolean> {
-  try {
-    const response = await axiosInstance.post(
-      "/api/v1/accounting/clients",
-      client
-    );
-    console.log("✅ Client Created Successfully");
-    return response.status === 200 || response.status === 201;
-  } catch (error: any) {
-    console.error("Error creating client:", error);
-    throw new Error(
-      `Failed to create client: ${
-        error.response?.data?.message || error.message
-      }`
-    );
-  }
-}
-
-export async function updateClient(
-  id: string,
-  client: Partial<Client>
-): Promise<boolean> {
+export async function cancelPayment(
+  paymentId: number,
+  reason?: string
+): Promise<PaymentDto> {
   try {
     const response = await axiosInstance.put(
-      `/api/v1/accounting/clients/${id}`,
-      client
+      `/api/v1/accounting/payments/${paymentId}/cancel`,
+      { reason }
     );
-    console.log("✅ Client Updated Successfully");
-    return response.status === 200 || response.status === 204;
-  } catch (error: any) {
-    console.error("Error updating client:", error);
-    throw new Error(
-      `Failed to update client: ${
-        error.response?.data?.message || error.message
-      }`
-    );
-  }
-}
-
-export async function deleteClient(id: string): Promise<boolean> {
-  try {
-    const response = await axiosInstance.delete(
-      `/api/v1/accounting/clients/${id}`
-    );
-    console.log("✅ Client Deleted Successfully");
-    return response.status === 204;
-  } catch (error: any) {
-    console.error("Error deleting client:", error);
-    throw new Error(
-      `Failed to delete client: ${
-        error.response?.data?.message || error.message
-      }`
-    );
-  }
-}
-
-// Audit Trail Actions
-export async function fetchAuditTrail(): Promise<AuditEntry[]> {
-  try {
-    const response = await axiosInstance.get("/api/v1/accounting/audit-trail");
-    console.log("🔹 Raw API Response:", response.data);
-    const auditEntries = response.data?.$values || response.data;
-    console.log("✅ Extracted Audit Entries Array:", auditEntries);
-    return auditEntries;
-  } catch (error: any) {
-    console.error("Error fetching audit trail:", error);
-    throw new Error(
-      `Failed to fetch audit trail: ${
-        error.response?.data?.message || error.message
-      }`
-    );
-  }
-}
-
-// Reports Actions
-export async function generateReport(
-  reportType: string,
-  dateRange: string
-): Promise<any> {
-  try {
-    const response = await axiosInstance.post("/api/v1/accounting/reports", {
-      reportType,
-      dateRange,
-    });
-    console.log("✅ Report Generated Successfully");
+    console.log("✅ Payment Cancelled Successfully");
     return response.data;
   } catch (error: any) {
-    console.error("Error generating report:", error);
+    console.error("Error cancelling payment:", error);
     throw new Error(
-      `Failed to generate report: ${
+      `Failed to cancel payment: ${
         error.response?.data?.message || error.message
       }`
     );
   }
 }
 
-export async function exportReport(
-  reportType: string,
-  format: string = "csv"
-): Promise<Blob> {
+// ================================================================================
+// METRICS ACTIONS
+// ================================================================================
+
+export async function fetchMetrics(
+  filters?: AccountingFilterDto
+): Promise<AccountingMetricsDto> {
   try {
-    const response = await axiosInstance.post(
-      "/api/v1/accounting/reports/export",
-      {
-        reportType,
-        format,
-      },
-      {
-        responseType: "blob",
-      }
-    );
-    console.log("✅ Report Exported Successfully");
+    const params = new URLSearchParams();
+    if (filters?.timePeriod) params.append("timePeriod", filters.timePeriod);
+    if (filters?.customStartDate) params.append("customStartDate", filters.customStartDate);
+    if (filters?.customEndDate) params.append("customEndDate", filters.customEndDate);
+
+    const response = await axiosInstance.get(`/api/v1/accounting/metrics?${params.toString()}`);
+    console.log("✅ Metrics Fetched Successfully:", response.data);
     return response.data;
   } catch (error: any) {
-    console.error("Error exporting report:", error);
+    console.error("Error fetching metrics:", error);
     throw new Error(
-      `Failed to export report: ${
+      `Failed to fetch metrics: ${
         error.response?.data?.message || error.message
       }`
     );
   }
 }
 
-// Reconciliation Actions
-export async function runReconciliation(): Promise<any> {
+// ================================================================================
+// CLIENT BALANCE ACTIONS
+// ================================================================================
+
+export async function fetchClientBalances(): Promise<ClientBalanceDto[]> {
   try {
-    const response = await axiosInstance.post(
-      "/api/v1/accounting/reconciliation/run"
-    );
-    console.log("✅ Reconciliation Completed Successfully");
-    return response.data;
+    const response = await axiosInstance.get("/api/v1/accounting/client-balances");
+    console.log("🔹 Raw Client Balances API Response:", response.data);
+    const balances = response.data?.$values || response.data;
+    console.log("✅ Extracted Client Balances Array:", balances);
+    return balances;
   } catch (error: any) {
-    console.error("Error running reconciliation:", error);
+    console.error("Error fetching client balances:", error);
     throw new Error(
-      `Failed to run reconciliation: ${
+      `Failed to fetch client balances: ${
         error.response?.data?.message || error.message
       }`
     );
   }
 }
 
-export async function importBankStatement(file: File): Promise<any> {
+export async function getClientCreditBalance(clientId: number): Promise<number> {
   try {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const response = await axiosInstance.post(
-      "/api/v1/accounting/reconciliation/import",
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
-    console.log("✅ Bank Statement Imported Successfully");
-    return response.data;
+    const response = await axiosInstance.get(`/api/v1/accounting/clients/${clientId}/credit-balance`);
+    console.log("✅ Client Credit Balance Fetched:", response.data);
+    return response.data.creditBalance;
   } catch (error: any) {
-    console.error("Error importing bank statement:", error);
+    console.error("Error fetching client credit balance:", error);
     throw new Error(
-      `Failed to import bank statement: ${
-        error.response?.data?.message || error.message
-      }`
-    );
-  }
-}
-
-// Dashboard Metrics Actions
-export async function fetchDashboardMetrics(): Promise<any> {
-  try {
-    const response = await axiosInstance.get(
-      "/api/v1/accounting/dashboard/metrics"
-    );
-    console.log("✅ Dashboard Metrics Fetched Successfully");
-    return response.data;
-  } catch (error: any) {
-    console.error("Error fetching dashboard metrics:", error);
-    throw new Error(
-      `Failed to fetch dashboard metrics: ${
+      `Failed to fetch client credit balance: ${
         error.response?.data?.message || error.message
       }`
     );
