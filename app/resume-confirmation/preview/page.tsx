@@ -82,7 +82,7 @@ export default function ResumeConfirmationPreviewPage() {
           {/* Stats/Success Metrics */}
           <div className="grid grid-cols-3 gap-4 animate-fade-in-up">
             <div className="text-center">
-              <div className="text-3xl font-bold text-[#FDC500]">1000+</div>
+              <div className="text-3xl font-bold text-[#FDC500]">200+</div>
               <div className="text-white/70 text-sm">Clients Placed</div>
             </div>
             <div className="text-center">
