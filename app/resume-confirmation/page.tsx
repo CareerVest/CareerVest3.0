@@ -37,7 +37,7 @@ function ResumeConfirmationContent() {
 
   const confirmResume = async (confirmationToken: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7070";
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "https://localhost:7070";
       const response = await fetch(
         `${apiUrl}/api/ResumeConfirmation/confirm/${confirmationToken}`,
         {
