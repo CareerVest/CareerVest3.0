@@ -11,6 +11,7 @@ import { MarketingDashboard } from "./dashboards/MarketingDashboard";
 import { RecruiterDashboard } from "./dashboards/RecruiterDashboard";
 import { ResumeWriterDashboard } from "./dashboards/ResumeWriterDashboard";
 import { AnnouncementBanner } from "../leaderboard/components/AnnouncementBanner";
+import { ComingSoon } from "./components/ComingSoon";
 import Spinner from "../../components/ui/spinner";
 
 export default function Dashboard() {
@@ -99,20 +100,26 @@ export default function Dashboard() {
   }
 
   const renderDashboard = () => {
-    switch (viewingRole) {
-      case "Admin":
-        return <AdminDashboard />;
-      case "Sales_Executive":
-        return <SalesDashboard />;
-      case "Marketing_Manager":
-        return <MarketingDashboard />;
-      case "Recruiter":
-        return <RecruiterDashboard />;
-      case "Resume_Writer":
-        return <ResumeWriterDashboard />;
-      default:
-        return <AdminDashboard />;
+    // Only show actual dashboards for Admin role
+    if (actualUserRole === "Admin") {
+      switch (viewingRole) {
+        case "Admin":
+          return <AdminDashboard />;
+        case "Sales_Executive":
+          return <SalesDashboard />;
+        case "Marketing_Manager":
+          return <MarketingDashboard />;
+        case "Recruiter":
+          return <RecruiterDashboard />;
+        case "Resume_Writer":
+          return <ResumeWriterDashboard />;
+        default:
+          return <AdminDashboard />;
+      }
     }
+
+    // For all other roles, show Coming Soon page
+    return <ComingSoon />;
   };
 
   const getDashboardTitle = () => {
@@ -138,28 +145,31 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="p-4 sm:p-6 w-full max-w-full overflow-x-hidden box-border">
-      {/* Header Section */}
-      <div className="mb-4">
-        <div className="flex flex-col gap-3">
-          {/* Title Row */}
-          <div>
-            <h1 className="text-2xl font-bold text-[#682A53]">{getDashboardTitle()}</h1>
-            <p className="text-xs text-gray-600 mt-0.5">{getDashboardSubtitle()}</p>
+    <div className={actualUserRole === "Admin" ? "p-4 sm:p-6 w-full max-w-full overflow-x-hidden box-border" : ""}>
+      {/* Only show header, banners, and selectors for Admin */}
+      {actualUserRole === "Admin" && (
+        <>
+          {/* Header Section */}
+          <div className="mb-4">
+            <div className="flex flex-col gap-3">
+              {/* Title Row */}
+              <div>
+                <h1 className="text-2xl font-bold text-[#682A53]">{getDashboardTitle()}</h1>
+                <p className="text-xs text-gray-600 mt-0.5">{getDashboardSubtitle()}</p>
+              </div>
+
+              {/* Admin Role Selector */}
+              <RoleSelector currentRole={viewingRole} onRoleChange={setViewingRole} />
+            </div>
           </div>
 
-          {/* Admin Role Selector */}
-          {actualUserRole === "Admin" && (
-            <RoleSelector currentRole={viewingRole} onRoleChange={setViewingRole} />
-          )}
-        </div>
-      </div>
+          {/* WIP Banner */}
+          <WIPBanner />
 
-      {/* WIP Banner */}
-      <WIPBanner />
-
-      {/* Announcement Banner - Only show for admins */}
-      {actualUserRole === "Admin" && <AnnouncementBanner />}
+          {/* Announcement Banner */}
+          <AnnouncementBanner />
+        </>
+      )}
 
       {/* Dashboard Content */}
       {renderDashboard()}
