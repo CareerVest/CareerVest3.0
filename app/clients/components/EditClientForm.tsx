@@ -828,6 +828,7 @@ export default function EditClientForm({
                 </div>
               </div>
             </div>
+            {permissions.clients[userRole]?.subscriptionInfo?.view && (
             <div className="w-full md:w-auto">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -844,6 +845,7 @@ export default function EditClientForm({
                 </div>
               </div>
             </div>
+            )}
           </div>
         </div>
       </div>

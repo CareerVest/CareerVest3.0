@@ -52,13 +52,6 @@ export default function PipelinesPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-semibold text-[#682A53]">Pipelines</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Logged in as:{" "}
-            <span className="font-medium text-indigo-600">
-              {currentUserRole.charAt(0).toUpperCase() +
-                currentUserRole.slice(1)}
-            </span>
-          </p>
         </div>
       </div>
 

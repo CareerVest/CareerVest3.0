@@ -230,6 +230,7 @@ export default function ClientView({ params }: { params: { id: string } }) {
                 </div>
               </div>
             </div>
+            {permissions.clients[userRole]?.subscriptionInfo?.view && (
             <div className="text-right">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -246,6 +247,7 @@ export default function ClientView({ params }: { params: { id: string } }) {
                 </div>
               </div>
             </div>
+            )}
           </div>
         </div>
       </div>
