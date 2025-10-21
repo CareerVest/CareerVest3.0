@@ -10,6 +10,7 @@ import { SalesDashboard } from "./dashboards/SalesDashboard";
 import { MarketingDashboard } from "./dashboards/MarketingDashboard";
 import { RecruiterDashboard } from "./dashboards/RecruiterDashboard";
 import { ResumeWriterDashboard } from "./dashboards/ResumeWriterDashboard";
+import { AnnouncementBanner } from "../leaderboard/components/AnnouncementBanner";
 import Spinner from "../../components/ui/spinner";
 
 export default function Dashboard() {
@@ -156,6 +157,9 @@ export default function Dashboard() {
 
       {/* WIP Banner */}
       <WIPBanner />
+
+      {/* Announcement Banner - Only show for admins */}
+      {actualUserRole === "Admin" && <AnnouncementBanner />}
 
       {/* Dashboard Content */}
       {renderDashboard()}

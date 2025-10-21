@@ -92,6 +92,7 @@ export interface AppPermissions {
   jobs?: Record<string, JobsPermissions>;
   accounting?: Record<string, any>;
   supervisorsMenu?: Record<string, any>;
+  leaderboard?: Record<string, any>;
   settings: Record<string, SettingsPermissions>;
 }
 
@@ -599,6 +600,26 @@ const permissions: AppPermissions = {
     },
     default: {
       viewSupervisorsMenu: false,
+    },
+  },
+  leaderboard: {
+    Admin: {
+      viewLeaderboardMenu: true,
+    },
+    Marketing_Manager: {
+      viewLeaderboardMenu: false,
+    },
+    Sales_Executive: {
+      viewLeaderboardMenu: false,
+    },
+    Recruiter: {
+      viewLeaderboardMenu: false,
+    },
+    Resume_Writer: {
+      viewLeaderboardMenu: false,
+    },
+    default: {
+      viewLeaderboardMenu: false,
     },
   },
   settings: {

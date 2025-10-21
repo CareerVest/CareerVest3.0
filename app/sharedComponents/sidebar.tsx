@@ -30,6 +30,7 @@ import {
   GitPullRequest,
   Sparkles,
   Briefcase,
+  Trophy,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -124,6 +125,14 @@ const menuItems = [
     permissionKey: "viewAccountingMenu",
     module: "accounting",
     color: "from-yellow-500 to-amber-500",
+  },
+  {
+    title: "Leaderboard",
+    icon: Trophy,
+    path: "/leaderboard",
+    permissionKey: "viewLeaderboardMenu",
+    module: "leaderboard",
+    color: "from-yellow-400 to-orange-500",
   },
   {
     title: "Settings",
