@@ -26,9 +26,13 @@ export interface PaymentSchedule {
   paymentScheduleID: number;
   clientID: number;
   paymentDate: Date | null;
-  amount: number;
-  isPaid: boolean;
-  paymentType: "Subscription" | "PostPlacement";
+  originalAmount: number; // Total amount originally scheduled
+  paidAmount: number; // Amount paid so far
+  remainingAmount: number; // Outstanding balance
+  dueDate: Date | null; // When payment is due
+  paymentType: "Subscription" | "Placement";
+  paymentStatus: string; // "Pending", "Paid", "Partially_Paid", "Cancelled"
+  assignedTo: string | null;
   subscriptionPlanID: number | null;
   postPlacementPlanID: number | null;
   createdTS: Date | null;

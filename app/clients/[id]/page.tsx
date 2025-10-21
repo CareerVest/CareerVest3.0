@@ -123,41 +123,41 @@ export default function ClientView({ params }: { params: { id: string } }) {
 
   const postPlacementPayments =
     client?.paymentSchedules?.filter(
-      (payment) => payment.paymentType === "PostPlacement"
+      (payment) => payment.paymentType === "Placement"
     ) || [];
 
   // Calculate totals for header (combined)
   const totalDue =
     client?.paymentSchedules?.reduce(
-      (sum, payment) => sum + (payment.amount || 0),
+      (sum, payment) => sum + (payment.originalAmount || 0),
       0
     ) || 0;
 
   const totalPaid =
     client?.paymentSchedules?.reduce(
-      (sum, payment) => sum + (payment.isPaid ? payment.amount || 0 : 0),
+      (sum, payment) => sum + (payment.paidAmount || 0),
       0
     ) || 0;
 
   // Calculate subscription-specific totals
   const subscriptionTotalDue = subscriptionPayments.reduce(
-    (sum, payment) => sum + (payment.amount || 0),
+    (sum, payment) => sum + (payment.originalAmount || 0),
     0
   );
 
   const subscriptionTotalPaid = subscriptionPayments.reduce(
-    (sum, payment) => sum + (payment.isPaid ? payment.amount || 0 : 0),
+    (sum, payment) => sum + (payment.paidAmount || 0),
     0
   );
 
   // Calculate post-placement-specific totals
   const postPlacementTotalDue = postPlacementPayments.reduce(
-    (sum, payment) => sum + (payment.amount || 0),
+    (sum, payment) => sum + (payment.originalAmount || 0),
     0
   );
 
   const postPlacementTotalPaid = postPlacementPayments.reduce(
-    (sum, payment) => sum + (payment.isPaid ? payment.amount || 0 : 0),
+    (sum, payment) => sum + (payment.paidAmount || 0),
     0
   );
 
@@ -183,23 +183,23 @@ export default function ClientView({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="p-6">
-      {/* Modern Header */}
-      <div className="mb-8">
+    <div className="flex flex-col h-screen">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 bg-gray-50 border-b shadow-sm">
         {/* Navigation Bar */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between px-4 py-2 bg-white border-b">
           <Button
             onClick={handleBack}
-            className="bg-[#682A53] hover:bg-[#682A53]/90 text-white"
+            className="bg-[#682A53] hover:bg-[#682A53]/90 text-white h-8 text-sm"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="h-3 w-3 mr-1" />
             Back to Clients
           </Button>
           <div className="flex items-center space-x-2">
             {canEdit && (
               <Button
                 onClick={() => router.push(`/clients/${client.clientID}/edit`)}
-                className="bg-[#682A53] hover:bg-[#682A53]/90 text-white"
+                className="bg-[#682A53] hover:bg-[#682A53]/90 text-white h-8 text-sm"
               >
                 Edit Client
               </Button>
@@ -207,41 +207,39 @@ export default function ClientView({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* Client Info Header */}
-        <div className="bg-white rounded-lg border p-6 shadow-sm">
+        {/* Client Info Header - Compact */}
+        <div className="bg-white px-4 py-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-[#682A53] rounded-full flex items-center justify-center">
-                <User className="h-6 w-6 text-white" />
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-[#682A53] rounded-full flex items-center justify-center">
+                <User className="h-4 w-4 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold text-gray-900">
+                <h1 className="text-lg font-semibold text-gray-900">
                   {client.clientName}
                 </h1>
-                <div className="flex items-center space-x-2 mt-1">
-                  <Badge
-                    variant={
-                      client.clientStatus === "Active" ? "success" : "default"
-                    }
-                    className="text-xs"
-                  >
-                    {client.clientStatus}
-                  </Badge>
-                </div>
+                <Badge
+                  variant={
+                    client.clientStatus === "Active" ? "success" : "default"
+                  }
+                  className="text-xs mt-0.5"
+                >
+                  {client.clientStatus}
+                </Badge>
               </div>
             </div>
             {permissions.clients[userRole]?.subscriptionInfo?.view && (
             <div className="text-right">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-4">
                 <div>
-                  <div className="text-sm text-gray-500">Total Due</div>
-                  <div className="text-lg font-semibold text-[#682A53]">
+                  <div className="text-xs text-gray-500">Total Due</div>
+                  <div className="text-sm font-semibold text-[#682A53]">
                     {formatCurrency(totalDue)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-500">Total Paid</div>
-                  <div className="text-lg font-semibold text-green-600">
+                  <div className="text-xs text-gray-500">Total Paid</div>
+                  <div className="text-sm font-semibold text-green-600">
                     {formatCurrency(totalPaid)}
                   </div>
                 </div>
@@ -252,10 +250,11 @@ export default function ClientView({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* Horizontal Dashboard Layout */}
-      <div className="space-y-6">
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="space-y-4">
         {/* Cards Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
           {/* Card 1: Basic Information */}
           <Card className="lg:col-span-1">
             <CardHeader className="pb-4">
@@ -526,60 +525,83 @@ export default function ClientView({ params }: { params: { id: string } }) {
 
                 {/* Subscription Payment Schedule */}
                 {subscriptionPayments.length > 0 && (
-                  <div className="border-t pt-4">
-                    <div className="mb-3">
-                      <label className="text-sm font-semibold text-gray-700 mb-1 block">
+                  <div className="border-t pt-3">
+                    <div className="mb-2">
+                      <label className="text-xs font-semibold text-gray-700 mb-1 block">
                         Payment Schedule
                       </label>
                       <p className="text-xs text-gray-500">
-                        {subscriptionPayments.length} payment{subscriptionPayments.length > 1 ? 's' : ''} • 
-                        {subscriptionPayments.filter(p => p.isPaid).length} paid, {subscriptionPayments.filter(p => !p.isPaid).length} pending
+                        {subscriptionPayments.length} payment{subscriptionPayments.length > 1 ? 's' : ''} •
+                        {subscriptionPayments.filter(p => p.paymentStatus === "Paid").length} paid, {subscriptionPayments.filter(p => p.paymentStatus === "Partially_Paid").length} partial, {subscriptionPayments.filter(p => p.paymentStatus === "Pending").length} pending
                       </p>
                     </div>
-                    <div className="space-y-4 max-h-40 overflow-y-auto px-3 py-3">
+                    <div className="space-y-2 px-2 py-2">
                       {subscriptionPayments.map((payment, index) => (
                         <div
                           key={payment.paymentScheduleID}
-                          className="relative bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-all duration-200 mt-3 mb-3"
+                          className="relative bg-white border border-gray-200 rounded p-2 shadow-sm hover:shadow transition-all duration-200"
                         >
                           {/* Payment Number Badge */}
-                          <div className="absolute -top-3 -left-3 w-7 h-7 bg-[#682A53] text-white rounded-full flex items-center justify-center text-xs font-semibold shadow-md z-10">
+                          <div className="absolute -top-2 -left-2 w-6 h-6 bg-[#682A53] text-white rounded-full flex items-center justify-center text-xs font-semibold shadow z-10">
                             {index + 1}
                           </div>
-                          
+
                           {/* Payment Status Badge */}
-                          <div className="absolute -top-3 -right-3 z-10">
+                          <div className="absolute -top-2 -right-2 z-10">
                             <Badge
-                              variant={payment.isPaid ? "default" : "secondary"}
-                              className={`text-xs shadow-md ${
-                                payment.isPaid 
-                                  ? "bg-green-500 hover:bg-green-600 text-white" 
+                              variant={payment.paymentStatus === "Paid" ? "default" : "secondary"}
+                              className={`text-xs ${
+                                payment.paymentStatus === "Paid"
+                                  ? "bg-green-500 hover:bg-green-600 text-white"
+                                  : payment.paymentStatus === "Partially_Paid"
+                                  ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
                                   : "bg-orange-100 text-orange-700 hover:bg-orange-200"
                               }`}
                             >
-                              {payment.isPaid ? "Paid" : "Pending"}
+                              {payment.paymentStatus === "Paid" ? "Paid" : payment.paymentStatus === "Partially_Paid" ? "Partial" : "Pending"}
                             </Badge>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-3 mt-2">
+                          <div className="grid grid-cols-2 gap-2 mt-1">
                             <div>
-                              <label className="text-xs font-medium text-gray-500 flex items-center mb-1">
-                                <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
-                                Payment Date
+                              <label className="text-xs font-medium text-gray-500 mb-0.5 block">
+                                Due Date
                               </label>
-                              <span className="text-sm font-medium text-gray-900">
-                                {formatDate(payment.paymentDate)}
+                              <span className="text-xs font-medium text-gray-900">
+                                {formatDate(payment.dueDate || payment.paymentDate)}
                               </span>
                             </div>
                             <div>
-                              <label className="text-xs font-medium text-gray-500 flex items-center mb-1">
-                                <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+                              <label className="text-xs font-medium text-gray-500 mb-0.5 block">
                                 Amount
                               </label>
-                              <span className="text-sm font-semibold text-gray-900">
-                                {formatCurrency(payment.amount)}
+                              <span className="text-xs font-semibold text-gray-900">
+                                {formatCurrency(payment.originalAmount)}
                               </span>
                             </div>
+                            {/* Only show Paid and Remaining for partial/paid payments */}
+                            {payment.paidAmount > 0 && (
+                              <>
+                                <div>
+                                  <label className="text-xs font-medium text-gray-500 mb-0.5 block">
+                                    Paid
+                                  </label>
+                                  <span className="text-xs font-semibold text-green-600">
+                                    {formatCurrency(payment.paidAmount)}
+                                  </span>
+                                </div>
+                                {payment.remainingAmount > 0 && (
+                                  <div>
+                                    <label className="text-xs font-medium text-gray-500 mb-0.5 block">
+                                      Remaining
+                                    </label>
+                                    <span className="text-xs font-semibold text-orange-600">
+                                      {formatCurrency(payment.remainingAmount)}
+                                    </span>
+                                  </div>
+                                )}
+                              </>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -680,63 +702,58 @@ export default function ClientView({ params }: { params: { id: string } }) {
 
                   {/* Post-Placement Payment Schedule */}
                   {postPlacementPayments.length > 0 && (
-                    <div className="border-t pt-4">
-                      <div className="mb-3">
-                        <label className="text-sm font-semibold text-gray-700 mb-1 block">
+                    <div className="border-t pt-3">
+                      <div className="mb-2">
+                        <label className="text-xs font-semibold text-gray-700 mb-1 block">
                           Payment Schedule
                         </label>
                         <p className="text-xs text-gray-500">
-                          {postPlacementPayments.length} payment{postPlacementPayments.length > 1 ? 's' : ''} • 
-                          {postPlacementPayments.filter(p => p.isPaid).length} paid, {postPlacementPayments.filter(p => !p.isPaid).length} pending
+                          {postPlacementPayments.length} payment{postPlacementPayments.length > 1 ? 's' : ''} •
+                          {postPlacementPayments.filter(p => p.paymentStatus === "Paid").length} paid, {postPlacementPayments.filter(p => p.paymentStatus === "Partially_Paid").length} partial, {postPlacementPayments.filter(p => p.paymentStatus === "Pending").length} pending
                         </p>
                       </div>
-                      <div className="space-y-4 max-h-40 overflow-y-auto px-3 py-3">
-                        {postPlacementPayments.map((payment, index) => (
-                          <div
-                            key={payment.paymentScheduleID}
-                            className="relative bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-all duration-200 mt-3 mb-3"
-                          >
-                            {/* Payment Number Badge */}
-                            <div className="absolute -top-3 -left-3 w-7 h-7 bg-[#682A53] text-white rounded-full flex items-center justify-center text-xs font-semibold shadow-md z-10">
-                              {index + 1}
-                            </div>
-                            
-                            {/* Payment Status Badge */}
-                            <div className="absolute -top-3 -right-3 z-10">
-                              <Badge
-                                variant={payment.isPaid ? "default" : "secondary"}
-                                className={`text-xs shadow-md ${
-                                  payment.isPaid 
-                                    ? "bg-green-500 hover:bg-green-600 text-white" 
-                                    : "bg-orange-100 text-orange-700 hover:bg-orange-200"
-                                }`}
-                              >
-                                {payment.isPaid ? "Paid" : "Pending"}
-                              </Badge>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 mt-2">
-                              <div>
-                                <label className="text-xs font-medium text-gray-500 flex items-center mb-1">
-                                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
-                                  Payment Date
-                                </label>
-                                <span className="text-sm font-medium text-gray-900">
-                                  {formatDate(payment.paymentDate)}
-                                </span>
-                              </div>
-                              <div>
-                                <label className="text-xs font-medium text-gray-500 flex items-center mb-1">
-                                  <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                                  Amount
-                                </label>
-                                <span className="text-sm font-semibold text-gray-900">
-                                  {formatCurrency(payment.amount)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-gray-50">
+                              <TableHead className="text-xs font-semibold w-8">#</TableHead>
+                              <TableHead className="text-xs font-semibold">Due Date</TableHead>
+                              <TableHead className="text-xs font-semibold">Amount</TableHead>
+                              <TableHead className="text-xs font-semibold">Paid</TableHead>
+                              <TableHead className="text-xs font-semibold">Remaining</TableHead>
+                              <TableHead className="text-xs font-semibold">Status</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {postPlacementPayments.map((payment, index) => (
+                              <TableRow key={payment.paymentScheduleID} className="hover:bg-gray-50">
+                                <TableCell className="text-xs font-medium">{index + 1}</TableCell>
+                                <TableCell className="text-xs">{formatDate(payment.dueDate || payment.paymentDate)}</TableCell>
+                                <TableCell className="text-xs font-semibold">{formatCurrency(payment.originalAmount)}</TableCell>
+                                <TableCell className="text-xs font-semibold text-green-600">
+                                  {payment.paidAmount > 0 ? formatCurrency(payment.paidAmount) : '-'}
+                                </TableCell>
+                                <TableCell className="text-xs font-semibold text-orange-600">
+                                  {payment.remainingAmount > 0 ? formatCurrency(payment.remainingAmount) : '-'}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant={payment.paymentStatus === "Paid" ? "default" : "secondary"}
+                                    className={`text-xs ${
+                                      payment.paymentStatus === "Paid"
+                                        ? "bg-green-500 hover:bg-green-600 text-white"
+                                        : payment.paymentStatus === "Partially_Paid"
+                                        ? "bg-blue-100 text-blue-700"
+                                        : "bg-orange-100 text-orange-700"
+                                    }`}
+                                  >
+                                    {payment.paymentStatus === "Paid" ? "Paid" : payment.paymentStatus === "Partially_Paid" ? "Partial" : "Pending"}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
                       </div>
                     </div>
                   )}
@@ -746,6 +763,7 @@ export default function ClientView({ params }: { params: { id: string } }) {
           ) : (
             <div className="lg:col-span-1"></div>
           )}
+        </div>
         </div>
       </div>
     </div>

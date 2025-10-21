@@ -152,7 +152,7 @@ export default function EditClientForm({
       ) || [];
     const postPlacementPayments =
       client.paymentSchedules?.filter(
-        (p) => p.paymentType === "PostPlacement"
+        (p) => p.paymentType === "Placement"
       ) || [];
 
     setSubscriptionPaymentSchedule(subscriptionPayments);
@@ -349,8 +349,13 @@ export default function EditClientForm({
 
       payments.push({
         paymentDate: parseDateForState(paymentDate.toISOString().split("T")[0]),
-        amount: planDetails.monthlyAmount,
+        originalAmount: planDetails.monthlyAmount,
+        paidAmount: 0,
+        remainingAmount: planDetails.monthlyAmount,
+        dueDate: parseDateForState(paymentDate.toISOString().split("T")[0]),
         paymentType: "Subscription",
+        paymentStatus: "Pending",
+        assignedTo: null,
         paymentScheduleID: 0,
         clientID: clientData.clientID,
         subscriptionPlanID: clientData.subscriptionPlanID,
@@ -359,7 +364,6 @@ export default function EditClientForm({
         createdBy: null,
         updatedTS: null,
         updatedBy: null,
-        isPaid: false,
       });
     }
 
@@ -409,8 +413,13 @@ export default function EditClientForm({
 
       payments.push({
         paymentDate: parseDateForState(paymentDate.toISOString().split("T")[0]),
-        amount: monthlyAmount,
-        paymentType: "PostPlacement",
+        originalAmount: monthlyAmount,
+        paidAmount: 0,
+        remainingAmount: monthlyAmount,
+        dueDate: parseDateForState(paymentDate.toISOString().split("T")[0]),
+        paymentType: "Placement",
+        paymentStatus: "Pending",
+        assignedTo: null,
         paymentScheduleID: 0,
         clientID: clientData.clientID,
         subscriptionPlanID: null,
@@ -419,7 +428,6 @@ export default function EditClientForm({
         createdBy: null,
         updatedTS: null,
         updatedBy: null,
-        isPaid: false,
       });
     }
 
@@ -447,8 +455,13 @@ export default function EditClientForm({
   const addPaymentRow = (type: "subscription" | "postPlacement") => {
     const newPayment: PaymentSchedule = {
       paymentDate: null,
-      amount: 0,
-      paymentType: type === "subscription" ? "Subscription" : "PostPlacement",
+      originalAmount: 0,
+      paidAmount: 0,
+      remainingAmount: 0,
+      dueDate: null,
+      paymentType: type === "subscription" ? "Subscription" : "Placement",
+      paymentStatus: "Pending",
+      assignedTo: null,
       paymentScheduleID: 0,
       clientID: client.clientID,
       subscriptionPlanID: null,
@@ -457,7 +470,6 @@ export default function EditClientForm({
       createdBy: null,
       updatedTS: null,
       updatedBy: null,
-      isPaid: false,
     };
 
     if (type === "subscription") {
@@ -512,9 +524,9 @@ export default function EditClientForm({
           ? {
               ...payment,
               [field]:
-                field === "paymentDate"
+                field === "paymentDate" || field === "dueDate"
                   ? parseDateForState(value as string)
-                  : field === "amount"
+                  : field === "originalAmount" || field === "paidAmount" || field === "remainingAmount"
                   ? Number(value)
                   : value,
             }
@@ -547,11 +559,11 @@ export default function EditClientForm({
           newErrors[`subscriptionPayment_${index}_date`] =
             "Payment date is required";
         }
-        if (!payment.amount || payment.amount <= 0) {
+        if (!payment.originalAmount || payment.originalAmount <= 0) {
           newErrors[`subscriptionPayment_${index}_amount`] =
             "Payment amount must be greater than 0";
         }
-        if (payment.amount && payment.amount > 1000000) {
+        if (payment.originalAmount && payment.originalAmount > 1000000) {
           newErrors[`subscriptionPayment_${index}_amount`] =
             "Payment amount cannot exceed $1,000,000";
         }
@@ -588,11 +600,11 @@ export default function EditClientForm({
           newErrors[`postPlacementPayment_${index}_date`] =
             "Payment date is required";
         }
-        if (!payment.amount || payment.amount <= 0) {
+        if (!payment.originalAmount || payment.originalAmount <= 0) {
           newErrors[`postPlacementPayment_${index}_amount`] =
             "Payment amount must be greater than 0";
         }
-        if (payment.amount && payment.amount > 1000000) {
+        if (payment.originalAmount && payment.originalAmount > 1000000) {
           newErrors[`postPlacementPayment_${index}_amount`] =
             "Payment amount cannot exceed $1,000,000";
         }
@@ -703,7 +715,7 @@ export default function EditClientForm({
           paymentScheduleID: ps.paymentScheduleID || 0,
           clientID: client.clientID,
           subscriptionPlanID: ps.paymentType === "Subscription" ? (clientData.subscriptionPlanID || client.subscriptionPlanID) : null,
-          postPlacementPlanID: ps.paymentType === "PostPlacement" ? (clientData.postPlacementPlanID || client.postPlacementPlanID) : null,
+          postPlacementPlanID: ps.paymentType === "Placement" ? (clientData.postPlacementPlanID || client.postPlacementPlanID) : null,
           createdTS: ps.createdTS || null,
           createdBy: ps.createdBy || null,
           updatedTS: ps.updatedTS || null,
@@ -755,66 +767,66 @@ export default function EditClientForm({
   // Calculate totals for header (combined)
   const totalDue =
     client?.paymentSchedules?.reduce(
-      (sum, payment) => sum + (payment.amount || 0),
+      (sum, payment) => sum + (payment.originalAmount || 0),
       0
     ) || 0;
 
   const totalPaid =
     client?.paymentSchedules?.reduce(
-      (sum, payment) => sum + (payment.isPaid ? payment.amount || 0 : 0),
+      (sum, payment) => sum + (payment.paidAmount || 0),
       0
     ) || 0;
 
   // Calculate subscription-specific totals
   const subscriptionTotalDue = subscriptionPaymentSchedule.reduce(
-    (sum, payment) => sum + (payment.amount || 0),
+    (sum, payment) => sum + (payment.originalAmount || 0),
     0
   );
 
   const subscriptionTotalPaid = subscriptionPaymentSchedule.reduce(
-    (sum, payment) => sum + (payment.isPaid ? payment.amount || 0 : 0),
+    (sum, payment) => sum + (payment.paidAmount || 0),
     0
   );
 
   // Calculate post-placement-specific totals
   const postPlacementTotalDue = postPlacementPaymentSchedule.reduce(
-    (sum, payment) => sum + (payment.amount || 0),
+    (sum, payment) => sum + (payment.originalAmount || 0),
     0
   );
 
   const postPlacementTotalPaid = postPlacementPaymentSchedule.reduce(
-    (sum, payment) => sum + (payment.isPaid ? payment.amount || 0 : 0),
+    (sum, payment) => sum + (payment.paidAmount || 0),
     0
   );
 
   return (
-    <div className="p-4 md:p-6 w-full max-w-full overflow-x-hidden">
-      {/* Modern Header */}
-      <div className="mb-8">
+    <div className="flex flex-col h-screen">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 bg-gray-50 border-b shadow-sm">
         {/* Navigation Bar */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between px-4 py-2 bg-white border-b">
           <Button
             onClick={handleBack}
-            className="bg-[#682A53] hover:bg-[#682A53]/90 text-white"
+            className="bg-[#682A53] hover:bg-[#682A53]/90 text-white h-8 text-sm"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="h-3 w-3 mr-1" />
             Back to Client Details
           </Button>
         </div>
 
-        {/* Client Info Header */}
-        <div className="bg-white rounded-lg border p-4 md:p-6 shadow-sm">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-[#682A53] rounded-full flex items-center justify-center flex-shrink-0">
-                <User className="h-6 w-6 text-white" />
+        {/* Client Info Header - Compact */}
+        <div className="bg-white px-4 py-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-[#682A53] rounded-full flex items-center justify-center">
+                <Edit className="h-4 w-4 text-white" />
               </div>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-xl md:text-2xl font-semibold text-gray-900">
+              <div>
+                <h1 className="text-lg font-semibold text-gray-900">
                   Edit Client
                 </h1>
-                <div className="flex items-center space-x-2 mt-1 flex-wrap">
-                  <span className="text-sm text-gray-600 truncate">
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-gray-600">
                     {client.clientName}
                   </span>
                   <Badge
@@ -829,17 +841,17 @@ export default function EditClientForm({
               </div>
             </div>
             {permissions.clients[userRole]?.subscriptionInfo?.view && (
-            <div className="w-full md:w-auto">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="text-right">
+              <div className="flex items-center gap-4">
                 <div>
-                  <div className="text-sm text-gray-500">Total Due</div>
-                  <div className="text-base md:text-lg font-semibold text-[#682A53]">
+                  <div className="text-xs text-gray-500">Total Due</div>
+                  <div className="text-sm font-semibold text-[#682A53]">
                     {formatCurrency(totalDue)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-500">Total Paid</div>
-                  <div className="text-base md:text-lg font-semibold text-green-600">
+                  <div className="text-xs text-gray-500">Total Paid</div>
+                  <div className="text-sm font-semibold text-green-600">
                     {formatCurrency(totalPaid)}
                   </div>
                 </div>
@@ -850,11 +862,13 @@ export default function EditClientForm({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="client-form">
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto">
+      <form onSubmit={handleSubmit} className="client-form p-4">
         {/* Horizontal Dashboard Layout */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Cards Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
             {/* Card 1: Basic Information */}
             <Card>
               <CardHeader className="pb-4">
@@ -1361,7 +1375,7 @@ export default function EditClientForm({
                             id="totalSubscriptionAmount"
                             type="number"
                             value={subscriptionPaymentSchedule.reduce(
-                              (sum, payment) => sum + (payment.amount || 0),
+                              (sum, payment) => sum + (payment.originalAmount || 0),
                               0
                             )}
                             disabled={true}
@@ -1533,7 +1547,7 @@ export default function EditClientForm({
                             </div>
 
                             {/* Delete Button */}
-                            {canEdit && (
+                            {canEdit && payment.paidAmount === 0 && (
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -1566,7 +1580,7 @@ export default function EditClientForm({
                                       "subscription"
                                     )
                                   }
-                                  disabled={!canEdit}
+                                  disabled={!canEdit || payment.paidAmount > 0}
                                   className="h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
                                 />
                                 {errors[
@@ -1595,7 +1609,7 @@ export default function EditClientForm({
                                     step="0.01"
                                     min="0.01"
                                     placeholder="0.00"
-                                    value={payment.amount || ""}
+                                    value={payment.originalAmount || ""}
                                     onChange={(e) => {
                                       const value = parseFloat(e.target.value);
                                       if (
@@ -1606,12 +1620,12 @@ export default function EditClientForm({
                                       }
                                       updatePaymentSchedule(
                                         index,
-                                        "amount",
+                                        "originalAmount",
                                         e.target.value,
                                         "subscription"
                                       );
                                     }}
-                                    disabled={!canEdit}
+                                    disabled={!canEdit || payment.paidAmount > 0}
                                     className="h-11 pl-8 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
                                   />
                                   {errors[
@@ -1803,7 +1817,7 @@ export default function EditClientForm({
                             id="totalPostPlacementAmount"
                             type="number"
                             value={postPlacementPaymentSchedule.reduce(
-                              (sum, payment) => sum + (payment.amount || 0),
+                              (sum, payment) => sum + (payment.originalAmount || 0),
                               0
                             )}
                             disabled={true}
@@ -1977,7 +1991,7 @@ export default function EditClientForm({
                                 </div>
 
                                 {/* Delete Button */}
-                                {canEdit && (
+                                {canEdit && payment.paidAmount === 0 && (
                                   <Button
                                     type="button"
                                     variant="ghost"
@@ -2010,7 +2024,7 @@ export default function EditClientForm({
                                           "postPlacement"
                                         )
                                       }
-                                      disabled={!canEdit}
+                                      disabled={!canEdit || payment.paidAmount > 0}
                                       className="h-11 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
                                     />
                                     {errors[
@@ -2039,7 +2053,7 @@ export default function EditClientForm({
                                         step="0.01"
                                         min="0.01"
                                         placeholder="0.00"
-                                        value={payment.amount || ""}
+                                        value={payment.originalAmount || ""}
                                         onChange={(e) => {
                                           const value = parseFloat(
                                             e.target.value
@@ -2052,12 +2066,12 @@ export default function EditClientForm({
                                           }
                                           updatePaymentSchedule(
                                             index,
-                                            "amount",
+                                            "originalAmount",
                                             e.target.value,
                                             "postPlacement"
                                           );
                                         }}
-                                        disabled={!canEdit}
+                                        disabled={!canEdit || payment.paidAmount > 0}
                                         className="h-11 pl-8 border-gray-200 focus:border-[#682A53] focus:ring-[#682A53]/20"
                                       />
                                       {errors[
@@ -2087,7 +2101,7 @@ export default function EditClientForm({
           </div>
 
           {/* Submit Button */}
-          <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 mt-8">
+          <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 mt-8 pb-4">
             <Button
               type="button"
               variant="outline"
@@ -2107,6 +2121,7 @@ export default function EditClientForm({
           </div>
         </div>
       </form>
+      </div>
     </div>
   );
 }

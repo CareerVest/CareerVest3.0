@@ -123,15 +123,15 @@ export function SmartInsights({
 
   if (insights.length === 0 && totalOutstanding === 0) {
     return (
-      <div className="p-6 text-center text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
-        <CheckCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-        <p className="text-sm">All caught up! No insights at this time.</p>
+      <div className="p-4 text-center text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
+        <CheckCircle className="h-6 w-6 mx-auto mb-1 text-gray-400" />
+        <p className="text-xs">All caught up! No insights at this time.</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
       {/* Insights Boxes */}
       {displayInsights.map((insight) => {
         const config = getInsightConfig(insight.type);
@@ -140,17 +140,17 @@ export function SmartInsights({
         return (
           <div
             key={insight.id}
-            className={`flex flex-col p-4 rounded-lg border ${config.bgColor} ${config.borderColor} transition-all duration-200 hover:shadow-md`}
+            className={`flex flex-col p-2.5 rounded-md border ${config.bgColor} ${config.borderColor} transition-all duration-200 hover:shadow`}
           >
             {/* Icon and Title */}
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-1.5 mb-1.5">
               <div
-                className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${config.iconBg}`}
+                className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-md ${config.iconBg}`}
               >
-                <Icon className={`w-4 h-4 ${config.iconColor}`} />
+                <Icon className={`w-3 h-3 ${config.iconColor}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className={`text-sm font-semibold ${config.titleColor} leading-tight`}>
+                <h4 className={`text-xs font-semibold ${config.titleColor} leading-tight`}>
                   {insight.title}
                 </h4>
               </div>
@@ -158,7 +158,7 @@ export function SmartInsights({
 
             {/* Description */}
             {insight.description && (
-              <p className={`text-xs ${config.descColor} mb-2`}>
+              <p className={`text-xs ${config.descColor} mb-1.5`}>
                 {insight.description}
               </p>
             )}
@@ -169,7 +169,7 @@ export function SmartInsights({
                 onClick={insight.action.onClick}
                 size="sm"
                 variant="ghost"
-                className={`w-full justify-center ${config.buttonColor} hover:bg-white/50 h-8`}
+                className={`w-full justify-center ${config.buttonColor} hover:bg-white/50 h-7 text-xs`}
               >
                 {insight.action.label}
                 <ArrowRight className="ml-1 h-3 w-3" />
@@ -181,43 +181,43 @@ export function SmartInsights({
 
       {/* Outstanding Balances Box */}
       {totalOutstanding > 0 && (
-        <div className="flex flex-col p-4 rounded-lg border bg-purple-50 border-purple-200 transition-all duration-200 hover:shadow-md">
+        <div className="flex flex-col p-2.5 rounded-md border bg-purple-50 border-purple-200 transition-all duration-200 hover:shadow">
           {/* Icon and Title */}
-          <div className="flex items-center gap-2 mb-2">
-            <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-purple-100">
-              <DollarSign className="w-4 h-4 text-purple-600" />
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-md bg-purple-100">
+              <DollarSign className="w-3 h-3 text-purple-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-semibold text-purple-900 leading-tight">
+              <h4 className="text-xs font-semibold text-purple-900 leading-tight">
                 Outstanding Balances
               </h4>
             </div>
           </div>
 
           {/* Outstanding Details */}
-          <div className="space-y-1 mb-2">
+          <div className="space-y-0.5 mb-1.5">
             <div className="flex justify-between items-center">
               <span className="text-xs text-purple-700">Total:</span>
-              <span className="text-sm font-bold text-purple-900">
+              <span className="text-xs font-bold text-purple-900">
                 {formatCurrency(totalOutstanding)}
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-xs text-purple-700">Payments:</span>
-              <span className="text-sm font-medium text-purple-900">
+              <span className="text-xs font-medium text-purple-900">
                 {outstandingPayments.length}
               </span>
             </div>
             {overdueOutstanding > 0 && (
               <div className="flex justify-between items-center">
                 <span className="text-xs text-red-700">Overdue:</span>
-                <span className="text-sm font-medium text-red-700">
+                <span className="text-xs font-medium text-red-700">
                   {formatCurrency(overdueOutstanding)}
                 </span>
               </div>
             )}
             {clientSummaries.length > 0 && (
-              <div className="pt-1 border-t border-purple-200 mt-1">
+              <div className="pt-0.5 border-t border-purple-200 mt-0.5">
                 <p className="text-xs text-purple-700 mb-0.5">Top clients:</p>
                 <div className="space-y-0.5">
                   {clientSummaries.slice(0, 2).map((client) => (
@@ -241,7 +241,7 @@ export function SmartInsights({
               onClick={onViewOutstanding}
               size="sm"
               variant="ghost"
-              className="w-full justify-center text-purple-600 hover:text-purple-800 hover:bg-white/50 h-8"
+              className="w-full justify-center text-purple-600 hover:text-purple-800 hover:bg-white/50 h-7 text-xs"
             >
               View Details
               <ArrowRight className="ml-1 h-3 w-3" />

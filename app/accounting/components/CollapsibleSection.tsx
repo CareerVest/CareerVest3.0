@@ -1,4 +1,4 @@
-import { useState, ReactNode } from "react";
+import { useState, ReactNode, useEffect } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 
@@ -6,6 +6,7 @@ interface CollapsibleSectionProps {
   title: string;
   children: ReactNode;
   defaultExpanded?: boolean;
+  expanded?: boolean; // Allow external control
   onToggle?: (isExpanded: boolean) => void;
 }
 
@@ -13,9 +14,17 @@ export function CollapsibleSection({
   title,
   children,
   defaultExpanded = true,
+  expanded,
   onToggle,
 }: CollapsibleSectionProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
+  // Allow external control of expanded state
+  useEffect(() => {
+    if (expanded !== undefined) {
+      setIsExpanded(expanded);
+    }
+  }, [expanded]);
 
   const handleToggle = () => {
     const newState = !isExpanded;

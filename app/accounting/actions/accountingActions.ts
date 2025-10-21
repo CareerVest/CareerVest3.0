@@ -180,3 +180,20 @@ export async function getClientCreditBalance(clientId: number): Promise<number> 
     );
   }
 }
+
+export async function getClientPayments(clientId: number): Promise<PaymentDto[]> {
+  try {
+    const response = await axiosInstance.get(`/api/v1/accounting/clients/${clientId}/payments`);
+    console.log("🔹 Raw Client Payments API Response:", response.data);
+    const payments = response.data?.$values || response.data;
+    console.log("✅ Extracted Client Payments Array:", payments);
+    return payments;
+  } catch (error: any) {
+    console.error("Error fetching client payments:", error);
+    throw new Error(
+      `Failed to fetch client payments: ${
+        error.response?.data?.message || error.message
+      }`
+    );
+  }
+}

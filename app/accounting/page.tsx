@@ -24,9 +24,8 @@ export default function AccountingPage() {
       }
 
       try {
-        // Check if user has accounting permissions
-        const hasAccountingAccess =
-          roles.includes("Admin") || roles.includes("Accounting");
+        // Check if user has accounting permissions (Admin only)
+        const hasAccountingAccess = roles.includes("Admin");
         if (!hasAccountingAccess) {
           setError(
             "You don't have permission to access the accounting module."
@@ -64,9 +63,5 @@ export default function AccountingPage() {
     );
   }
 
-  return (
-    <div className="p-6">
-      <NewAccountingHub />
-    </div>
-  );
+  return <NewAccountingHub />;
 }

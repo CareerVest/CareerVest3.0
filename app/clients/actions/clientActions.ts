@@ -102,9 +102,13 @@ export async function getClient(id: number): Promise<ClientDetail | null> {
         paymentScheduleID: ps.paymentScheduleID,
         clientID: ps.clientID,
         paymentDate: parseDate(ps.paymentDate),
-        amount: ps.originalAmount || ps.amount || 0, // Backend uses 'originalAmount', fallback to 'amount'
-        isPaid: ps.paymentStatus === "Paid" || ps.isPaid === true, // Backend uses 'paymentStatus', fallback to 'isPaid'
+        originalAmount: ps.originalAmount || 0,
+        paidAmount: ps.paidAmount || 0,
+        remainingAmount: ps.remainingAmount || 0,
+        dueDate: parseDate(ps.dueDate),
         paymentType: ps.paymentType,
+        paymentStatus: ps.paymentStatus || "Pending",
+        assignedTo: ps.assignedTo || null,
         subscriptionPlanID: ps.subscriptionPlanID,
         postPlacementPlanID: ps.postPlacementPlanID,
         createdTS: parseDate(ps.createdTS),

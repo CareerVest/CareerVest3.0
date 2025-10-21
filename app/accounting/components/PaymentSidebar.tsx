@@ -14,8 +14,10 @@ import {
 } from "../../../components/ui/select";
 import { Payment } from "./ModernPaymentTable";
 import { toast } from "sonner";
+import { getClientPayments } from "../actions/accountingActions";
+import Spinner from "../../../components/ui/spinner";
 
-type SidebarMode = "view" | "edit" | "markPaid" | "recordPayment";
+type SidebarMode = "view" | "edit" | "markPaid" | "recordPayment" | "viewAllClientPayments";
 
 interface PaymentSidebarProps {
   payment: Payment | null;
@@ -42,6 +44,8 @@ export function PaymentSidebar({
   const [comment, setComment] = useState("");
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [paymentDate, setPaymentDate] = useState<string>("");
+  const [allClientPayments, setAllClientPayments] = useState<Payment[]>([]);
+  const [loadingAllPayments, setLoadingAllPayments] = useState(false);
 
   useEffect(() => {
     if (payment) {
@@ -51,6 +55,50 @@ export function PaymentSidebar({
         setPaymentAmount(payment.remainingAmount.toString());
         setPaymentDate(new Date().toISOString().split('T')[0]);
         setComment("");
+      }
+      // Fetch all client payments for viewAllClientPayments mode
+      if (mode === "viewAllClientPayments") {
+        const fetchAllPayments = async () => {
+          setLoadingAllPayments(true);
+          try {
+            const paymentsDto = await getClientPayments(Number(payment.clientId));
+            // Map PaymentDto to Payment
+            const mappedPayments: Payment[] = paymentsDto.map((p: any) => {
+              const transactions = (p.transactions as any)?.$values || p.transactions || [];
+              return {
+                id: p.id.toString(),
+                clientId: p.clientId.toString(),
+                clientName: p.clientName,
+                clientEmail: p.clientEmail,
+                originalAmount: p.originalAmount,
+                paidAmount: p.paidAmount,
+                remainingAmount: p.remainingAmount,
+                status: p.status,
+                dueDate: p.dueDate || "",
+                date: p.date,
+                type: p.type,
+                assignedTo: p.assignedTo || undefined,
+                transactions: Array.isArray(transactions) ? transactions.map((t: any) => ({
+                  id: t.id,
+                  paymentId: t.paymentId.toString(),
+                  amount: t.amount,
+                  paidDate: t.paidDate,
+                  comment: t.comment || "",
+                  recordedBy: t.recordedBy,
+                  recordedAt: t.recordedAt,
+                  type: t.type,
+                })) : [],
+              };
+            });
+            setAllClientPayments(mappedPayments);
+          } catch (error) {
+            console.error("Error fetching all client payments:", error);
+            toast.error("Failed to load all client payments");
+          } finally {
+            setLoadingAllPayments(false);
+          }
+        };
+        fetchAllPayments();
       }
     }
   }, [payment, mode]);
@@ -158,6 +206,8 @@ export function PaymentSidebar({
         return "Mark as Paid";
       case "recordPayment":
         return "Record Payment";
+      case "viewAllClientPayments":
+        return "All Client Payments";
     }
   };
 
@@ -207,51 +257,51 @@ export function PaymentSidebar({
 
       {/* Side Panel - slides from right */}
       <div
-        className="relative ml-auto w-full max-w-2xl h-full bg-white shadow-2xl z-50 flex flex-col"
+        className="relative ml-auto w-full max-w-xl h-full bg-white shadow-2xl z-50 flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header - More prominent */}
-        <div className="flex-shrink-0 flex items-center justify-between px-6 py-5 border-b-2 border-gray-200 bg-white shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-1 bg-[#682A53] rounded-full"></div>
-            <h2 className="text-xl font-semibold text-[#682A53]">{getTitle()}</h2>
+        {/* Header - Compact */}
+        <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-1 bg-[#682A53] rounded-full"></div>
+            <h2 className="text-base font-semibold text-[#682A53]">{getTitle()}</h2>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="h-9 w-9 p-0 hover:bg-gray-100 rounded-full"
+            className="h-7 w-7 p-0 hover:bg-gray-100 rounded-full"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </Button>
         </div>
 
-        {/* Content - Better scroll behavior */}
-        <div className="flex-1 p-6 overflow-y-auto">
+        {/* Content - Compact scroll */}
+        <div className="flex-1 p-4 overflow-y-auto">
           {mode === "view" && (
-            <div className="space-y-6">
+            <div className="space-y-3">
               {/* Client Information */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+              <div className="space-y-2">
+                <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
                   Client Information
                 </h3>
-                <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                <div className="space-y-2 p-3 bg-gray-50 rounded-md">
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Client Name</p>
-                    <p className="text-base font-medium text-gray-900">
+                    <p className="text-xs text-gray-500 mb-0.5">Client Name</p>
+                    <p className="text-sm font-medium text-gray-900">
                       {formData.clientName}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Email</p>
-                    <p className="text-base font-medium text-gray-900">
+                    <p className="text-xs text-gray-500 mb-0.5">Email</p>
+                    <p className="text-sm font-medium text-gray-900">
                       {formData.clientEmail}
                     </p>
                   </div>
                   {formData.assignedTo && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Assigned To</p>
-                      <p className="text-base font-medium text-gray-900">
+                      <p className="text-xs text-gray-500 mb-0.5">Assigned To</p>
+                      <p className="text-sm font-medium text-gray-900">
                         {formData.assignedTo}
                       </p>
                     </div>
@@ -260,51 +310,51 @@ export function PaymentSidebar({
               </div>
 
               {/* Payment Information */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+              <div className="space-y-2">
+                <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
                   Payment Information
                 </h3>
-                <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                <div className="space-y-2 p-3 bg-gray-50 rounded-md">
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Original Amount</p>
-                    <p className="text-2xl font-bold font-mono text-gray-900">
+                    <p className="text-xs text-gray-500 mb-0.5">Original Amount</p>
+                    <p className="text-lg font-bold font-mono text-gray-900">
                       {formatCurrency(formData.originalAmount)}
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Paid</p>
+                      <p className="text-xs text-gray-500 mb-0.5">Paid</p>
                       <p className="text-lg font-bold font-mono text-green-600">
                         {formatCurrency(formData.paidAmount)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Remaining</p>
+                      <p className="text-xs text-gray-500 mb-0.5">Remaining</p>
                       <p className="text-lg font-bold font-mono text-amber-600">
                         {formatCurrency(formData.remainingAmount)}
                       </p>
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Status</p>
+                    <p className="text-xs text-gray-500 mb-0.5">Status</p>
                     <div>{getStatusBadge(formData.status)}</div>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Payment Type</p>
-                    <p className="text-base font-medium text-gray-900 capitalize">
+                    <p className="text-xs text-gray-500 mb-0.5">Payment Type</p>
+                    <p className="text-sm font-medium text-gray-900 capitalize">
                       {formData.type}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Date</p>
-                    <p className="text-base font-medium text-gray-900">
+                    <p className="text-xs text-gray-500 mb-0.5">Date</p>
+                    <p className="text-sm font-medium text-gray-900">
                       {formatDate(formData.date)}
                     </p>
                   </div>
                   {formData.dueDate && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Due Date</p>
-                      <p className="text-base font-medium text-gray-900">
+                      <p className="text-xs text-gray-500 mb-0.5">Due Date</p>
+                      <p className="text-sm font-medium text-gray-900">
                         {formatDate(formData.dueDate)}
                       </p>
                     </div>
@@ -315,14 +365,14 @@ export function PaymentSidebar({
               {/* Payment History */}
               {formData.transactions && formData.transactions.length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                  <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
                     Payment History ({formData.transactions.length} transaction{formData.transactions.length !== 1 ? 's' : ''})
                   </h3>
                   <div className="space-y-2">
                     {formData.transactions.map((transaction) => (
                       <div
                         key={transaction.id}
-                        className="p-4 bg-white rounded-lg border border-gray-200"
+                        className="p-4 bg-white rounded-md border border-gray-200"
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
@@ -355,7 +405,7 @@ export function PaymentSidebar({
                   </div>
 
                   {formData.remainingAmount > 0 && (
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
                       <p className="text-sm font-medium text-amber-800">
                         ⏳ {formatCurrency(formData.remainingAmount)} still outstanding
                       </p>
@@ -366,11 +416,11 @@ export function PaymentSidebar({
 
               {/* Reference */}
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
                   Reference
                 </h3>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Payment ID</p>
+                <div className="p-3 bg-gray-50 rounded-md">
+                  <p className="text-xs text-gray-500 mb-0.5">Payment ID</p>
                   <p className="text-base font-mono text-gray-900">
                     #{formData.id}
                   </p>
@@ -380,13 +430,13 @@ export function PaymentSidebar({
           )}
 
           {mode === "edit" && (
-            <div className="space-y-6">
+            <div className="space-y-3">
               {/* Client Information */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+              <div className="space-y-2">
+                <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
                   Client Information
                 </h3>
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <div className="space-y-2">
                     <Label htmlFor="clientName">
                       Client Name <span className="text-red-500">*</span>
@@ -429,11 +479,11 @@ export function PaymentSidebar({
               </div>
 
               {/* Payment Details */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+              <div className="space-y-2">
+                <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
                   Payment Details
                 </h3>
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <div className="space-y-2">
                     <Label htmlFor="originalAmount">
                       Amount <span className="text-red-500">*</span>
@@ -514,29 +564,29 @@ export function PaymentSidebar({
           )}
 
           {mode === "recordPayment" && (
-            <div className="space-y-6">
+            <div className="space-y-3">
               {/* Client Information */}
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
                   Client Information
                 </h3>
-                <div className="p-4 bg-gray-50 rounded-lg space-y-2">
+                <div className="p-3 bg-gray-50 rounded-md space-y-2">
                   <div>
                     <p className="text-xs text-gray-500">Client</p>
-                    <p className="text-base font-medium text-gray-900">{formData.clientName}</p>
+                    <p className="text-sm font-medium text-gray-900">{formData.clientName}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Email</p>
-                    <p className="text-base font-medium text-gray-900">{formData.clientEmail}</p>
+                    <p className="text-sm font-medium text-gray-900">{formData.clientEmail}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Payment Type</p>
-                    <p className="text-base font-medium text-gray-900 capitalize">{formData.type}</p>
+                    <p className="text-sm font-medium text-gray-900 capitalize">{formData.type}</p>
                   </div>
                   {formData.dueDate && (
                     <div>
                       <p className="text-xs text-gray-500">Due Date</p>
-                      <p className="text-base font-medium text-gray-900">{formatDate(formData.dueDate)}</p>
+                      <p className="text-sm font-medium text-gray-900">{formatDate(formData.dueDate)}</p>
                     </div>
                   )}
                 </div>
@@ -544,10 +594,10 @@ export function PaymentSidebar({
 
               {/* Payment Summary */}
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
                   Payment Summary
                 </h3>
-                <div className="p-4 bg-purple-50 rounded-lg border border-purple-200 space-y-2">
+                <div className="p-4 bg-purple-50 rounded-md border border-purple-200 space-y-2">
                   <div className="flex justify-between">
                     <p className="text-sm text-gray-600">Original Amount:</p>
                     <p className="text-sm font-bold font-mono text-gray-900">{formatCurrency(formData.originalAmount)}</p>
@@ -613,7 +663,7 @@ export function PaymentSidebar({
 
               {/* Info message */}
               {paymentAmount && parseFloat(paymentAmount) > formData.remainingAmount && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
                   <p className="text-sm text-blue-800">
                     ℹ️ Payment amount exceeds remaining balance. ${(parseFloat(paymentAmount) - formData.remainingAmount).toFixed(2)} will be added to client's credit balance.
                   </p>
@@ -621,7 +671,7 @@ export function PaymentSidebar({
               )}
 
               {clientCreditBalance > 0 && (
-                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                   <p className="text-sm text-green-800">
                     💰 Client has a credit balance of {formatCurrency(clientCreditBalance)}
                   </p>
@@ -631,9 +681,9 @@ export function PaymentSidebar({
           )}
 
           {mode === "markPaid" && (
-            <div className="space-y-6">
+            <div className="space-y-3">
               {/* Payment Summary */}
-              <div className="p-6 bg-gradient-to-br from-green-50 to-green-100/50 rounded-lg border border-green-200">
+              <div className="p-4 bg-gradient-to-br from-green-50 to-green-100/50 rounded-md border border-green-200">
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-gray-600">Client</p>
@@ -643,13 +693,13 @@ export function PaymentSidebar({
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Amount</p>
-                    <p className="text-3xl font-bold font-mono text-[#682A53]">
+                    <p className="text-xl font-bold font-mono text-[#682A53]">
                       {formatCurrency(formData.originalAmount)}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Payment Type</p>
-                    <p className="text-base font-medium text-gray-900 capitalize">
+                    <p className="text-sm font-medium text-gray-900 capitalize">
                       {formData.type}
                     </p>
                   </div>
@@ -675,13 +725,156 @@ export function PaymentSidebar({
               </div>
             </div>
           )}
+
+          {mode === "viewAllClientPayments" && (
+            <div className="space-y-3">
+              {loadingAllPayments ? (
+                <div className="flex items-center justify-center py-12">
+                  <Spinner variant="ripple" size="md" />
+                </div>
+              ) : (
+                <>
+                  {/* Client Overview */}
+                  <div className="p-3 bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-md border border-purple-200">
+                    <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
+                      Client Information
+                    </h3>
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-xs text-gray-600">Name</p>
+                        <p className="text-sm font-semibold text-gray-900">{formData.clientName}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-600">Email</p>
+                        <p className="text-sm text-gray-900">{formData.clientEmail}</p>
+                      </div>
+                      {formData.assignedTo && (
+                        <div>
+                          <p className="text-xs text-gray-600">Assigned Salesperson</p>
+                          <p className="text-sm font-medium text-gray-900">{formData.assignedTo}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="p-2 bg-green-50 rounded-md border border-green-200">
+                      <p className="text-xs text-gray-600">Total Revenue</p>
+                      <p className="text-sm font-bold text-green-700 font-mono">
+                        {formatCurrency(allClientPayments.reduce((sum, p) => sum + p.paidAmount, 0))}
+                      </p>
+                    </div>
+                    <div className="p-2 bg-amber-50 rounded-md border border-amber-200">
+                      <p className="text-xs text-gray-600">Outstanding</p>
+                      <p className="text-sm font-bold text-amber-700 font-mono">
+                        {formatCurrency(allClientPayments.reduce((sum, p) => sum + p.remainingAmount, 0))}
+                      </p>
+                    </div>
+                    <div className="p-2 bg-blue-50 rounded-md border border-blue-200">
+                      <p className="text-xs text-gray-600">Total Payments</p>
+                      <p className="text-sm font-bold text-blue-700">
+                        {allClientPayments.length}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Subscription Payments */}
+                  {allClientPayments.some(p => p.type === "subscription") && (
+                    <div className="space-y-2">
+                      <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                        Subscription Payments ({allClientPayments.filter(p => p.type === "subscription").length})
+                      </h3>
+                      <div className="space-y-2">
+                        {allClientPayments
+                          .filter(p => p.type === "subscription")
+                          .map((payment) => (
+                            <div key={payment.id} className="p-3 bg-gray-50 rounded-md border border-gray-200">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    {getStatusBadge(payment.status)}
+                                    <span className="text-xs text-gray-500">
+                                      Due: {payment.dueDate ? formatDate(payment.dueDate) : "N/A"}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm font-mono font-semibold text-gray-900">
+                                    {formatCurrency(payment.originalAmount)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                  <p className="text-gray-500">Paid</p>
+                                  <p className="font-medium text-green-600">{formatCurrency(payment.paidAmount)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500">Remaining</p>
+                                  <p className="font-medium text-amber-600">{formatCurrency(payment.remainingAmount)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Placement Payments */}
+                  {allClientPayments.some(p => p.type === "placement") && (
+                    <div className="space-y-2">
+                      <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                        Post-Placement Payments ({allClientPayments.filter(p => p.type === "placement").length})
+                      </h3>
+                      <div className="space-y-2">
+                        {allClientPayments
+                          .filter(p => p.type === "placement")
+                          .map((payment) => (
+                            <div key={payment.id} className="p-3 bg-gray-50 rounded-md border border-gray-200">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    {getStatusBadge(payment.status)}
+                                    <span className="text-xs text-gray-500">
+                                      Due: {payment.dueDate ? formatDate(payment.dueDate) : "N/A"}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm font-mono font-semibold text-gray-900">
+                                    {formatCurrency(payment.originalAmount)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                  <p className="text-gray-500">Paid</p>
+                                  <p className="font-medium text-green-600">{formatCurrency(payment.paidAmount)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500">Remaining</p>
+                                  <p className="font-medium text-amber-600">{formatCurrency(payment.remainingAmount)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Footer - More prominent */}
-        <div className="flex-shrink-0 p-6 border-t-2 border-gray-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex items-center justify-end gap-3">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
+        {/* Footer - Compact */}
+        <div className="flex-shrink-0 px-4 py-3 border-t border-gray-200 bg-white flex items-center justify-end gap-2">
+          {mode === "viewAllClientPayments" ? (
+            <Button onClick={onClose} className="bg-[#682A53] hover:bg-[#7d3463]">
+              Close
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+          )}
           {mode === "edit" && (
             <Button
               onClick={handleSave}

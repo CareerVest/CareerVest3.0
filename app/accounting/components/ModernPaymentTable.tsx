@@ -14,15 +14,9 @@ import {
   Eye,
   Edit,
   CheckCircle,
-  MoreHorizontal,
+  FileText,
   DollarSign,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../../../components/ui/dropdown-menu";
 
 export interface PaymentTransaction {
   id: string;
@@ -58,6 +52,7 @@ interface ModernPaymentTableProps {
   onEdit?: (payment: Payment) => void;
   onMarkPaid?: (payment: Payment) => void;
   onRecordPayment?: (payment: Payment) => void;
+  onViewAllClientPayments?: (payment: Payment) => void;
 }
 
 export function ModernPaymentTable({
@@ -67,6 +62,7 @@ export function ModernPaymentTable({
   onEdit,
   onMarkPaid,
   onRecordPayment,
+  onViewAllClientPayments,
 }: ModernPaymentTableProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
@@ -212,11 +208,11 @@ export function ModernPaymentTable({
                 Type
               </TableHead>
               {isAdmin && (
-                <TableHead className="text-xs font-semibold uppercase tracking-wider text-gray-600">
+                <TableHead className="text-xs font-semibold uppercase tracking-wider text-gray-600 w-32">
                   Assigned
                 </TableHead>
               )}
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-gray-600 text-right">
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-gray-600 text-right w-40">
                 Actions
               </TableHead>
             </TableRow>
@@ -240,9 +236,12 @@ export function ModernPaymentTable({
                     />
                   </TableCell>
                 )}
-                <TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <div>
-                    <div className="text-sm font-medium text-gray-900">
+                    <div
+                      className="text-sm font-medium text-[#682A53] underline cursor-pointer hover:text-[#7d3463]"
+                      onClick={() => onViewAllClientPayments?.(payment)}
+                    >
                       {payment.clientName}
                     </div>
                     <div className="text-xs text-gray-500">
@@ -272,7 +271,7 @@ export function ModernPaymentTable({
                   </span>
                 </TableCell>
                 {isAdmin && (
-                  <TableCell>
+                  <TableCell className="w-32">
                     <span className="text-sm text-gray-600">
                       {payment.assignedTo || "—"}
                     </span>
@@ -338,6 +337,18 @@ export function ModernPaymentTable({
                             <CheckCircle className="h-4 w-4 text-green-600" />
                           </Button>
                         )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onViewAllClientPayments?.(payment);
+                          }}
+                          title="View All Client Payments"
+                        >
+                          <FileText className="h-4 w-4 text-blue-600" />
+                        </Button>
                       </div>
                     ) : (
                       <Button

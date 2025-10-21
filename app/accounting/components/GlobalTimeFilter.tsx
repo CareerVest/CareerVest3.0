@@ -16,6 +16,7 @@ import {
 import { Calendar } from "../../../components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "../../../lib/utils";
+import type { DateRange } from "react-day-picker";
 
 export type TimePeriod =
   | "this_month"
@@ -42,8 +43,7 @@ export function GlobalTimeFilter({
   dateRangeLabel,
   onRefresh,
 }: GlobalTimeFilterProps) {
-  const [customStart, setCustomStart] = useState<Date>();
-  const [customEnd, setCustomEnd] = useState<Date>();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [isCustomPopoverOpen, setIsCustomPopoverOpen] = useState(false);
   const [internalValue, setInternalValue] = useState(value);
 
@@ -54,7 +54,7 @@ export function GlobalTimeFilter({
   const handlePeriodChange = (newValue: TimePeriod) => {
     if (newValue === "custom") {
       setInternalValue("custom");
-      // Don't automatically open popover, let user click on date fields
+      setIsCustomPopoverOpen(true);
     } else {
       setIsCustomPopoverOpen(false);
       setInternalValue(newValue);
@@ -62,23 +62,25 @@ export function GlobalTimeFilter({
     }
   };
 
-  const handleStartDateSelect = (date: Date | undefined) => {
-    setCustomStart(date);
-    if (date && customEnd) {
-      onChange("custom", date, customEnd);
+  const handleRangeSelect = (range: DateRange | undefined) => {
+    setDateRange(range);
+  };
+
+  const handleApplyRange = () => {
+    if (dateRange?.from && dateRange?.to) {
+      onChange("custom", dateRange.from, dateRange.to);
+      setIsCustomPopoverOpen(false);
     }
   };
 
-  const handleEndDateSelect = (date: Date | undefined) => {
-    setCustomEnd(date);
-    if (customStart && date) {
-      onChange("custom", customStart, date);
-    }
+  const handleCancelRange = () => {
+    setDateRange(undefined);
+    setIsCustomPopoverOpen(false);
   };
 
   const getDisplayValue = () => {
-    if (internalValue === "custom" && customStart && customEnd) {
-      return `${format(customStart, "MMM d")} - ${format(customEnd, "MMM d, yyyy")}`;
+    if (internalValue === "custom" && dateRange?.from && dateRange?.to) {
+      return `${format(dateRange.from, "MMM d")} - ${format(dateRange.to, "MMM d, yyyy")}`;
     }
     return internalValue.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
   };
@@ -117,67 +119,64 @@ export function GlobalTimeFilter({
           <span className="text-sm text-gray-600">{dateRangeLabel}</span>
         )}
 
-        {/* Show editable date pickers for custom range */}
+        {/* Show single calendar range picker for custom range */}
         {internalValue === "custom" && (
-          <div className="flex items-center gap-2">
-            {/* Start Date Picker */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-[140px] justify-start text-left font-normal",
-                    !customStart && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {customStart ? format(customStart, "MMM d, yyyy") : "Start date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+          <Popover open={isCustomPopoverOpen} onOpenChange={setIsCustomPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-[280px] justify-start text-left font-normal",
+                  !dateRange?.from && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange?.from ? (
+                  dateRange.to ? (
+                    <>
+                      {format(dateRange.from, "MMM d, yyyy")} -{" "}
+                      {format(dateRange.to, "MMM d, yyyy")}
+                    </>
+                  ) : (
+                    format(dateRange.from, "MMM d, yyyy")
+                  )
+                ) : (
+                  "Select date range"
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <div className="p-3">
                 <Calendar
-                  mode="single"
-                  selected={customStart}
-                  onSelect={handleStartDateSelect}
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={handleRangeSelect}
+                  numberOfMonths={2}
                   initialFocus
                   captionLayout="dropdown"
                   fromYear={2020}
                   toYear={2030}
                 />
-              </PopoverContent>
-            </Popover>
-
-            <span className="text-gray-500">→</span>
-
-            {/* End Date Picker */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-[140px] justify-start text-left font-normal",
-                    !customEnd && "text-muted-foreground"
-                  )}
-                  disabled={!customStart}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {customEnd ? format(customEnd, "MMM d, yyyy") : "End date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={customEnd}
-                  onSelect={handleEndDateSelect}
-                  disabled={(date) => (customStart ? date < customStart : false)}
-                  initialFocus
-                  captionLayout="dropdown"
-                  fromYear={2020}
-                  toYear={2030}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+                <div className="flex items-center justify-end gap-2 pt-3 border-t mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancelRange}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-purple-600 hover:bg-purple-700"
+                    onClick={handleApplyRange}
+                    disabled={!dateRange?.from || !dateRange?.to}
+                  >
+                    Apply
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         )}
       </div>
 

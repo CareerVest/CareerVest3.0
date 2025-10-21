@@ -31,12 +31,20 @@ import {
   SelectValue,
 } from "../../../components/ui/select";
 import { Button } from "../../../components/ui/button";
+import { Calendar } from "../../../components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../../../components/ui/popover";
+import Spinner from "../../../components/ui/spinner";
 import {
   DollarSign,
   TrendingUp,
   Users,
   CreditCard,
   Search,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -116,7 +124,7 @@ export function NewAccountingHub() {
 
   // Sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarMode, setSidebarMode] = useState<"view" | "edit" | "markPaid" | "recordPayment">("view");
+  const [sidebarMode, setSidebarMode] = useState<"view" | "edit" | "markPaid" | "recordPayment" | "viewAllClientPayments">("view");
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
 
   // Real data state
@@ -172,13 +180,12 @@ export function NewAccountingHub() {
         setLoading(true);
         setError(null);
 
-        // Build filters based on time period
+        // Build filters based on time period - NO search query here, filter client-side
         const filters = {
-          timePeriod: timePeriod === "all_time" ? undefined : timePeriod,
+          timePeriod: timePeriod,
           customStartDate: customStartDate?.toISOString(),
           customEndDate: customEndDate?.toISOString(),
-          status: statusFilter === "all" ? undefined : statusFilter,
-          searchQuery: searchQuery || undefined,
+          // Don't send status filter to API, filter client-side
         };
 
         // Fetch payments, metrics, and client balances in parallel
@@ -207,7 +214,7 @@ export function NewAccountingHub() {
     };
 
     loadData();
-  }, [timePeriod, customStartDate, customEndDate, statusFilter, searchQuery]);
+  }, [timePeriod, customStartDate, customEndDate]); // Removed statusFilter and searchQuery - filter client-side only
 
   // Filter by time period
   const timeFilteredPayments = useMemo(() => {
@@ -359,6 +366,12 @@ export function NewAccountingHub() {
     setSidebarOpen(true);
   };
 
+  const handleViewAllClientPayments = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setSidebarMode("viewAllClientPayments");
+    setSidebarOpen(true);
+  };
+
   const handleSavePayment = (payment: Payment) => {
     console.log("Save payment:", payment);
     // In real app, would call API here
@@ -374,11 +387,9 @@ export function NewAccountingHub() {
 
       // Reload data to get updated payment
       const filters = {
-        timePeriod: timePeriod === "all_time" ? undefined : timePeriod,
+        timePeriod: timePeriod,
         customStartDate: customStartDate?.toISOString(),
         customEndDate: customEndDate?.toISOString(),
-        status: statusFilter === "all" ? undefined : statusFilter,
-        searchQuery: searchQuery || undefined,
       };
 
       const [paymentsData, balancesData] = await Promise.all([
@@ -413,11 +424,9 @@ export function NewAccountingHub() {
 
       // Reload data to get updated payment
       const filters = {
-        timePeriod: timePeriod === "all_time" ? undefined : timePeriod,
+        timePeriod: timePeriod,
         customStartDate: customStartDate?.toISOString(),
         customEndDate: customEndDate?.toISOString(),
-        status: statusFilter === "all" ? undefined : statusFilter,
-        searchQuery: searchQuery || undefined,
       };
 
       const [paymentsData, balancesData] = await Promise.all([
@@ -455,11 +464,8 @@ export function NewAccountingHub() {
   // Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#682A53] mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading accounting data...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <Spinner variant="ripple" size="xl" text="Loading accounting data..." />
       </div>
     );
   }
@@ -481,113 +487,199 @@ export function NewAccountingHub() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-semibold text-[#682A53]">
-          Accounting Hub
-        </h1>
+    <div className="flex flex-col h-screen">
+      {/* Sticky Header and Filters */}
+      <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
+        {/* Header */}
+        <div className="px-4 py-2 border-b">
+          <h1 className="text-xl font-semibold text-[#682A53]">
+            Accounting Hub
+          </h1>
+        </div>
+
+        {/* Merged Filter Bar */}
+        <div className="px-4 py-3 bg-gradient-to-r from-purple-50/30 to-transparent">
+          <div className="flex gap-3 items-center">
+            {/* Period Filter */}
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4 text-purple-600" />
+              <span className="text-xs font-semibold text-gray-700">Period:</span>
+              <Select value={timePeriod} onValueChange={(value) => handleTimeFilterChange(value as TimePeriod)}>
+                <SelectTrigger className="w-[140px] h-9 text-xs border-purple-200">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="this_month">This Month</SelectItem>
+                  <SelectItem value="next_month">Next Month</SelectItem>
+                  <SelectItem value="last_month">Last Month</SelectItem>
+                  <SelectItem value="this_quarter">This Quarter</SelectItem>
+                  <SelectItem value="next_quarter">Next Quarter</SelectItem>
+                  <SelectItem value="last_quarter">Last Quarter</SelectItem>
+                  <SelectItem value="this_year">This Year</SelectItem>
+                  <SelectItem value="last_year">Last Year</SelectItem>
+                  <SelectItem value="all_time">All Time</SelectItem>
+                  <SelectItem value="custom">Custom...</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Date Range Display or Custom Picker */}
+            {timePeriod === "custom" ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="h-9 text-xs"
+                  >
+                    <CalendarIcon className="mr-2 h-3 w-3" />
+                    {customStartDate && customEndDate ? (
+                      <>
+                        {format(customStartDate, "MMM d")} - {format(customEndDate, "MMM d, yyyy")}
+                      </>
+                    ) : (
+                      "Select range"
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <div className="p-3">
+                    <Calendar
+                      mode="range"
+                      selected={customStartDate && customEndDate ? { from: customStartDate, to: customEndDate } : undefined}
+                      onSelect={(range) => {
+                        if (range?.from && range?.to) {
+                          setCustomStartDate(range.from);
+                          setCustomEndDate(range.to);
+                          handleTimeFilterChange("custom", range.from, range.to);
+                        }
+                      }}
+                      numberOfMonths={2}
+                      initialFocus
+                      captionLayout="dropdown"
+                      fromYear={2020}
+                      toYear={2030}
+                    />
+                  </div>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <span className="text-xs text-gray-500">{getDateRangeLabel()}</span>
+            )}
+
+            {/* Divider */}
+            <div className="h-6 w-px bg-gray-300 mx-1" />
+
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+              <Input
+                placeholder="Search clients, amounts, reference numbers..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9 text-xs"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[130px] h-9 text-xs">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="partially_paid">Partially Paid</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Reset Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 text-xs"
+              onClick={() => {
+                handleRefresh();
+              }}
+            >
+              Reset
+            </Button>
+          </div>
+        </div>
       </div>
 
-      {/* Global Time Filter */}
-      <GlobalTimeFilter
-        value={timePeriod}
-        onChange={handleTimeFilterChange}
-        dateRangeLabel={getDateRangeLabel()}
-        onRefresh={handleRefresh}
-      />
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4 space-y-3">
+          {/* Metrics Section - Auto-collapse when searching or filtering */}
+          <CollapsibleSection
+            title="Metrics"
+            defaultExpanded={true}
+            expanded={searchQuery.length > 0 || statusFilter !== "all" ? false : undefined}
+          >
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              <GlassMetricCard
+                title="Revenue"
+                value={formatCurrency(totalRevenue)}
+                change="+15% ↑"
+                changeType="increase"
+                icon={DollarSign}
+                sparklineData={[10, 20, 15, 25, 22, 30, 28]}
+                iconColor="text-purple-600"
+                iconBgColor="bg-purple-100"
+              />
+              <GlassMetricCard
+                title="Outstanding"
+                value={formatCurrency(totalOutstanding)}
+                change={`${partialPaymentsCount} partial`}
+                changeType="decrease"
+                icon={CreditCard}
+                sparklineData={[15, 18, 20, 17, 19, 16, 14]}
+                iconColor="text-amber-600"
+                iconBgColor="bg-amber-100"
+              />
+              <GlassMetricCard
+                title="Client Credits"
+                value={formatCurrency(totalClientCredits)}
+                change={`${clientsWithCredits} clients`}
+                changeType="increase"
+                icon={TrendingUp}
+                sparklineData={[5, 7, 6, 8, 9, 10, 12]}
+                iconColor="text-green-600"
+                iconBgColor="bg-green-100"
+              />
+            </div>
+          </CollapsibleSection>
 
-      {/* Metrics Section - Collapsible */}
-      <CollapsibleSection title="Metrics" defaultExpanded={true}>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <GlassMetricCard
-            title="Revenue"
-            value={formatCurrency(totalRevenue)}
-            change="+15% ↑"
-            changeType="increase"
-            icon={DollarSign}
-            sparklineData={[10, 20, 15, 25, 22, 30, 28]}
-            iconColor="text-purple-600"
-            iconBgColor="bg-purple-100"
-          />
-          <GlassMetricCard
-            title="Outstanding"
-            value={formatCurrency(totalOutstanding)}
-            change={`${partialPaymentsCount} partial`}
-            changeType="decrease"
-            icon={CreditCard}
-            sparklineData={[15, 18, 20, 17, 19, 16, 14]}
-            iconColor="text-amber-600"
-            iconBgColor="bg-amber-100"
-          />
-          <GlassMetricCard
-            title="Client Credits"
-            value={formatCurrency(totalClientCredits)}
-            change={`${clientsWithCredits} clients`}
-            changeType="increase"
-            icon={TrendingUp}
-            sparklineData={[5, 7, 6, 8, 9, 10, 12]}
-            iconColor="text-green-600"
-            iconBgColor="bg-green-100"
+          {/* Insights Section - Auto-collapse when searching or filtering */}
+          <CollapsibleSection
+            title="Smart Insights"
+            defaultExpanded={true}
+            expanded={searchQuery.length > 0 || statusFilter !== "all" ? false : undefined}
+          >
+            <SmartInsights
+              insights={insights}
+              role={userRole}
+              onReviewPending={handleReviewPending}
+              payments={timeFilteredPayments}
+              totalOutstanding={totalOutstanding}
+              onViewOutstanding={() => setStatusFilter("partially_paid")}
+            />
+          </CollapsibleSection>
+
+          {/* Payment Table */}
+          <ModernPaymentTable
+            payments={filteredPayments}
+            role={userRole}
+            onView={handleViewPayment}
+            onEdit={handleEditPayment}
+            onMarkPaid={handleMarkPaid}
+            onRecordPayment={handleRecordPayment}
+            onViewAllClientPayments={handleViewAllClientPayments}
           />
         </div>
-      </CollapsibleSection>
-
-      {/* Insights Section - Collapsible */}
-      <CollapsibleSection title="Smart Insights" defaultExpanded={true}>
-        <SmartInsights
-          insights={insights}
-          role={userRole}
-          onReviewPending={handleReviewPending}
-          payments={timeFilteredPayments}
-          totalOutstanding={totalOutstanding}
-          onViewOutstanding={() => setStatusFilter("partially_paid")}
-        />
-      </CollapsibleSection>
-
-      {/* Filter Bar */}
-      <div className="flex gap-4 items-center p-4 bg-white rounded-lg border border-gray-200">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search clients, amounts, reference numbers..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="paid">Paid</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="partially_paid">Partially Paid</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button
-          variant="outline"
-          onClick={() => {
-            setSearchQuery("");
-            setStatusFilter("all");
-          }}
-        >
-          Reset
-        </Button>
       </div>
-
-      {/* Payment Table */}
-      <ModernPaymentTable
-        payments={filteredPayments}
-        role={userRole}
-        onView={handleViewPayment}
-        onEdit={handleEditPayment}
-        onMarkPaid={handleMarkPaid}
-        onRecordPayment={handleRecordPayment}
-      />
 
       {/* Payment Sidebar */}
       <PaymentSidebar
