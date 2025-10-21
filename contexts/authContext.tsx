@@ -33,10 +33,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [user, setUser] = useState<AccountInfo | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [token, setToken] = useState<string | null>(null);
+
+  // Custom setToken function that also stores in localStorage
+  const setTokenWithStorage = useCallback((newToken: string | null) => {
+    setToken(newToken);
+    if (newToken) {
+      localStorage.setItem("token", newToken);
+    } else {
+      localStorage.removeItem("token");
+    }
+  }, []);
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   let tokenRefreshPromise: Promise<string | null> | null = null;
+
+  // Session timeout configuration (30 minutes)
+  const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+  const TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // Refresh token 5 minutes before expiry
+
+  // Initialize token from localStorage on mount
+  useEffect(() => {
+    const storedToken = localStorage.getItem("token");
+    if (storedToken) {
+      setToken(storedToken);
+    }
+  }, []);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -49,7 +71,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         const redirectResponse = await msalInstance.handleRedirectPromise();
         if (redirectResponse) {
           msalInstance.setActiveAccount(redirectResponse.account);
-          setToken(redirectResponse.accessToken);
+          setTokenWithStorage(redirectResponse.accessToken);
           setUser(redirectResponse.account);
           extractRoles(redirectResponse.accessToken);
           setIsAuthenticated(true);
@@ -66,14 +88,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
           try {
             const accessToken = await acquireTokenSilently(activeAccount);
-            setToken(accessToken);
+            setTokenWithStorage(accessToken);
             setUser(activeAccount);
             extractRoles(accessToken);
             setIsAuthenticated(true);
           } catch (tokenErr) {
             setIsAuthenticated(false);
             setUser(null);
-            setToken(null);
+            setTokenWithStorage(null);
             setRoles([]);
             setError("Failed to acquire token");
           }
@@ -125,8 +147,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     if (token) {
       const decoded: any = jwtDecode(token);
-      if (decoded.exp > Date.now() / 1000) {
+      const currentTime = Date.now() / 1000;
+      const timeUntilExpiry = decoded.exp - currentTime;
+
+      // If token is still valid and not close to expiry, return it
+      if (timeUntilExpiry > TOKEN_REFRESH_THRESHOLD / 1000) {
         return token;
+      }
+
+      // If token is close to expiry, refresh it proactively
+      if (timeUntilExpiry > 0) {
+        console.log("🔹 Token expiring soon, refreshing proactively...");
       }
     }
 
@@ -137,13 +168,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     tokenRefreshPromise = (async () => {
       try {
         const newToken = await acquireTokenSilently(user);
-        setToken(newToken);
+        setTokenWithStorage(newToken);
         extractRoles(newToken);
+        console.log("🔹 Token refreshed successfully");
         return newToken;
       } catch (err) {
+        console.error("🔸 Token refresh failed:", err);
         setIsAuthenticated(false);
         setUser(null);
-        setToken(null);
+        setTokenWithStorage(null);
         setRoles([]);
         router.push("/login");
         return null;
@@ -157,23 +190,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const login = useCallback(async (): Promise<boolean> => {
     try {
-      const loginResponse = await msalInstance.loginPopup({
-        scopes: tokenRequest.scopes,
-        prompt: "select_account",
-      });
+      // Detect if user is on mobile device
+      const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|Windows Phone/i.test(
+        navigator.userAgent
+      );
 
-      const account = loginResponse.account;
-      msalInstance.setActiveAccount(account);
-      const accessToken = await acquireTokenSilently(account);
+      if (isMobile) {
+        // Use redirect flow for mobile devices
+        console.log("🔹 Mobile device detected - using redirect flow");
+        await msalInstance.loginRedirect({
+          scopes: tokenRequest.scopes,
+          prompt: "select_account",
+        });
+        // loginRedirect doesn't return - user will be redirected away
+        // The redirect will be handled by handleRedirectPromise in useEffect
+        return true;
+      } else {
+        // Use popup flow for desktop devices
+        console.log("🔹 Desktop device detected - using popup flow");
+        const loginResponse = await msalInstance.loginPopup({
+          scopes: tokenRequest.scopes,
+          prompt: "select_account",
+        });
 
-      setUser(account);
-      setToken(accessToken);
-      extractRoles(accessToken);
-      setIsAuthenticated(true);
-      setError(null);
-      router.push("/");
-      return true;
+        const account = loginResponse.account;
+        msalInstance.setActiveAccount(account);
+        const accessToken = await acquireTokenSilently(account);
+
+        setUser(account);
+        setTokenWithStorage(accessToken);
+        extractRoles(accessToken);
+        setIsAuthenticated(true);
+        setError(null);
+        router.push("/dashboard");
+        return true;
+      }
     } catch (err) {
+      console.error("🔸 Login error:", err);
       setError("Login failed. Please try again.");
       return false;
     }
@@ -199,7 +252,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
         setIsAuthenticated(false);
         setUser(null);
-        setToken(null);
+        setTokenWithStorage(null);
         setRoles([]);
         setError(null);
         router.push("/login");
@@ -209,6 +262,54 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     },
     [router]
   );
+
+  // Activity monitoring to prevent false inactivity warnings
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let lastActivity = Date.now();
+    let activityTimeout: NodeJS.Timeout;
+
+    const updateActivity = () => {
+      lastActivity = Date.now();
+    };
+
+    const checkActivity = () => {
+      const timeSinceLastActivity = Date.now() - lastActivity;
+      if (timeSinceLastActivity > SESSION_TIMEOUT) {
+        console.log("🔸 Session timeout due to inactivity");
+        logout();
+      } else {
+        // Schedule next check
+        activityTimeout = setTimeout(checkActivity, 60000); // Check every minute
+      }
+    };
+
+    // Track user activity
+    const events = [
+      "mousedown",
+      "mousemove",
+      "keypress",
+      "scroll",
+      "touchstart",
+      "click",
+    ];
+    events.forEach((event) => {
+      document.addEventListener(event, updateActivity, true);
+    });
+
+    // Start activity monitoring
+    activityTimeout = setTimeout(checkActivity, 60000);
+
+    return () => {
+      events.forEach((event) => {
+        document.removeEventListener(event, updateActivity, true);
+      });
+      if (activityTimeout) {
+        clearTimeout(activityTimeout);
+      }
+    };
+  }, [isAuthenticated, logout]);
 
   return (
     <AuthContext.Provider

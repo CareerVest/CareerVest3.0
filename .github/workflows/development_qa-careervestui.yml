@@ -1,0 +1,34 @@
+name: QA - Onyx - Deploy Node.js app to Azure Web App (qa-careervestUI)
+
+on:
+  push:
+    branches:
+      - Development
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_0881F26A5FCB48EA9EDE9730E204A11C }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_E39CA955159940739547F3E0C87EF109 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_99FAA1B1BC4B4D9D9EE86F258C6580C9 }}
+
+      - name: Deploy to Azure Web App with Oryx
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'qa-careervestUI'
+          slot-name: 'Production'
+          package: '.'

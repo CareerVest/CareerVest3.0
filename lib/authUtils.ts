@@ -22,6 +22,13 @@ export const msalConfig = {
       },
       piiLoggingEnabled: false,
     },
+    // Better token management - optimized for both mobile and desktop
+    allowRedirectInIframe: false, // More secure, better for mobile
+    iframeHashTimeout: 10000, // Increased for slower mobile connections
+    loadFrameTimeout: 0,
+    asyncPopups: false, // Better mobile compatibility
+    windowHashTimeout: 60000, // Timeout for redirect flow
+    navigateFrameWait: 500, // Wait time for iframe navigation
   },
 };
 

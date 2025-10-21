@@ -1,0 +1,374 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { X } from 'lucide-react';
+import { ClientConfiguration } from '../../types/admin';
+import { dummyClientConfigurations } from '../../data/dummyAdminData';
+
+interface ConfigurationSidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+  clientID: number | null;
+  onSave: (config: ClientConfiguration) => void;
+}
+
+export function ConfigurationSidebar({
+  isOpen,
+  onClose,
+  clientID,
+  onSave,
+}: ConfigurationSidebarProps) {
+  const [config, setConfig] = useState<ClientConfiguration | null>(null);
+
+  useEffect(() => {
+    if (clientID && isOpen) {
+      const clientConfig = dummyClientConfigurations.find((c) => c.clientID === clientID);
+      if (clientConfig) {
+        setConfig({ ...clientConfig });
+      }
+    }
+  }, [clientID, isOpen]);
+
+  if (!isOpen || !config) return null;
+
+  const handleSave = () => {
+    if (config) {
+      onSave(config);
+    }
+  };
+
+  return (
+    <>
+      {/* Overlay */}
+      <div
+        className="fixed inset-0 bg-black/20 z-40 transition-opacity"
+        onClick={onClose}
+      />
+
+      {/* Sidebar */}
+      <div className="fixed right-0 top-0 h-full w-[420px] bg-white shadow-2xl z-50 overflow-y-auto">
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-[#682A53]">Client Configuration</h2>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-gray-100 rounded transition-colors"
+          >
+            <X className="h-4 w-4 text-gray-600" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 space-y-4">
+          {/* Client Info */}
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+            <div className="text-xs font-bold text-gray-900">{config.clientName}</div>
+            <div className="text-[10px] text-gray-600">{config.clientRole}</div>
+          </div>
+
+          {/* Job Search Criteria */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-gray-900 border-b border-gray-200 pb-1">
+              Job Search Criteria
+            </h3>
+
+            {/* Keywords */}
+            <div>
+              <Label className="text-[10px] font-semibold text-gray-700">Keywords</Label>
+              <Textarea
+                value={config.keywords.join(', ')}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    keywords: e.target.value.split(',').map((k) => k.trim()),
+                  })
+                }
+                placeholder="React, Node.js, TypeScript"
+                rows={2}
+                className="text-xs mt-1"
+              />
+            </div>
+
+            {/* Locations */}
+            <div>
+              <Label className="text-[10px] font-semibold text-gray-700">Locations</Label>
+              <Textarea
+                value={config.locations.join(', ')}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    locations: e.target.value.split(',').map((l) => l.trim()),
+                  })
+                }
+                placeholder="San Francisco, Remote, New York"
+                rows={2}
+                className="text-xs mt-1"
+              />
+            </div>
+
+            {/* Salary Range */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px] font-semibold text-gray-700">Salary Min ($)</Label>
+                <Input
+                  type="number"
+                  value={config.salaryMin}
+                  onChange={(e) =>
+                    setConfig({ ...config, salaryMin: parseInt(e.target.value) })
+                  }
+                  className="text-xs h-7 mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-[10px] font-semibold text-gray-700">Salary Max ($)</Label>
+                <Input
+                  type="number"
+                  value={config.salaryMax}
+                  onChange={(e) =>
+                    setConfig({ ...config, salaryMax: parseInt(e.target.value) })
+                  }
+                  className="text-xs h-7 mt-1"
+                />
+              </div>
+            </div>
+
+            {/* Job Types */}
+            <div>
+              <Label className="text-[10px] font-semibold text-gray-700 mb-1 block">
+                Job Types
+              </Label>
+              <div className="space-y-1">
+                {['Full-time', 'Contract', 'Part-time'].map((type) => (
+                  <label key={type} className="flex items-center gap-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={config.jobTypes.includes(type)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setConfig({ ...config, jobTypes: [...config.jobTypes, type] });
+                        } else {
+                          setConfig({
+                            ...config,
+                            jobTypes: config.jobTypes.filter((t) => t !== type),
+                          });
+                        }
+                      }}
+                      className="rounded border-gray-300"
+                    />
+                    {type}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Experience Level */}
+            <div>
+              <Label className="text-[10px] font-semibold text-gray-700">Experience Level</Label>
+              <Select
+                value={config.experienceLevel}
+                onValueChange={(value) => setConfig({ ...config, experienceLevel: value })}
+              >
+                <SelectTrigger className="h-7 text-xs mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Entry" className="text-xs">Entry</SelectItem>
+                  <SelectItem value="Mid" className="text-xs">Mid</SelectItem>
+                  <SelectItem value="Senior" className="text-xs">Senior</SelectItem>
+                  <SelectItem value="Mid-Senior" className="text-xs">Mid-Senior</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Remote Preference */}
+            <div>
+              <Label className="text-[10px] font-semibold text-gray-700">Remote Preference</Label>
+              <Select
+                value={config.remotePreference}
+                onValueChange={(value) => setConfig({ ...config, remotePreference: value })}
+              >
+                <SelectTrigger className="h-7 text-xs mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Remote" className="text-xs">Remote Only</SelectItem>
+                  <SelectItem value="Hybrid" className="text-xs">Hybrid</SelectItem>
+                  <SelectItem value="On-site" className="text-xs">On-site</SelectItem>
+                  <SelectItem value="Any" className="text-xs">Any</SelectItem>
+                  <SelectItem value="Remote or Hybrid" className="text-xs">Remote or Hybrid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Job Sources */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-gray-900 border-b border-gray-200 pb-1">
+              Job Sources
+            </h3>
+            <div className="space-y-1">
+              <label className="flex items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={config.enabledSources.includes('Apify')}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setConfig({
+                        ...config,
+                        enabledSources: [...config.enabledSources, 'Apify'],
+                      });
+                    } else {
+                      setConfig({
+                        ...config,
+                        enabledSources: config.enabledSources.filter((s) => s !== 'Apify'),
+                      });
+                    }
+                  }}
+                  className="rounded border-gray-300"
+                />
+                Apify
+              </label>
+              <label className="flex items-center gap-2 text-xs text-gray-400">
+                <input type="checkbox" disabled className="rounded border-gray-300" />
+                Indeed API (Coming soon)
+              </label>
+              <label className="flex items-center gap-2 text-xs text-gray-400">
+                <input type="checkbox" disabled className="rounded border-gray-300" />
+                LinkedIn Scraper (Coming soon)
+              </label>
+            </div>
+          </div>
+
+          {/* Fetching Settings */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-gray-900 border-b border-gray-200 pb-1">
+              Fetching Settings
+            </h3>
+
+            {/* Frequency */}
+            <div>
+              <Label className="text-[10px] font-semibold text-gray-700">Frequency</Label>
+              <Select
+                value={config.fetchFrequency}
+                onValueChange={(value) => setConfig({ ...config, fetchFrequency: value })}
+              >
+                <SelectTrigger className="h-7 text-xs mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Daily" className="text-xs">Daily</SelectItem>
+                  <SelectItem value="Twice Daily" className="text-xs">Twice Daily</SelectItem>
+                  <SelectItem value="Weekly" className="text-xs">Weekly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Jobs per fetch */}
+            <div>
+              <Label className="text-[10px] font-semibold text-gray-700">Jobs per fetch</Label>
+              <Input
+                type="number"
+                value={config.jobsPerFetch}
+                onChange={(e) =>
+                  setConfig({ ...config, jobsPerFetch: parseInt(e.target.value) })
+                }
+                className="text-xs h-7 mt-1"
+              />
+            </div>
+
+            {/* Auto-create batches */}
+            <div>
+              <label className="flex items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={config.autoCreateBatches}
+                  onChange={(e) =>
+                    setConfig({ ...config, autoCreateBatches: e.target.checked })
+                  }
+                  className="rounded border-gray-300"
+                />
+                Auto-create batches
+              </label>
+            </div>
+          </div>
+
+          {/* Batch Settings */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-gray-900 border-b border-gray-200 pb-1">
+              Batch Settings
+            </h3>
+
+            {/* Batch size */}
+            <div>
+              <Label className="text-[10px] font-semibold text-gray-700">Batch size (jobs)</Label>
+              <Input
+                type="number"
+                value={config.batchSize}
+                onChange={(e) => setConfig({ ...config, batchSize: parseInt(e.target.value) })}
+                className="text-xs h-7 mt-1"
+              />
+            </div>
+
+            {/* Match score threshold */}
+            <div>
+              <Label className="text-[10px] font-semibold text-gray-700">
+                Match score threshold (0-100)
+              </Label>
+              <Input
+                type="number"
+                value={config.matchScoreThreshold}
+                onChange={(e) =>
+                  setConfig({ ...config, matchScoreThreshold: parseInt(e.target.value) })
+                }
+                className="text-xs h-7 mt-1"
+              />
+            </div>
+
+            {/* Batch expiry */}
+            <div>
+              <Label className="text-[10px] font-semibold text-gray-700">
+                Batch expires in (hours)
+              </Label>
+              <Input
+                type="number"
+                value={config.batchExpiryHours}
+                onChange={(e) =>
+                  setConfig({ ...config, batchExpiryHours: parseInt(e.target.value) })
+                }
+                className="text-xs h-7 mt-1"
+              />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="sticky bottom-0 bg-white pt-4 pb-2 space-y-2 border-t border-gray-200">
+            <Button
+              onClick={handleSave}
+              className="w-full h-8 text-xs bg-gradient-to-r from-[#682A53] to-[#7d3463] hover:from-[#7d3463] hover:to-[#682A53] text-white"
+            >
+              Save Configuration
+            </Button>
+            <Button
+              onClick={onClose}
+              variant="outline"
+              className="w-full h-8 text-xs border-gray-300"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
