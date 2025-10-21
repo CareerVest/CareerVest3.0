@@ -122,7 +122,8 @@ export const specialStates: ClientStatus[] = [
 // Action configuration for each stage
 export const getRequiredActions = (
   department: ClientStatus,
-  userRole: string
+  userRole: string,
+  client?: any
 ): string[] => {
   switch (department) {
     case "Sales":
@@ -177,15 +178,16 @@ export const getRequiredActions = (
         // 3. ChangeRecruiter (optional - doesn't block progression)
         return ["Acknowledged-Marketing", "AssignRecruiter", "ChangeRecruiter"];
       }
-      // Senior recruiters and recruiters can acknowledge in marketing stage
+      // Recruiters and Senior Recruiters can complete checklist if client is assigned
+      // The backend validates if the current user is the actual assigned recruiter
       if (
         userRoleLower === "senior_recruiter" ||
-        userRoleLower === "senior-recruiter"
+        userRoleLower === "senior-recruiter" ||
+        userRoleLower === "recruiter"
       ) {
-        return ["Acknowledged-Marketing"];
-      }
-      if (userRoleLower === "recruiter") {
-        return ["Recruiter-Checklist-Completed"];
+        // Only show if client has an assigned recruiter
+        // Backend will only allow action if current user IS the assigned recruiter
+        return client?.assignedRecruiterID ? ["Recruiter-Checklist-Completed"] : [];
       }
       return [];
     case "Remarketing":
@@ -214,7 +216,7 @@ export const areAllActionsCompleted = (
   department: ClientStatus,
   userRole: string
 ): boolean => {
-  const requiredActions = getRequiredActions(department, userRole);
+  const requiredActions = getRequiredActions(department, userRole, client);
   // Only check non-optional actions for completion
   return requiredActions
     .filter((action) => !isOptionalAction(action))

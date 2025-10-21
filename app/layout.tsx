@@ -27,17 +27,9 @@ export default function RootLayout({
             {children}
             <GlobalSpinner />
             <Toaster
-              position="top-right"
+              position="bottom-right"
               expand={true}
-              richColors
               closeButton
-              toastOptions={{
-                style: {
-                  background: 'var(--background)',
-                  color: 'var(--foreground)',
-                  border: '1px solid var(--border)',
-                },
-              }}
             />
           </LoadingProvider>
         </AuthProvider>

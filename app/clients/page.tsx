@@ -23,8 +23,14 @@ export default function ClientsPage() {
         ? "Admin"
         : roles.includes("Sales_Executive")
         ? "Sales_Executive"
+        : roles.includes("Senior_Recruiter")
+        ? "Senior_Recruiter"
         : roles.includes("Recruiter")
         ? "Recruiter"
+        : roles.includes("Resume_Writer")
+        ? "Resume_Writer"
+        : roles.includes("Marketing_Manager")
+        ? "Marketing_Manager"
         : "default"
       : "default";
 

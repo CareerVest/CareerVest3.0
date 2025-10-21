@@ -50,19 +50,31 @@ function ResumeConfirmationContent() {
 
       const data = await response.json();
 
+      // Handle different error types with appropriate UI
       if (response.ok && data.success) {
-        setStatus("success");
-        setMessage(data.message || "Resume draft confirmed successfully!");
+        // Check if already confirmed
+        if (data.errorType === "AlreadyConfirmed") {
+          setStatus("success");
+          setMessage(data.message || "You have already confirmed your resume. Our team will proceed with the next steps.");
+        } else {
+          setStatus("success");
+          setMessage(data.message || "Resume draft confirmed successfully!");
+        }
       } else {
         setStatus("error");
-        setMessage(
-          data.message || "Failed to confirm resume. The link may have expired or is invalid."
-        );
+        // Provide specific error messages based on error type
+        if (data.errorType === "Expired") {
+          setMessage(data.message || "This confirmation link has expired. Please contact your Resume Department representative for assistance.");
+        } else if (data.errorType === "Invalid") {
+          setMessage(data.message || "Invalid confirmation link. Please check your email for the correct link or contact your Resume Department representative.");
+        } else {
+          setMessage(data.message || "Failed to confirm resume. Please try again or contact support.");
+        }
       }
     } catch (error) {
       console.error("Error confirming resume:", error);
       setStatus("error");
-      setMessage("An error occurred while confirming your resume. Please try again later.");
+      setMessage("An error occurred while confirming your resume. Please try again later or contact support.");
     }
   };
 

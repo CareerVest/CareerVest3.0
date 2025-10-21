@@ -34,7 +34,7 @@ import {
 import {
   fetchPipelineCandidates,
 } from "../actions/pipelineActions";
-import { showSuccess, showError, showInfo } from "@/lib/toastUtils";
+import { showSuccess, showError } from "@/lib/toastUtils";
 
 interface PipelineProps {
   currentUserRole: UserRole;
@@ -86,9 +86,6 @@ export function Pipeline({
       );
 
       setClients(candidates);
-
-      // Show subtle success notification
-      showInfo("Pipeline refreshed", `${candidates.length} clients loaded`);
 
       // Debug: Show status distribution for admin access issue investigation
       const statusCounts = candidates.reduce(

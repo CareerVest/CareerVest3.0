@@ -190,7 +190,7 @@ const permissions: AppPermissions = {
     },
     Marketing_Manager: {
       viewClientsMenu: true,
-      basicInfo: { view: true, edit: false },
+      basicInfo: { view: true, edit: true },
       marketingInfo: {
         view: true,
         edit: {
@@ -411,6 +411,8 @@ const permissions: AppPermissions = {
       moveToOnHold: true,
       performActions: true,
       assignRecruiter: true,
+      blockClient: true, // All stages
+      unblockClient: true, // All stages
     },
     Sales_Executive: {
       viewPipelinesMenu: true,
@@ -424,6 +426,8 @@ const permissions: AppPermissions = {
       moveToOnHold: true,
       performActions: true,
       assignRecruiter: false,
+      blockClient: true, // Only Sales stage, only assigned clients (backend validates)
+      unblockClient: true, // Only Sales stage, only assigned clients (backend validates)
     },
     Resume_Writer: {
       viewPipelinesMenu: true,
@@ -437,6 +441,8 @@ const permissions: AppPermissions = {
       moveToOnHold: true,
       performActions: true,
       assignRecruiter: false,
+      blockClient: true, // Only Resume stage (backend validates)
+      unblockClient: true, // Only Resume stage (backend validates)
     },
     Recruiter: {
       viewPipelinesMenu: true,
@@ -450,6 +456,8 @@ const permissions: AppPermissions = {
       moveToOnHold: true,
       performActions: true,
       assignRecruiter: true,
+      blockClient: false, // Cannot block/unblock
+      unblockClient: false, // Cannot block/unblock
     },
     Senior_Recruiter: {
       viewPipelinesMenu: true,
@@ -463,6 +471,8 @@ const permissions: AppPermissions = {
       moveToOnHold: true,
       performActions: true,
       assignRecruiter: true,
+      blockClient: true, // Only Marketing/Remarketing stages (backend validates)
+      unblockClient: true, // Only Marketing/Remarketing stages (backend validates)
     },
     Marketing_Manager: {
       viewPipelinesMenu: true,
@@ -476,6 +486,8 @@ const permissions: AppPermissions = {
       moveToOnHold: true,
       performActions: true,
       assignRecruiter: true,
+      blockClient: true, // All stages except Sales and Resume (backend validates)
+      unblockClient: true, // All stages except Sales and Resume (backend validates)
     },
     default: {
       viewPipelinesMenu: true,
@@ -489,6 +501,8 @@ const permissions: AppPermissions = {
       moveToOnHold: false,
       performActions: false,
       assignRecruiter: false,
+      blockClient: false,
+      unblockClient: false,
     },
   },
   jobs: {

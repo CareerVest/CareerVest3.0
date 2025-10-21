@@ -76,8 +76,8 @@ export function ClientCard({
 
   // Get required actions for the current stage
   const requiredActions = useMemo(() => {
-    return getRequiredActions(client.status, currentUserRole);
-  }, [client.status, currentUserRole]);
+    return getRequiredActions(client.status, currentUserRole, client);
+  }, [client.status, currentUserRole, client]);
 
   // Check if all required actions are completed
   const allActionsCompleted = areAllActionsCompleted(

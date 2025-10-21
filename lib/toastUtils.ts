@@ -8,11 +8,11 @@ import { toast } from "sonner";
 export const showSuccess = (message: string, description?: string) => {
   toast.success(message, {
     description,
-    duration: 4000,
+    duration: 2000,
     style: {
-      background: '#f0fdf4',
-      color: '#14532d',
-      border: '2px solid #16a34a',
+      background: '#682A53',
+      color: '#ffffff',
+      border: '2px solid #8B3A6B',
       fontWeight: 500,
     },
   });
@@ -21,11 +21,11 @@ export const showSuccess = (message: string, description?: string) => {
 export const showError = (message: string, description?: string) => {
   toast.error(message, {
     description,
-    duration: 6000,
+    duration: 2000,
     style: {
-      background: '#fef2f2',
-      color: '#7f1d1d',
-      border: '2px solid #dc2626',
+      background: '#dc2626',
+      color: '#ffffff',
+      border: '2px solid #991b1b',
       fontWeight: 500,
     },
   });
@@ -36,9 +36,9 @@ export const showWarning = (message: string, description?: string) => {
     description,
     duration: 5000,
     style: {
-      background: '#fefce8',
-      color: '#713f12',
-      border: '2px solid #ca8a04',
+      background: '#f59e0b',
+      color: '#ffffff',
+      border: '2px solid #d97706',
       fontWeight: 500,
     },
   });
@@ -49,9 +49,9 @@ export const showInfo = (message: string, description?: string) => {
     description,
     duration: 4000,
     style: {
-      background: '#eff6ff',
-      color: '#1e3a8a',
-      border: '2px solid #2563eb',
+      background: '#2563eb',
+      color: '#ffffff',
+      border: '2px solid #1d4ed8',
       fontWeight: 500,
     },
   });
@@ -72,7 +72,13 @@ export const showActionSuccess = (
 
   toast.success(message, {
     description: clientName ? `Client: ${clientName}` : undefined,
-    duration: 5000,
+    duration: 2000,
+    style: {
+      background: '#682A53',
+      color: '#ffffff',
+      border: '2px solid #8B3A6B',
+      fontWeight: 500,
+    },
   });
 };
 
@@ -86,7 +92,13 @@ export const showActionError = (actionType: string, errors: string[]) => {
 
   toast.error(`Failed to complete ${actionType}`, {
     description,
-    duration: 7000,
+    duration: 2000,
+    style: {
+      background: '#dc2626',
+      color: '#ffffff',
+      border: '2px solid #991b1b',
+      fontWeight: 500,
+    },
   });
 };
 
@@ -100,7 +112,13 @@ export const showRetryableError = (message: string, onRetry: () => void) => {
       label: "Retry",
       onClick: onRetry,
     },
-    duration: 10000,
+    duration: 2000,
+    style: {
+      background: '#dc2626',
+      color: '#ffffff',
+      border: '2px solid #991b1b',
+      fontWeight: 500,
+    },
   });
 };
 

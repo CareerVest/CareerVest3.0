@@ -48,6 +48,7 @@ import type {
   PaymentSchedule,
 } from "../../types/Clients/Client";
 import { useAuth } from "../../../contexts/authContext";
+import { useLoading } from "../../../contexts/loadingContext";
 import permissions from "../../utils/permissions";
 import {
   getRecruiters,
@@ -61,6 +62,7 @@ import { PLAN_TEMPLATES, generatePlanName, getPlanDetails } from "../constants/s
 export default function CreateClientForm() {
   const router = useRouter();
   const { roles } = useAuth();
+  const { withLoading } = useLoading();
   const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
   const [salesPersons, setSalesPersons] = useState<Recruiter[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -454,10 +456,8 @@ export default function CreateClientForm() {
         })),
       };
 
-      const success = await createClient(
-        submitData,
-        serviceAgreementFile,
-        null
+      const success = await withLoading(
+        createClient(submitData, serviceAgreementFile, null)
       );
       if (success) {
         router.push("/clients");

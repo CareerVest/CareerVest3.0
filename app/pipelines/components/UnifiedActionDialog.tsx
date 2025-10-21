@@ -440,6 +440,19 @@ export function UnifiedActionDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Content wrapper with relative positioning for overlay */}
+        <div className="relative">
+          {/* Loading Overlay - covers dialog content except header when submitting */}
+          {isSubmitting && (
+            <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg min-h-[300px]">
+              <div className="flex flex-col items-center space-y-3">
+                <Loader2 className="h-10 w-10 animate-spin text-[#682A53]" />
+                <p className="text-sm font-medium text-gray-700">Processing action...</p>
+                <p className="text-xs text-gray-500">Please wait while we complete your request</p>
+              </div>
+            </div>
+          )}
+
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -781,6 +794,7 @@ export function UnifiedActionDialog({
             )}
           </div>
         )}
+        </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isSubmitting}>

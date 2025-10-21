@@ -50,6 +50,7 @@ import type {
   PaymentSchedule,
 } from "../../types/Clients/ClientDetail";
 import { useAuth } from "../../../contexts/authContext";
+import { useLoading } from "../../../contexts/loadingContext";
 import permissions from "../../utils/permissions";
 import {
   getRecruiters,
@@ -73,6 +74,7 @@ export default function EditClientForm({
   canEdit,
 }: EditClientFormProps) {
   const router = useRouter();
+  const { withLoading } = useLoading();
   const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
   const [salesPersons, setSalesPersons] = useState<Recruiter[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -709,11 +711,13 @@ export default function EditClientForm({
         })),
       };
 
-      const success = await updateClient(
-        client.clientID,
-        submitData,
-        serviceAgreementFile,
-        promissoryNoteFile
+      const success = await withLoading(
+        updateClient(
+          client.clientID,
+          submitData,
+          serviceAgreementFile,
+          promissoryNoteFile
+        )
       );
       if (success) {
         router.push(`/clients/${client.clientID}`);
@@ -1155,6 +1159,7 @@ export default function EditClientForm({
             )}
 
             {/* Card 3: Subscription */}
+            {permissions.clients[userRole]?.subscriptionInfo?.view && (
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-3">
@@ -1629,6 +1634,7 @@ export default function EditClientForm({
                 </div>
               </CardContent>
             </Card>
+            )}
 
             {/* Card 4: Post-Placement - Only show for Admins with Placed status */}
             {clientData.clientStatus === "Placed" &&

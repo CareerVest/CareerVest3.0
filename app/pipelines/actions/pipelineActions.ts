@@ -1,6 +1,6 @@
 import axiosInstance from "../../../lib/axiosInstance";
 import { useApiWithLoading } from "../../../lib/apiWithLoading";
-import { showSuccess, showError, showWarning, showInfo } from "../../../lib/toastUtils";
+import { showSuccess, showError } from "../../../lib/toastUtils";
 import {
   Client,
   ClientStatus,
@@ -637,18 +637,14 @@ export async function executePipelineAction(data: {
 
     console.log("✅ Unified pipeline action completed:", response.data);
 
-    // Show success toast with appropriate message
-    if (response.data.stageTransitioned && response.data.newStage) {
-      showSuccess(`Client successfully moved to ${response.data.newStage}`);
-    } else if (response.data.success) {
-      showSuccess(response.data.message || "Action completed successfully");
-    }
+    // Don't show toast here - let the calling component handle success display
+    // The component knows better context about the action being performed
 
     return response.data;
   } catch (error: any) {
     console.error("❌ Error executing pipeline action:", error);
     const errorMessage = error.response?.data?.message || error.message || "Action failed";
-    showError(`Failed to execute action: ${errorMessage}`);
+    // Don't show toast here - let the calling component handle error display
     throw new Error(
       `Failed to execute pipeline action: ${
         error.response?.data?.message || error.message

@@ -336,8 +336,8 @@ export default function ClientView({ params }: { params: { id: string } }) {
             </CardContent>
           </Card>
 
-          {/* Card 2: Marketing & Assignment - Admin Only */}
-          {userRole === "Admin" && (
+          {/* Card 2: Marketing & Assignment */}
+          {permissions.clients[userRole]?.marketingInfo?.view && (
           <Card className="lg:col-span-1">
             <CardHeader className="pb-4">
               <div className="flex items-center space-x-3">
@@ -438,6 +438,7 @@ export default function ClientView({ params }: { params: { id: string } }) {
           )}
 
           {/* Card 3: Subscription */}
+          {permissions.clients[userRole]?.subscriptionInfo?.view && (
           <Card className="lg:col-span-1">
             <CardHeader className="pb-4">
               <div className="flex items-center space-x-3">
@@ -586,6 +587,7 @@ export default function ClientView({ params }: { params: { id: string } }) {
               </div>
             </CardContent>
           </Card>
+          )}
 
           {/* Card 4: Post-Placement (if applicable) */}
           {client.clientStatus === "Placed" &&
