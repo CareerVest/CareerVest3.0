@@ -1210,10 +1210,10 @@ export default function EditClientForm({
                             Basic Plan - $500/month × 3 months (14% after job)
                           </SelectItem>
                           <SelectItem value="Standard">
-                            Standard Plan - $750/month × 3 months (12% after job)
+                            Standard Plan - $1000/month × 3 months (12% after job)
                           </SelectItem>
                           <SelectItem value="Premium">
-                            Premium Plan - $1000/month × 3 months (10% after job)
+                            Premium Plan - $1299/month × 3 months (10% after job)
                           </SelectItem>
                           <SelectItem value="Custom">
                             Custom Plan
