@@ -2,6 +2,7 @@ import axiosInstance from "../../../lib/axiosInstance";
 import { ClientDetail } from "../../types/Clients/ClientDetail";
 import type { ClientList } from "../../types/Clients/ClientList";
 import { Client } from "../../types/Clients/Client";
+import { toISOStringPreservingDate } from "../../utils/dateUtils";
 
 const parseDate = (dateStr: string | null | undefined): Date | null => {
   if (!dateStr) return null;
@@ -276,20 +277,14 @@ export async function createClient(
     // Create the ClientCreateDto object that the backend expects
     const clientCreateDto = {
       clientName: createClientData.clientName,
-      enrollmentDate: createClientData.enrollmentDate
-        ? new Date(createClientData.enrollmentDate).toISOString()
-        : null,
+      enrollmentDate: toISOStringPreservingDate(createClientData.enrollmentDate),
       techStack: createClientData.techStack || null,
       visaStatus: createClientData.visaStatus || null,
       personalPhoneNumber: createClientData.personalPhoneNumber || null,
       personalEmailAddress: createClientData.personalEmailAddress || null,
       linkedInURL: createClientData.linkedInURL || null,
-      marketingStartDate: createClientData.marketingStartDate
-        ? new Date(createClientData.marketingStartDate).toISOString()
-        : null,
-      marketingEndDate: createClientData.marketingEndDate
-        ? new Date(createClientData.marketingEndDate).toISOString()
-        : null,
+      marketingStartDate: toISOStringPreservingDate(createClientData.marketingStartDate),
+      marketingEndDate: toISOStringPreservingDate(createClientData.marketingEndDate),
       marketingEmailID: createClientData.marketingEmailID || null,
       marketingEmailPassword: createClientData.marketingEmailPassword || null,
       assignedRecruiterID: createClientData.assignedRecruiterID
@@ -299,12 +294,8 @@ export async function createClient(
         ? parseInt(createClientData.assignedSalesPersonID.toString())
         : null,
       clientStatus: createClientData.clientStatus,
-      placedDate: createClientData.placedDate
-        ? new Date(createClientData.placedDate).toISOString()
-        : null,
-      backedOutDate: createClientData.backedOutDate
-        ? new Date(createClientData.backedOutDate).toISOString()
-        : null,
+      placedDate: toISOStringPreservingDate(createClientData.placedDate),
+      backedOutDate: toISOStringPreservingDate(createClientData.backedOutDate),
       backedOutReason: createClientData.backedOutReason || null,
       totalDue:
         createClientData.totalDue !== undefined &&
@@ -321,17 +312,9 @@ export async function createClient(
             subscriptionPlanID:
               createClientData.subscriptionPlan.subscriptionPlanID || 0,
             planName: createClientData.subscriptionPlan.planName || "",
-            createdTS: createClientData.subscriptionPlan.createdTS
-              ? new Date(
-                  createClientData.subscriptionPlan.createdTS
-                ).toISOString()
-              : null,
+            createdTS: toISOStringPreservingDate(createClientData.subscriptionPlan.createdTS),
             createdBy: createClientData.subscriptionPlan.createdBy || null,
-            updatedTS: createClientData.subscriptionPlan.updatedTS
-              ? new Date(
-                  createClientData.subscriptionPlan.updatedTS
-                ).toISOString()
-              : null,
+            updatedTS: toISOStringPreservingDate(createClientData.subscriptionPlan.updatedTS),
             updatedBy: createClientData.subscriptionPlan.updatedBy || null,
           }
         : null,
@@ -342,12 +325,9 @@ export async function createClient(
             planName: createClientData.postPlacementPlan.planName || "",
             promissoryNoteUrl:
               createClientData.postPlacementPlan.promissoryNoteUrl || null,
-            postPlacementPlanPaymentStartDate: createClientData
-              .postPlacementPlan.postPlacementPlanPaymentStartDate
-              ? new Date(
-                  createClientData.postPlacementPlan.postPlacementPlanPaymentStartDate
-                ).toISOString()
-              : null,
+            postPlacementPlanPaymentStartDate: toISOStringPreservingDate(
+              createClientData.postPlacementPlan.postPlacementPlanPaymentStartDate
+            ),
             totalPostPlacementAmount:
               createClientData.postPlacementPlan.totalPostPlacementAmount !==
                 undefined &&
@@ -357,17 +337,9 @@ export async function createClient(
                     createClientData.postPlacementPlan.totalPostPlacementAmount
                   ) || 0
                 : null,
-            createdTS: createClientData.postPlacementPlan.createdTS
-              ? new Date(
-                  createClientData.postPlacementPlan.createdTS
-                ).toISOString()
-              : null,
+            createdTS: toISOStringPreservingDate(createClientData.postPlacementPlan.createdTS),
             createdBy: createClientData.postPlacementPlan.createdBy || null,
-            updatedTS: createClientData.postPlacementPlan.updatedTS
-              ? new Date(
-                  createClientData.postPlacementPlan.updatedTS
-                ).toISOString()
-              : null,
+            updatedTS: toISOStringPreservingDate(createClientData.postPlacementPlan.updatedTS),
             updatedBy: createClientData.postPlacementPlan.updatedBy || null,
           }
         : null,
@@ -377,25 +349,19 @@ export async function createClient(
           ? createClientData.paymentSchedules.map((ps: any) => ({
               paymentScheduleID: ps.paymentScheduleID || 0,
               clientID: ps.clientID || 0,
-              paymentDate: ps.paymentDate
-                ? new Date(ps.paymentDate).toISOString()
-                : null,
+              paymentDate: toISOStringPreservingDate(ps.paymentDate),
               originalAmount: ps.amount || ps.originalAmount || 0, // Transform 'amount' to 'originalAmount'
               paidAmount: ps.paidAmount || 0,
               remainingAmount: ps.remainingAmount || ps.amount || ps.originalAmount || 0,
-              dueDate: ps.dueDate || ps.paymentDate ? new Date(ps.dueDate || ps.paymentDate).toISOString() : null,
+              dueDate: toISOStringPreservingDate(ps.dueDate || ps.paymentDate),
               paymentType: ps.paymentType || "Subscription",
               paymentStatus: ps.isPaid === true ? "Paid" : (ps.paymentStatus || "Pending"), // Transform 'isPaid' to 'paymentStatus'
               assignedTo: ps.assignedTo || null,
               subscriptionPlanID: ps.subscriptionPlanID || null,
               postPlacementPlanID: ps.postPlacementPlanID || null,
-              createdTS: ps.createdTS
-                ? new Date(ps.createdTS).toISOString()
-                : null,
+              createdTS: toISOStringPreservingDate(ps.createdTS),
               createdBy: ps.createdBy || null,
-              updatedTS: ps.updatedTS
-                ? new Date(ps.updatedTS).toISOString()
-                : null,
+              updatedTS: toISOStringPreservingDate(ps.updatedTS),
               updatedBy: ps.updatedBy || null,
             }))
           : null,

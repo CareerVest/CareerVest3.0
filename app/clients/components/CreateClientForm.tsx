@@ -182,18 +182,21 @@ export default function CreateClientForm() {
 
     // Generate payment schedule
     const payments: PaymentSchedule[] = [];
-    const startDateObj = new Date(startDate);
+    const startDateObj = new Date(startDate + 'T12:00:00'); // Parse at noon to avoid timezone issues
 
     for (let i = 0; i < planDetails.durationMonths; i++) {
       const paymentDate = new Date(startDateObj);
       paymentDate.setMonth(paymentDate.getMonth() + i);
 
+      // Keep as string in YYYY-MM-DD format
+      const paymentDateStr = paymentDate.toISOString().split("T")[0];
+
       payments.push({
-        paymentDate: parseDateForState(paymentDate.toISOString().split("T")[0]),
+        paymentDate: paymentDateStr as any, // Keep as string
         originalAmount: planDetails.monthlyAmount,
         paidAmount: 0,
         remainingAmount: planDetails.monthlyAmount,
-        dueDate: parseDateForState(paymentDate.toISOString().split("T")[0]),
+        dueDate: paymentDateStr as any, // Keep as string
         paymentType: "Subscription",
         paymentStatus: "Pending",
         assignedTo: null,
@@ -281,8 +284,9 @@ export default function CreateClientForm() {
             ...prevData,
             subscriptionPlan: {
               ...prevData.subscriptionPlan!,
+              // Keep date strings as strings, don't convert to Date objects
               [fieldName]: fieldName.includes("Date")
-                ? parseDateForState(value)
+                ? (value || null)
                 : value,
             },
           };
@@ -290,8 +294,9 @@ export default function CreateClientForm() {
         return prevData;
       });
     } else {
+      // Keep date strings as strings, don't convert to Date objects
       const newValue = field.includes("Date")
-        ? parseDateForState(value)
+        ? (value || null)
         : value;
       setClientData((prev) => ({
         ...prev,
@@ -359,7 +364,7 @@ export default function CreateClientForm() {
               ...payment,
               [field]:
                 field === "paymentDate" || field === "dueDate"
-                  ? parseDateForState(value as string)
+                  ? (value || null) // Keep as string, don't convert to Date
                   : field === "originalAmount" || field === "paidAmount" || field === "remainingAmount"
                   ? Number(value)
                   : value,
@@ -442,15 +447,10 @@ export default function CreateClientForm() {
     try {
       const submitData: Client = {
         ...clientData,
-        enrollmentDate: clientData.enrollmentDate
-          ? new Date(clientData.enrollmentDate)
-          : null,
-        placedDate: clientData.placedDate
-          ? new Date(clientData.placedDate)
-          : null,
-        backedOutDate: clientData.backedOutDate
-          ? new Date(clientData.backedOutDate)
-          : null,
+        // Dates are already strings from the form, keep them as is
+        enrollmentDate: clientData.enrollmentDate,
+        placedDate: clientData.placedDate,
+        backedOutDate: clientData.backedOutDate,
         postPlacementPlan: null,
         postPlacementPlanID: null,
         paymentSchedules: subscriptionPaymentSchedule.map((ps) => ({
