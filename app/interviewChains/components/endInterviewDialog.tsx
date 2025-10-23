@@ -314,7 +314,7 @@ export default function EndInterviewDialog({
                       <SelectTrigger>
                         <SelectValue placeholder="Select Reason" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="max-h-[200px] overflow-y-auto">
                         {rejectionReasons.map((reason) => (
                           <SelectItem key={reason} value={reason}>
                             {reason}

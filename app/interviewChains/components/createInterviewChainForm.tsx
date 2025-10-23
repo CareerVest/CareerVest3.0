@@ -275,7 +275,7 @@ export default function CreateInterviewChainForm({
                 <SelectTrigger>
                   <SelectValue placeholder="Select Recruiter" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[200px] overflow-y-auto">
                   {recruiters.map((recruiter) => (
                     <SelectItem
                       key={recruiter.employeeID}
@@ -306,7 +306,7 @@ export default function CreateInterviewChainForm({
                 <SelectTrigger>
                   <SelectValue placeholder="Select Client" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[200px] overflow-y-auto">
                   {clients.map((client) => (
                     <SelectItem
                       key={client.clientID}
