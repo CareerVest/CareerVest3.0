@@ -155,3 +155,65 @@ export const toDateOnlyString = (date: Date | string | null | undefined): string
 
   return `${year}-${month}-${day}`;
 };
+
+/**
+ * Safely formats a date for display without timezone issues
+ * Handles both Date objects and string formats
+ *
+ * @param date - Date object, string, null, or undefined
+ * @param locale - Locale string (default: "en-US")
+ * @returns Formatted date string or "Not set"
+ */
+export const formatDateForDisplay = (
+  date: Date | string | null | undefined,
+  locale: string = "en-US"
+): string => {
+  if (!date) return "Not set";
+
+  try {
+    let dateStr: string;
+
+    if (typeof date === 'string') {
+      // Already a string, use as-is if in YYYY-MM-DD format
+      if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        dateStr = date;
+      } else {
+        // Try to parse it as a date string
+        dateStr = new Date(date).toISOString().split('T')[0];
+      }
+    } else {
+      // It's a Date object
+      dateStr = date.toISOString().split('T')[0];
+    }
+
+    // Add noon time to avoid timezone issues
+    const dateWithTime = new Date(dateStr + "T12:00:00");
+
+    return dateWithTime.toLocaleDateString(locale);
+  } catch (error) {
+    console.error('Error formatting date:', date, error);
+    return "Invalid Date";
+  }
+};
+
+/**
+ * Converts 24-hour time format to 12-hour format with AM/PM
+ *
+ * @param time24 - Time in HH:mm format (24-hour)
+ * @returns Time in 12-hour format with AM/PM (e.g., "01:30 PM")
+ */
+export const formatTimeTo12Hour = (time24: string | null | undefined): string => {
+  if (!time24) return "Not set";
+
+  try {
+    const [hours, minutes] = time24.split(':');
+    const hour24 = parseInt(hours, 10);
+    const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+    const period = hour24 >= 12 ? 'PM' : 'AM';
+
+    return `${hour12.toString().padStart(2, '0')}:${minutes} ${period}`;
+  } catch (error) {
+    console.error('Error formatting time:', time24, error);
+    return "Invalid Time";
+  }
+};

@@ -25,6 +25,7 @@ import type {
   InterviewChain,
 } from "../../types/interviewChain/interviewChain";
 import { useInterviewForm } from "./hooks/useInterviewForm";
+import { formatDateForDisplay, formatTimeTo12Hour } from "../../utils/dateUtils";
 
 // Interview dropdowns data
 const interviewDropdowns = {
@@ -577,11 +578,7 @@ export default function EditInterviewDialog({
                 <div>
                   <p className="text-gray-600">Date:</p>
                   <p className="font-medium">
-                    {newInterview.InterviewDate
-                      ? new Date(
-                          newInterview.InterviewDate + "T12:00:00"
-                        ).toLocaleDateString()
-                      : "Not set"}
+                    {formatDateForDisplay(newInterview.InterviewDate)}
                   </p>
                 </div>
                 <div>
@@ -589,7 +586,7 @@ export default function EditInterviewDialog({
                   <p className="font-medium">
                     {newInterview.InterviewStartTime &&
                     newInterview.InterviewEndTime
-                      ? `${newInterview.InterviewStartTime} - ${newInterview.InterviewEndTime}`
+                      ? `${formatTimeTo12Hour(newInterview.InterviewStartTime)} - ${formatTimeTo12Hour(newInterview.InterviewEndTime)}`
                       : "Not set"}
                   </p>
                 </div>
@@ -730,14 +727,7 @@ export default function EditInterviewDialog({
             Editing {interviewToEdit.Position || interviewToEdit.InterviewType}{" "}
             interview scheduled for{" "}
             {interviewToEdit.InterviewDate
-              ? new Date(interviewToEdit.InterviewDate + "T12:00:00").toLocaleDateString(
-                  "en-US",
-                  {
-                    year: "numeric",
-                    month: "2-digit",
-                    day: "2-digit",
-                  }
-                )
+              ? formatDateForDisplay(interviewToEdit.InterviewDate)
               : "N/A"}
           </p>
         </div>

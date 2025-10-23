@@ -27,7 +27,7 @@ export function TimePicker({
 }: TimePickerProps) {
   // Parse 24-hour time to 12-hour format
   const parse24HourTo12Hour = (time24: string) => {
-    if (!time24) return { hour: "12", minute: "00", period: "AM" };
+    if (!time24) return { hour: "", minute: "", period: "AM" };
 
     const [hours, minutes] = time24.split(":");
     const hour24 = parseInt(hours, 10);
@@ -47,6 +47,8 @@ export function TimePicker({
     minute: string,
     period: string
   ) => {
+    if (!hour || !minute) return "";
+
     let hour24 = parseInt(hour, 10);
 
     if (period === "AM" && hour24 === 12) {
@@ -109,7 +111,7 @@ export function TimePicker({
   return (
     <div className={`flex gap-2 ${className}`} id={id}>
       {/* Hour */}
-      <Select value={hour} onValueChange={handleHourChange} disabled={disabled}>
+      <Select value={hour || undefined} onValueChange={handleHourChange} disabled={disabled}>
         <SelectTrigger className="w-[70px]">
           <SelectValue placeholder="HH" />
         </SelectTrigger>
@@ -126,7 +128,7 @@ export function TimePicker({
 
       {/* Minute */}
       <Select
-        value={minute}
+        value={minute || undefined}
         onValueChange={handleMinuteChange}
         disabled={disabled}
       >
