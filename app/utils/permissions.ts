@@ -153,7 +153,7 @@ const permissions: AppPermissions = {
       postPlacementInfo: { view: false, edit: false },
       addClient: false,
       viewClient: true,
-      editClient: true,
+      editClient: false,
       deleteClient: false,
     },
     Sales_Executive: {
