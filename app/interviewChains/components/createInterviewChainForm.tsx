@@ -745,7 +745,7 @@ export default function CreateInterviewChainForm({
                     <span className="ml-2 font-medium">
                       {newInterview.InterviewDate
                         ? new Date(
-                            newInterview.InterviewDate
+                            newInterview.InterviewDate + "T12:00:00"
                           ).toLocaleDateString()
                         : "Not set"}
                     </span>
