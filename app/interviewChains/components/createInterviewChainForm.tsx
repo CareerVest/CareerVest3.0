@@ -25,6 +25,7 @@ import type {
   InterviewChain,
 } from "../../types/interviewChain/interviewChain";
 import { useInterviewForm } from "./hooks/useInterviewForm";
+import { formatDateForDisplay, formatTimeTo12Hour } from "../../utils/dateUtils";
 
 // Interview dropdowns data
 const interviewDropdowns = {
@@ -743,18 +744,14 @@ export default function CreateInterviewChainForm({
                   <div>
                     <span className="text-gray-600">Date:</span>
                     <span className="ml-2 font-medium">
-                      {newInterview.InterviewDate
-                        ? new Date(
-                            newInterview.InterviewDate + "T12:00:00"
-                          ).toLocaleDateString()
-                        : "Not set"}
+                      {formatDateForDisplay(newInterview.InterviewDate)}
                     </span>
                   </div>
                   <div>
                     <span className="text-gray-600">Time:</span>
                     <span className="ml-2 font-medium">
-                      {newInterview.InterviewStartTime} -{" "}
-                      {newInterview.InterviewEndTime}
+                      {formatTimeTo12Hour(newInterview.InterviewStartTime)} -{" "}
+                      {formatTimeTo12Hour(newInterview.InterviewEndTime)}
                     </span>
                   </div>
                   <div>
