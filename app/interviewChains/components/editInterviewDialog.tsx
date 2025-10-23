@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../components/ui/select";
+import { TimePicker } from "../../../components/ui/time-picker";
 import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 import type {
   Interview,
@@ -349,24 +350,22 @@ export default function EditInterviewDialog({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="startTime">Start Time</Label>
-                    <Input
+                    <TimePicker
                       id="startTime"
-                      type="time"
                       value={newInterview.InterviewStartTime || ""}
-                      onChange={(e) =>
-                        handleInputChange("InterviewStartTime", e.target.value)
+                      onChange={(value) =>
+                        handleInputChange("InterviewStartTime", value)
                       }
                       disabled={isSubmitting || loading}
                     />
                   </div>
                   <div>
                     <Label htmlFor="endTime">End Time</Label>
-                    <Input
+                    <TimePicker
                       id="endTime"
-                      type="time"
                       value={newInterview.InterviewEndTime || ""}
-                      onChange={(e) =>
-                        handleInputChange("InterviewEndTime", e.target.value)
+                      onChange={(value) =>
+                        handleInputChange("InterviewEndTime", value)
                       }
                       disabled={isSubmitting || loading}
                     />

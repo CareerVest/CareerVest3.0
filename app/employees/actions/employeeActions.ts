@@ -4,6 +4,7 @@ import { EmployeeList } from "../../types/employees/employeeList";
 import { Recruiter } from "../../types/employees/recruiter";
 import axiosInstance from "../../../lib/axiosInstance";
 import { useApiWithLoading } from "../../../lib/apiWithLoading";
+import { toISOStringPreservingDate } from "../../utils/dateUtils";
 
 const normalizeEmployeeData = (employee: EmployeeDetail): Employee => {
   return {
@@ -15,11 +16,11 @@ const normalizeEmployeeData = (employee: EmployeeDetail): Employee => {
     PersonalPhoneNumber: employee.PersonalPhoneNumber?.trim() || "",
     PersonalPhoneCountryCode: employee.PersonalPhoneCountryCode?.trim() || "",
     JoinedDate: employee.JoinedDate
-      ? new Date(employee.JoinedDate).toISOString()
+      ? toISOStringPreservingDate(employee.JoinedDate)
       : null,
     Status: employee.Status || "Active",
     TerminatedDate: employee.TerminatedDate
-      ? new Date(employee.TerminatedDate).toISOString()
+      ? toISOStringPreservingDate(employee.TerminatedDate)
       : null,
     Role: employee.Role?.trim() || "",
     SupervisorID: employee.SupervisorID || null,
@@ -77,15 +78,12 @@ export const useEmployeeActions = () => {
                 "",
               JoinedDate:
                 item.JoinedDate || item.joinedDate
-                  ? new Date(item.JoinedDate || item.joinedDate).toISOString()
+                  ? toISOStringPreservingDate(item.JoinedDate || item.joinedDate)
                   : null,
               Status: item.Status || item.status || "",
-              TerminatedDate:
+              TerminatedDate: toISOStringPreservingDate(
                 item.TerminatedDate || item.terminatedDate
-                  ? new Date(
-                      item.TerminatedDate || item.terminatedDate
-                    ).toISOString()
-                  : null,
+              ),
               Role: item.Role || item.role || "",
               SupervisorID: item.SupervisorID || item.supervisorID || null,
               SupervisorName: item.SupervisorName || item.supervisorName || "",
@@ -153,10 +151,10 @@ export const useEmployeeActions = () => {
           SupervisorName:
             employeeData.SupervisorName || employeeData.supervisorName || "",
           CreatedTS: employeeData.CreatedTS
-            ? new Date(employeeData.CreatedTS).toISOString()
+            ? toISOStringPreservingDate(employeeData.CreatedTS)
             : null,
           UpdatedTS: employeeData.UpdatedTS
-            ? new Date(employeeData.UpdatedTS).toISOString()
+            ? toISOStringPreservingDate(employeeData.UpdatedTS)
             : null,
         };
       })(),
@@ -302,12 +300,12 @@ export const fetchEmployees = async (): Promise<EmployeeList[]> => {
           item.PersonalPhoneCountryCode || item.personalPhoneCountryCode || "",
         JoinedDate:
           item.JoinedDate || item.joinedDate
-            ? new Date(item.JoinedDate || item.joinedDate).toISOString()
+            ? toISOStringPreservingDate(item.JoinedDate || item.joinedDate)
             : null,
         Status: item.Status || item.status || "",
         TerminatedDate:
           item.TerminatedDate || item.terminatedDate
-            ? new Date(item.TerminatedDate || item.terminatedDate).toISOString()
+            ? toISOStringPreservingDate(item.TerminatedDate || item.terminatedDate)
             : null,
         Role: item.Role || item.role || "",
         SupervisorID: item.SupervisorID || item.supervisorID || null,
@@ -372,10 +370,10 @@ export const getEmployee = async (
     SupervisorName:
       employeeData.SupervisorName || employeeData.supervisorName || "",
     CreatedTS: employeeData.CreatedTS
-      ? new Date(employeeData.CreatedTS).toISOString()
+      ? toISOStringPreservingDate(employeeData.CreatedTS)
       : null,
     UpdatedTS: employeeData.UpdatedTS
-      ? new Date(employeeData.UpdatedTS).toISOString()
+      ? toISOStringPreservingDate(employeeData.UpdatedTS)
       : null,
   };
 };
