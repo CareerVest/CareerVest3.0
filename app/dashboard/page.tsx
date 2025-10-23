@@ -27,6 +27,8 @@ export default function Dashboard() {
     ? "Sales_Executive"
     : roles.includes("Marketing_Manager")
     ? "Marketing_Manager"
+    : roles.includes("Senior_Recruiter")
+    ? "Senior_Recruiter"
     : roles.includes("Recruiter")
     ? "Recruiter"
     : roles.includes("Resume_Writer")
@@ -109,6 +111,8 @@ export default function Dashboard() {
           return <SalesDashboard />;
         case "Marketing_Manager":
           return <MarketingDashboard />;
+        case "Senior_Recruiter":
+          return <RecruiterDashboard />;
         case "Recruiter":
           return <RecruiterDashboard />;
         case "Resume_Writer":
@@ -127,6 +131,7 @@ export default function Dashboard() {
       Admin: "Admin Command Center",
       Sales_Executive: "Sales Performance Hub",
       Marketing_Manager: "Marketing & Recruiter Hub",
+      Senior_Recruiter: "Senior Recruiter Dashboard",
       Recruiter: "My Candidate Dashboard",
       Resume_Writer: "Resume Writer Dashboard",
     };
@@ -138,6 +143,7 @@ export default function Dashboard() {
       Admin: "Complete business oversight with real-time metrics across all departments",
       Sales_Executive: "Track your sales performance, pipeline, and revenue targets",
       Marketing_Manager: "Monitor recruiter performance, interviews, and placement metrics",
+      Senior_Recruiter: "Manage your team, monitor performance, and track success metrics",
       Recruiter: "Manage your candidates, interviews, and track your success",
       Resume_Writer: "Manage resume assignments, track quality, and deliver excellence",
     };

@@ -13,7 +13,7 @@ export default function InterviewChainsLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, roles } = useAuth();
+  const { roles } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(true); // Start collapsed by default
   const [sidebarWidth, setSidebarWidth] = useState(80); // Default collapsed width
   const [userRole, setUserRole] = useState<string>("default");
@@ -24,20 +24,12 @@ export default function InterviewChainsLayout({
     if (roles && roles.length > 0) {
       const mappedRole = mapAzureRoleToAppRole(roles);
       setUserRole(mappedRole);
+      setIsLoading(false);
     }
   }, [roles]);
 
   // Inactivity timeout hook
   const { isInactive, handleExtendSession } = useInactivity(30, 60); // 30 minutes timeout, 60 seconds countdown
-
-  useEffect(() => {
-    if (user) {
-      setUserRole((user as any).role || "Admin");
-    }
-    // Prevent sidebar flash on reload
-    const timer = setTimeout(() => setIsLoading(false), 0);
-    return () => clearTimeout(timer);
-  }, [user]);
 
   // Show loading state to prevent sidebar flash
   if (isLoading) {

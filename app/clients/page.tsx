@@ -68,6 +68,8 @@ export default function ClientsPage() {
 
       const loadClients = async () => {
         try {
+          // Backend handles all role-based filtering automatically via AccessControlService
+          // Just call fetchClients() for all roles - backend will return appropriate data
           const fetchedClients = await apiCall(fetchClients(), {
             showLoading: true,
           });
@@ -88,7 +90,8 @@ export default function ClientsPage() {
     };
 
     checkAuthAndLoad();
-  }, [isAuthenticated, isInitialized, router, login, roles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isInitialized]);
 
   if (!isInitialized || !isAuthenticated) {
     return (

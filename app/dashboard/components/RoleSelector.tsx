@@ -10,6 +10,7 @@ const roles = [
   { value: "Admin", label: "Admin Dashboard", icon: "👑" },
   { value: "Sales_Executive", label: "Sales Executive Dashboard", icon: "💼" },
   { value: "Marketing_Manager", label: "Marketing Manager Dashboard", icon: "📊" },
+  { value: "Senior_Recruiter", label: "Senior Recruiter Dashboard", icon: "⭐" },
   { value: "Recruiter", label: "Recruiter Dashboard", icon: "🎯" },
   { value: "Resume_Writer", label: "Resume Writer Dashboard", icon: "📝" },
 ];
