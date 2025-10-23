@@ -534,7 +534,7 @@ export default function AddInterviewDialog({
                   <p className="font-medium">
                     {newInterview.InterviewDate
                       ? new Date(
-                          newInterview.InterviewDate
+                          newInterview.InterviewDate + "T12:00:00"
                         ).toLocaleDateString()
                       : "Not set"}
                   </p>
@@ -665,7 +665,7 @@ export default function AddInterviewDialog({
               {selectedInterview.InterviewType || "previous"} interview
               {selectedInterview.InterviewDate
                 ? ` scheduled on ${new Date(
-                    selectedInterview.InterviewDate
+                    selectedInterview.InterviewDate + "T12:00:00"
                   ).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "2-digit",

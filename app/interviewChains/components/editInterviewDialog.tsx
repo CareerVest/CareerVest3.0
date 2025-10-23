@@ -579,7 +579,7 @@ export default function EditInterviewDialog({
                   <p className="font-medium">
                     {newInterview.InterviewDate
                       ? new Date(
-                          newInterview.InterviewDate
+                          newInterview.InterviewDate + "T12:00:00"
                         ).toLocaleDateString()
                       : "Not set"}
                   </p>
@@ -730,7 +730,7 @@ export default function EditInterviewDialog({
             Editing {interviewToEdit.Position || interviewToEdit.InterviewType}{" "}
             interview scheduled for{" "}
             {interviewToEdit.InterviewDate
-              ? new Date(interviewToEdit.InterviewDate).toLocaleDateString(
+              ? new Date(interviewToEdit.InterviewDate + "T12:00:00").toLocaleDateString(
                   "en-US",
                   {
                     year: "numeric",
