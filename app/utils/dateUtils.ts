@@ -100,10 +100,10 @@ export const parseDateForState = (dateString: string | null): Date | null => {
  * Converts a date to ISO string format while preserving the local date
  * Solves the timezone issue where selecting today's date shows as yesterday
  *
- * @param date - Date object, string, or null
+ * @param date - Date object, string, null, or undefined
  * @returns ISO string with time set to noon UTC to avoid timezone shifts, or null
  */
-export const toISOStringPreservingDate = (date: Date | string | null): string | null => {
+export const toISOStringPreservingDate = (date: Date | string | null | undefined): string | null => {
   if (!date) return null;
 
   let dateObj: Date;
@@ -129,10 +129,10 @@ export const toISOStringPreservingDate = (date: Date | string | null): string | 
  * Converts a date to YYYY-MM-DD string format for date-only fields
  * Best for enrollment dates, payment dates, etc. where time is not needed
  *
- * @param date - Date object, string, or null
+ * @param date - Date object, string, null, or undefined
  * @returns Date string in YYYY-MM-DD format, or null
  */
-export const toDateOnlyString = (date: Date | string | null): string | null => {
+export const toDateOnlyString = (date: Date | string | null | undefined): string | null => {
   if (!date) return null;
 
   let dateObj: Date;
