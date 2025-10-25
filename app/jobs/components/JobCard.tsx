@@ -2,6 +2,7 @@
 
 import { Job } from '../types/jobs';
 import { MatchScoreBadge } from './MatchScoreBadge';
+import { FreshnessBadge } from './FreshnessBadge';
 import { formatDistanceToNow } from 'date-fns';
 
 interface JobCardProps {
@@ -9,9 +10,10 @@ interface JobCardProps {
   onSkip: () => void;
   onView: () => void;
   onApply: () => void;
+  onOptimizeResume: () => void;
 }
 
-export function JobCard({ job, onSkip, onView, onApply }: JobCardProps) {
+export function JobCard({ job, onSkip, onView, onApply, onOptimizeResume }: JobCardProps) {
   const formatTimeAgo = (dateString: string) => {
     try {
       return formatDistanceToNow(new Date(dateString), { addSuffix: true });
@@ -59,7 +61,7 @@ export function JobCard({ job, onSkip, onView, onApply }: JobCardProps) {
               {formatSalary()}
             </div>
 
-            {/* Other Details */}
+            {/* Other Details with Freshness Badge */}
             <div className="flex items-center gap-2 text-xs text-gray-600">
               <span>{formatTimeAgo(job.postingDate)}</span>
               <span>•</span>
@@ -72,6 +74,12 @@ export function JobCard({ job, onSkip, onView, onApply }: JobCardProps) {
                   <span>{job.applicantCount} applicants</span>
                 </>
               )}
+              {job.freshnessStatus && (
+                <>
+                  <span>•</span>
+                  <FreshnessBadge status={job.freshnessStatus} />
+                </>
+              )}
             </div>
           </div>
 
@@ -80,25 +88,39 @@ export function JobCard({ job, onSkip, onView, onApply }: JobCardProps) {
             {/* Match Score at top */}
             <MatchScoreBadge score={job.matchScore} />
 
-            {/* Action Buttons in a row */}
-            <div className="flex gap-2">
+            {/* Action Buttons in a column */}
+            <div className="flex flex-col gap-2">
+              {/* Primary Actions Row */}
+              <div className="flex gap-2">
+                <button
+                  onClick={onSkip}
+                  className="px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-lg transition-all whitespace-nowrap"
+                >
+                  Skip Job
+                </button>
+                <button
+                  onClick={onView}
+                  className="px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-[#682A53] to-[#7d3463] hover:from-[#7d3463] hover:to-[#682A53] rounded-lg transition-all whitespace-nowrap"
+                >
+                  View
+                </button>
+                <button
+                  onClick={onApply}
+                  className="px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 rounded-lg transition-all whitespace-nowrap"
+                >
+                  Apply
+                </button>
+              </div>
+
+              {/* Resume Optimization Button */}
               <button
-                onClick={onSkip}
-                className="px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-lg transition-all whitespace-nowrap"
+                onClick={onOptimizeResume}
+                className="px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-lg transition-all whitespace-nowrap flex items-center justify-center gap-1.5"
               >
-                Skip Job
-              </button>
-              <button
-                onClick={onView}
-                className="px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-[#682A53] to-[#7d3463] hover:from-[#7d3463] hover:to-[#682A53] rounded-lg transition-all whitespace-nowrap"
-              >
-                View
-              </button>
-              <button
-                onClick={onApply}
-                className="px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 rounded-lg transition-all whitespace-nowrap"
-              >
-                Apply
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                Optimize Resume
               </button>
             </div>
           </div>

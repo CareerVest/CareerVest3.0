@@ -1,16 +1,37 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { dummyAdminBatches } from '../../data/dummyAdminData';
 import { formatDistanceToNow } from 'date-fns';
+import { getAdminBatches } from '../../actions/jobsActions';
+import { AdminBatch } from '../../types/admin';
 
 interface ActiveBatchesTableProps {
   clientID: number;
 }
 
 export function ActiveBatchesTable({ clientID }: ActiveBatchesTableProps) {
-  // Filter batches for this client
-  const clientBatches = dummyAdminBatches.filter((batch) => batch.clientID === clientID);
+  const [clientBatches, setClientBatches] = useState<AdminBatch[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadBatches = async () => {
+      try {
+        setLoading(true);
+        const allBatches = await getAdminBatches();
+        // Filter batches for this client
+        const filtered = allBatches.filter((batch) => batch.clientID === clientID);
+        setClientBatches(filtered);
+      } catch (error) {
+        console.error('Error loading batches:', error);
+        setClientBatches([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadBatches();
+  }, [clientID]);
 
   const formatTimeAgo = (dateString: string) => {
     try {
@@ -50,6 +71,17 @@ export function ActiveBatchesTable({ clientID }: ActiveBatchesTableProps) {
         return null;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <h2 className="text-sm font-bold text-gray-900 mb-3">Active Batches</h2>
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#682A53]"></div>
+        </div>
+      </div>
+    );
+  }
 
   if (clientBatches.length === 0) {
     return (

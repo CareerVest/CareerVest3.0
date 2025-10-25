@@ -1,7 +1,6 @@
 'use client';
 
 import { AdminStats } from '../../types/admin';
-import { dummyClientCards, dummyJobFetchRuns, dummyAdminBatches } from '../../data/dummyAdminData';
 
 interface StatsCardsProps {
   stats: AdminStats;
@@ -9,39 +8,9 @@ interface StatsCardsProps {
 }
 
 export function StatsCards({ stats, selectedClientID }: StatsCardsProps) {
-  // Filter stats based on selected client
-  const filteredStats =
-    selectedClientID === 'all'
-      ? stats
-      : (() => {
-          const clientCard = dummyClientCards.find(
-            (c) => c.clientID === selectedClientID
-          );
-          const clientRuns = dummyJobFetchRuns.filter(
-            (r) => r.clientID === selectedClientID
-          );
-          const clientBatches = dummyAdminBatches.filter(
-            (b) => b.clientID === selectedClientID && b.batchStatus === 'Active'
-          );
-
-          const jobsToday = clientRuns
-            .filter((r) => {
-              const runDate = new Date(r.timestamp);
-              const today = new Date();
-              return runDate.toDateString() === today.toDateString();
-            })
-            .reduce((sum, r) => sum + r.jobsFetched, 0);
-
-          return {
-            totalJobsToday: jobsToday,
-            totalJobsWeek: clientRuns.reduce((sum, r) => sum + r.jobsFetched, 0),
-            activeBatches: clientBatches.length,
-            totalApplicationsToday: clientCard?.applicationsToday || 0,
-            totalApplicationsWeek: clientCard?.applicationsToday || 0,
-            successRate: stats.successRate,
-            apifyStatus: stats.apifyStatus,
-          };
-        })();
+  // Note: Stats are already filtered by backend based on selected client
+  // The parent component passes the appropriate stats
+  const filteredStats = stats;
 
   const cards = [
     {

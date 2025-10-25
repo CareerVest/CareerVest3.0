@@ -508,12 +508,12 @@ const permissions: AppPermissions = {
   },
   jobs: {
     Admin: {
-      viewJobsMenu: false,
-      viewBatches: false,
-      applyToJobs: false,
-      skipJobs: false,
-      viewJobDetails: false,
-      switchClients: false,
+      viewJobsMenu: true,
+      viewBatches: true,
+      applyToJobs: true,
+      skipJobs: true,
+      viewJobDetails: true,
+      switchClients: true,
     },
     Marketing_Manager: {
       viewJobsMenu: false,

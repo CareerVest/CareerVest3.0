@@ -17,6 +17,7 @@ export interface Job {
   sourceURL: string;
   applicantCount?: number;
   matchScore: number; // 0-100
+  freshnessStatus?: 'Live' | 'Current' | 'Week_Old' | 'Stale' | 'Expired' | 'Unknown';
 }
 
 export interface ClientWithBatch {
@@ -75,6 +76,7 @@ export interface ApplyJobRequest {
   jobID: number;
   didApply: boolean;
   comments?: string;
+  timeSpentSeconds?: number;
 }
 
 export interface SkipJobRequest {
@@ -83,6 +85,7 @@ export interface SkipJobRequest {
   jobID: number;
   skipReason: SkipReason;
   customReason?: string;
+  timeSpentSeconds?: number;
 }
 
 export type SkipReason =

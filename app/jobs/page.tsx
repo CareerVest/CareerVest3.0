@@ -6,6 +6,7 @@ import { BatchPerformanceBar } from './components/BatchPerformanceBar';
 import { JobCard } from './components/JobCard';
 import { ApplyConfirmationModal } from './components/ApplyConfirmationModal';
 import { SkipFeedbackModal } from './components/SkipFeedbackModal';
+import { ResumeOptimizationPanel } from './components/ResumeOptimizationPanel';
 import { useJobQueue } from './hooks/useJobQueue';
 import { useBatchStats } from './hooks/useBatchStats';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -50,6 +51,7 @@ export default function JobsPage() {
   // Modal states
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [showSkipModal, setShowSkipModal] = useState(false);
+  const [showResumePanel, setShowResumePanel] = useState(false);
   const [pendingAction, setPendingAction] = useState<'apply' | 'skip' | null>(
     null
   );
@@ -68,6 +70,16 @@ export default function JobsPage() {
 
   // Batch stats
   const batchStats = useBatchStats(currentBatch);
+
+  // Time tracking - track time spent on each job
+  const [jobStartTime, setJobStartTime] = useState<number>(Date.now());
+
+  // Reset timer when job changes
+  useEffect(() => {
+    if (currentJob) {
+      setJobStartTime(Date.now());
+    }
+  }, [currentJob?.batchItemID]);
 
   // Load clients and initial data
   useEffect(() => {
@@ -150,6 +162,9 @@ export default function JobsPage() {
     if (!currentJob || !currentBatch) return;
 
     try {
+      // Calculate time spent on this job
+      const timeSpentSeconds = Math.floor((Date.now() - jobStartTime) / 1000);
+
       // Record action in backend
       await recordApply({
         batchItemID: currentJob.batchItemID,
@@ -157,6 +172,7 @@ export default function JobsPage() {
         jobID: currentJob.jobID,
         didApply,
         comments,
+        timeSpentSeconds,
       });
 
       // Update batch item status locally
@@ -214,6 +230,9 @@ export default function JobsPage() {
     if (!currentJob || !currentBatch) return;
 
     try {
+      // Calculate time spent on this job
+      const timeSpentSeconds = Math.floor((Date.now() - jobStartTime) / 1000);
+
       // Record action in backend
       await recordSkip({
         batchItemID: currentJob.batchItemID,
@@ -221,6 +240,7 @@ export default function JobsPage() {
         jobID: currentJob.jobID,
         skipReason,
         customReason,
+        timeSpentSeconds,
       });
 
       // Update batch item status locally
@@ -441,6 +461,7 @@ export default function JobsPage() {
           onSkip={handleSkip}
           onView={handleView}
           onApply={handleApply}
+          onOptimizeResume={() => setShowResumePanel(true)}
         />
       </main>
 
@@ -457,6 +478,13 @@ export default function JobsPage() {
         onOpenChange={setShowSkipModal}
         job={currentJob?.job || null}
         onConfirm={handleSkipConfirm}
+      />
+
+      {/* Resume Optimization Panel */}
+      <ResumeOptimizationPanel
+        isOpen={showResumePanel}
+        onClose={() => setShowResumePanel(false)}
+        job={currentJob?.job || null}
       />
     </div>
   );

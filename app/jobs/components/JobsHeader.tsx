@@ -45,13 +45,8 @@ export function JobsHeader({
           {/* Left side: Title + Batch info */}
           <div className="flex items-center gap-4">
             <h1 className="text-lg font-bold text-[#682A53] whitespace-nowrap">
-              {isAdminView ? 'Admin Console' : 'Jobs'}
+              {isAdminView ? 'Admin Console' : 'Job Portal'}
             </h1>
-            {!isAdminView && (
-              <div className="text-xs text-gray-600 font-medium">
-                Batch #{batchNumber}
-              </div>
-            )}
           </div>
 
           {/* Right side: Client Selector + Admin Toggle */}

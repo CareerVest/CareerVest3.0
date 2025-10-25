@@ -1,7 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { dummyJobFetchRuns } from '../../data/dummyAdminData';
+import { getFetchRuns } from '../../actions/jobsActions';
 import { formatDistanceToNow } from 'date-fns';
 
 interface RecentFetchesTableProps {
@@ -9,8 +10,25 @@ interface RecentFetchesTableProps {
 }
 
 export function RecentFetchesTable({ clientID }: RecentFetchesTableProps) {
-  // Filter runs for this client
-  const clientRuns = dummyJobFetchRuns.filter((run) => run.clientID === clientID);
+  const [fetchRuns, setFetchRuns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadFetchRuns = async () => {
+      try {
+        setLoading(true);
+        const data = await getFetchRuns(clientID);
+        // Ensure data is an array
+        setFetchRuns(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Error loading fetch runs:', error);
+        setFetchRuns([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadFetchRuns();
+  }, [clientID]);
 
   const formatTimeAgo = (dateString: string) => {
     try {
@@ -45,7 +63,18 @@ export function RecentFetchesTable({ clientID }: RecentFetchesTableProps) {
     }
   };
 
-  if (clientRuns.length === 0) {
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <h2 className="text-sm font-bold text-gray-900 mb-3">Recent Job Fetches</h2>
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (fetchRuns.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         <h2 className="text-sm font-bold text-gray-900 mb-3">Recent Job Fetches</h2>
@@ -70,14 +99,14 @@ export function RecentFetchesTable({ clientID }: RecentFetchesTableProps) {
             </tr>
           </thead>
           <tbody>
-            {clientRuns.map((run) => (
-              <tr key={run.runID} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="py-2 text-xs text-gray-700">{formatTimeAgo(run.timestamp)}</td>
-                <td className="py-2 text-xs text-gray-700">{run.sourceName}</td>
-                <td className="py-2 text-xs font-semibold text-gray-900">{run.jobsFetched}</td>
-                <td className="py-2">{getStatusBadge(run.status)}</td>
+            {fetchRuns.map((run) => (
+              <tr key={run.RunID} className="border-b border-gray-100 hover:bg-gray-50">
+                <td className="py-2 text-xs text-gray-700">{formatTimeAgo(run.Timestamp)}</td>
+                <td className="py-2 text-xs text-gray-700">{run.SourceName}</td>
+                <td className="py-2 text-xs font-semibold text-gray-900">{run.JobsFetched}</td>
+                <td className="py-2">{getStatusBadge(run.Status)}</td>
                 <td className="py-2">
-                  {run.status === 'Failed' ? (
+                  {run.Status === 'Failed' ? (
                     <Button
                       size="sm"
                       variant="outline"

@@ -1,3 +1,5 @@
+import { JobSourceFetchSetting } from './fetchSources';
+
 export interface ClientConfiguration {
   configID?: number;
   clientID: number;
@@ -5,7 +7,8 @@ export interface ClientConfiguration {
   clientRole: string;
 
   // Job Search Criteria
-  keywords: string[]; // ["React", "Node.js", "TypeScript"]
+  keywords: string[]; // Job titles: ["Software Engineer", "Data Analyst"]
+  descriptionKeywords: string[]; // Description keywords: ["React", "Node.js", "TypeScript"]
   locations: string[]; // ["San Francisco", "Remote"]
   salaryMin?: number;
   salaryMax?: number;
@@ -13,8 +16,11 @@ export interface ClientConfiguration {
   experienceLevel: string; // "Entry", "Mid", "Senior", "Mid-Senior"
   remotePreference: string; // "Remote", "Hybrid", "On-site", "Any"
 
-  // Job Sources
-  enabledSources: string[]; // ["Apify", "Indeed", "LinkedIn"]
+  // Job Sources - NEW: Array of fetch source settings
+  fetchSources?: JobSourceFetchSetting[];
+
+  // DEPRECATED: Legacy fields (still included for backward compatibility)
+  enabledSources?: string[]; // ["Apify", "Indeed", "LinkedIn"]
 
   // Fetching Settings
   fetchFrequency: string; // "Daily", "Twice Daily", "Weekly"
@@ -91,6 +97,7 @@ export interface ClientCardData {
   clientName: string;
   clientRole: string;
   isConfigured: boolean;
+  isActive: boolean;
   configurationStatus: 'Configured' | 'Needs Setup' | 'In Progress';
   activeBatchID?: number;
   activeBatchGUID?: string;
