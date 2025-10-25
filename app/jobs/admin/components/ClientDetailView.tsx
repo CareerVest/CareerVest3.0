@@ -81,7 +81,7 @@ export function ClientDetailView({
       )}
 
       {/* Job Sources */}
-      {clientConfig && (
+      {clientConfig && clientConfig.configID && (
         <JobSourceCards
           clientID={clientID}
           configurationID={clientConfig.configID}
@@ -101,7 +101,7 @@ export function ClientDetailView({
       <ApplicationChart clientID={clientID} />
 
       {/* Edit Source Modal */}
-      {clientConfig && (
+      {clientConfig && clientConfig.configID && (
         <SourceConfigModal
           isOpen={isEditModalOpen}
           onClose={() => {

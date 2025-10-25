@@ -90,7 +90,10 @@ export default function SkipAnalyticsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50 p-8">
-        <AdminHeader selectedClientID={selectedClientFilter} onClientChange={setSelectedClientFilter} clients={clientCards} />
+        <AdminHeader
+          onAddClient={() => {}}
+          configuredCount={clientCards.filter(c => c.isConfigured).length}
+        />
         <div className="flex items-center justify-center py-20">
           <div className="text-xl text-gray-600">Loading analytics...</div>
         </div>
@@ -100,7 +103,10 @@ export default function SkipAnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50 p-8">
-      <AdminHeader selectedClientID={selectedClientFilter} onClientChange={setSelectedClientFilter} clients={clientCards} />
+      <AdminHeader
+        onAddClient={() => {}}
+        configuredCount={clientCards.filter(c => c.isConfigured).length}
+      />
 
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Page Header */}

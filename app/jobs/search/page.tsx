@@ -230,6 +230,7 @@ export default function JobSearchPage() {
                   onSkip={() => {}}
                   onView={() => window.open(job.sourceURL, '_blank')}
                   onApply={() => window.open(job.sourceURL, '_blank')}
+                  onOptimizeResume={() => {}}
                 />
               ))}
             </div>

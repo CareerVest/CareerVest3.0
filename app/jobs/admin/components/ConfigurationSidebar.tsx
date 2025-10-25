@@ -238,7 +238,7 @@ export function ConfigurationSidebar({
         isPrimary: true,
       };
 
-      let savedConfig;
+      let savedConfig: any;
       if (config.configID && config.configID > 0) {
         savedConfig = await updateClientConfiguration(config.configID, requestData);
         toast.success('Search criteria updated successfully');
